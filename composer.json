@@ -1,0 +1,84 @@
+{
+    "name": "nowo-tech/migrations-kit-bundle",
+    "description": "Symfony bundle providing migration helpers: schema checks (table/column/index exists) and array-based migration definitions. Use in Doctrine Migrations with Symfony 6|7|8.",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "keywords": [
+        "symfony",
+        "bundle",
+        "migrations",
+        "doctrine-migrations",
+        "schema",
+        "table-exists",
+        "column-exists",
+        "migration-helpers",
+        "database",
+        "dbal"
+    ],
+    "homepage": "https://github.com/nowo-tech/migrations-kit-bundle",
+    "support": {
+        "issues": "https://github.com/nowo-tech/migrations-kit-bundle/issues",
+        "source": "https://github.com/nowo-tech/migrations-kit-bundle"
+    },
+    "authors": [
+        {
+            "name": "Héctor Franco Aceituno",
+            "email": "hectorfranco@nowo.tech",
+            "homepage": "https://github.com/HecFranco",
+            "role": "Developer"
+        },
+        {
+            "name": "Nowo.tech",
+            "homepage": "https://nowo.tech"
+        }
+    ],
+    "require": {
+        "php": ">=8.1 <8.6",
+        "doctrine/dbal": "^2.13 || ^3.0 || ^4.0",
+        "doctrine/doctrine-bundle": "^2.8 || ^3.0",
+        "doctrine/migrations": "^3.5 || ^4.0",
+        "symfony/config": "^6.0 || ^7.0 || ^8.0",
+        "symfony/dependency-injection": "^6.0 || ^7.0 || ^8.0",
+        "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
+        "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nowo\\MigrationsKitBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nowo\\MigrationsKitBundle\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
+        }
+    },
+    "archive": {
+        "exclude": ["/demo"]
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage --coverage-clover coverage.xml --coverage-text",
+        "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "vendor/bin/php-cs-fixer fix",
+        "qa": ["@cs-check", "@test"]
+    },
+    "scripts-descriptions": {
+        "test": "Run PHPUnit tests",
+        "test-coverage": "Run PHPUnit tests with code coverage",
+        "cs-check": "Check code style with PHP-CS-Fixer",
+        "cs-fix": "Fix code style with PHP-CS-Fixer",
+        "qa": "Run all quality assurance checks"
+    }
+}

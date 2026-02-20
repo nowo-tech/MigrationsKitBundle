@@ -1,0 +1,28 @@
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: migrations-kit-demo-symfony8-php
+    working_dir: /app
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - ../..:/var/migrations-kit-bundle
+      - composer-cache:/root/.composer/cache
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
+      - APP_ENV=dev
+      - DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db
+    ports:
+      - "${PORT:-8008}:80"
+    networks:
+      - migrations-kit-demo-network
+
+volumes:
+  composer-cache:
+    driver: local
+
+networks:
+  migrations-kit-demo-network:
+    driver: bridge

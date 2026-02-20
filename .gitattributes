@@ -1,0 +1,3 @@
+# Exclude demo from package export (git archive / composer install --prefer-source)
+# So vendor/nowo-tech/migrations-kit-bundle does not contain the demo folder
+/demo export-ignore

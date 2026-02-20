@@ -1,0 +1,8 @@
+{
+    "bundles": {
+        "Nowo\\MigrationsKitBundle\\NowoMigrationsKitBundle": ["all"]
+    },
+    "copy-from-recipe": {
+        "config/": "%CONFIG_DIR%/"
+    }
+}

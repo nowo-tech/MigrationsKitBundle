@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Schema sync status – Migrations Kit Demo{% endblock %}
+
+{% block body %}
+<h1>Schema sync status</h1>
+
+<p>
+    This page shows whether <strong>entity mappings</strong> are in sync with the <strong>database schema</strong>.
+</p>
+
+{% if in_sync %}
+    <p class="ok"><strong>✓ Entities are in sync with the database.</strong></p>
+    <p>All migrations have been applied and the Doctrine entities match the current schema.</p>
+{% else %}
+    <p class="error"><strong>✗ Entities are not in sync with the database.</strong></p>
+    <p>Run migrations to create or update the database schema:</p>
+    <pre><code>php bin/console doctrine:migrations:migrate --no-interaction</code></pre>
+    <p>Or with Docker: <code>make migrate</code> from the demo directory.</p>
+
+    {% if mapping_errors|length > 0 %}
+        <h2>Mapping errors</h2>
+        <ul>
+            {% for error in mapping_errors %}
+                <li><code>{{ error }}</code></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if schema_errors|length > 0 %}
+        <h2>Schema errors (DB vs entities)</h2>
+        <ul>
+            {% for error in schema_errors %}
+                <li><code>{{ error }}</code></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endif %}
+
+<hr>
+<p><small>Demo: Migrations Kit Bundle · Symfony 6 · Web Profiler (toolbar at bottom in dev)</small></p>
+{% endblock %}
