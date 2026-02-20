@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Schema\Definition;
 
 use Doctrine\DBAL\Schema\Schema;
-use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Doctrine\DBAL\Schema\Table;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 
 /**
  * Parses a declarative schema definition (array) into a Doctrine DBAL Schema.
