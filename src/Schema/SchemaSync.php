@@ -10,6 +10,7 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 
@@ -54,16 +55,16 @@ final class SchemaSync
         $platform = $this->connection->getDatabasePlatform();
 
         // New tables: create from definition (parser never sets schema), so platform never looks up "schema.tablename"
-        $tablesDef = $definition['tables'] ?? [];
+        $tablesDef = $definition[MDK::TABLES] ?? [];
         foreach ($tablesDef as $tableName => $tableDef) {
-            if (!\is_array($tableDef) || empty($tableDef['columns'])) {
+            if (!\is_array($tableDef) || empty($tableDef[MDK::COLUMNS])) {
                 continue;
             }
             $tableName = (string) $tableName;
             if ($this->schemaChecker->tableExists($tableName)) {
                 continue;
             }
-            $oneTableSchema = $this->parser->parse(['tables' => [$tableName => $tableDef]]);
+            $oneTableSchema = $this->parser->parse([MDK::TABLES => [$tableName => $tableDef]]);
             $tables = $oneTableSchema->getTables();
             $parsedTable = $tables[$tableName] ?? reset($tables);
             if ($parsedTable !== false) {
@@ -151,16 +152,16 @@ final class SchemaSync
         $platform = $this->connection->getDatabasePlatform();
         $sql = [];
 
-        $tablesDef = $definition['tables'] ?? [];
+        $tablesDef = $definition[MDK::TABLES] ?? [];
         foreach ($tablesDef as $tableName => $tableDef) {
-            if (!\is_array($tableDef) || empty($tableDef['columns'])) {
+            if (!\is_array($tableDef) || empty($tableDef[MDK::COLUMNS])) {
                 continue;
             }
             $tableName = (string) $tableName;
             if ($this->schemaChecker->tableExists($tableName)) {
                 continue;
             }
-            $oneTableSchema = $this->parser->parse(['tables' => [$tableName => $tableDef]]);
+            $oneTableSchema = $this->parser->parse([MDK::TABLES => [$tableName => $tableDef]]);
             $tables = $oneTableSchema->getTables();
             $parsedTable = $tables[$tableName] ?? reset($tables);
             if ($parsedTable !== false) {

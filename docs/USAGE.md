@@ -128,6 +128,31 @@ Table/column/index names are normalized (quotes stripped), so you can pass names
 
 ---
 
+## MigrationDefinitionKeys (claves estándar)
+
+Para unificar y evitar typos en las claves de la definición de migraciones, el bundle proporciona **MigrationDefinitionKeys**, una clase de constantes al estilo de Doctrine Types. Se recomienda usarla en lugar de strings literales. Puedes importarla con el alias **MDK** para acortar el código:
+
+```php
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
+$runner->run([
+    MDK::TABLES => [
+        'users' => ['create_sql' => 'CREATE TABLE users (...)'],
+    ],
+    MDK::COLUMNS => [
+        ['table' => 'users', 'column' => 'email', 'add_sql' => '...'],
+    ],
+    MDK::DATA => [
+        [MDK::INSERT => ['table' => 'config', 'row' => [...]]],
+        [MDK::UPDATE => ['table' => 'config', 'set' => [...], 'where' => [...]]],
+    ],
+], $addSql);
+```
+
+**Constantes disponibles:** `TABLES`, `COLUMNS`, `INDEXES`, `RENAME_COLUMNS`, `MODIFY_COLUMNS`, `DROP_INDEXES`, `DROP_COLUMNS`, `DATA`, `INSERT`, `UPDATE`, `PRIMARY_KEY`. Para listar todas las claves de primer nivel: `MDK::allTopLevel()`.
+
+---
+
 ## MigrationDefinitionRunner
 
 Runs a definition from an array and calls `addSql` only when needed (table or column does not exist).

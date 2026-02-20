@@ -6,6 +6,7 @@ namespace DoctrineMigrations;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionRunner;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 
@@ -30,23 +31,23 @@ final class Version20250219000005 extends AbstractMigration
         };
 
         $runner->run([
-            'data' => [
+            MDK::DATA => [
                 [
-                    'insert' => [
+                    MDK::INSERT => [
                         'table' => 'demo_kit_app_settings',
                         'row' => ['key_name' => 'app.version', 'value' => '1.0'],
                         'only_if_not_exists' => ['key_name' => 'app.version'],
                     ],
                 ],
                 [
-                    'insert' => [
+                    MDK::INSERT => [
                         'table' => 'demo_kit_app_settings',
                         'row' => ['key_name' => 'app.name', 'value' => 'MigrationsKit Demo'],
                         'only_if_not_exists' => ['key_name' => 'app.name'],
                     ],
                 ],
                 [
-                    'update' => [
+                    MDK::UPDATE => [
                         'table' => 'demo_kit_app_settings',
                         'set' => ['value' => '1.1'],
                         'where' => ['key_name' => 'app.version'],

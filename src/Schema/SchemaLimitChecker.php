@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Schema;
 
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
 /**
  * Checks a declarative schema definition against platform limits (MySQL/InnoDB).
  *
@@ -50,14 +52,14 @@ final class SchemaLimitChecker
         }
 
         $warnings = [];
-        $tables = $definition['tables'] ?? [];
+        $tables = $definition[MDK::TABLES] ?? [];
 
         foreach ($tables as $tableName => $tableDef) {
             if (!\is_array($tableDef)) {
                 continue;
             }
-            $columns = $tableDef['columns'] ?? [];
-            $indexes = $tableDef['indexes'] ?? [];
+            $columns = $tableDef[MDK::COLUMNS] ?? [];
+            $indexes = $tableDef[MDK::INDEXES] ?? [];
             $columnCount = \count($columns);
 
             if ($columnCount > self::MYSQL_MAX_COLUMNS_PER_TABLE) {
@@ -90,7 +92,7 @@ final class SchemaLimitChecker
             }
 
             foreach ($indexes as $indexName => $indexDef) {
-                $indexCols = $indexDef['columns'] ?? $indexDef;
+                $indexCols = $indexDef[MDK::COLUMNS] ?? $indexDef;
                 if (!\is_array($indexCols)) {
                     $indexCols = [$indexCols];
                 }

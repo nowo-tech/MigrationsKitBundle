@@ -6,6 +6,33 @@ This document describes the **declarative schema definition** format and the **S
 
 ---
 
+## MigrationDefinitionKeys (claves estándar)
+
+Las claves de la definición (`tables`, `columns`, `primary_key`, `indexes`, `data`, `insert`, `update`, etc.) están centralizadas en **MigrationDefinitionKeys**, al estilo de los Types de Doctrine. Usar estas constantes evita errores de escritura y estandariza el código. Se recomienda el alias **MDK** para código más corto:
+
+```php
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
+$definition = [
+    MDK::TABLES => [
+        'users' => [
+            MDK::COLUMNS => [
+                'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                'email' => ['type' => 'string', 'length' => 180, 'notnull' => true],
+            ],
+            MDK::PRIMARY_KEY => ['id'],
+            MDK::INDEXES => [
+                'uniq_email' => [MDK::COLUMNS => ['email'], 'unique' => true],
+            ],
+        ],
+    ],
+];
+```
+
+Constantes: `TABLES`, `COLUMNS`, `INDEXES`, `PRIMARY_KEY`, `DATA`, `INSERT`, `UPDATE`, y las de alteraciones (`RENAME_COLUMNS`, `MODIFY_COLUMNS`, `DROP_INDEXES`, `DROP_COLUMNS`). Ver [USAGE.md](USAGE.md#migrationdefinitionkeys-claves-estándar) para el listado completo.
+
+---
+
 ## Definition format
 
 Top-level key: `tables`. Each table has:

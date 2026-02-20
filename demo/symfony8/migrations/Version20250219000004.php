@@ -6,6 +6,7 @@ namespace DoctrineMigrations;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use Nowo\MigrationsKitBundle\Schema\SchemaLimitChecker;
@@ -34,17 +35,17 @@ final class Version20250219000004 extends AbstractMigration
         $limitChecker = new SchemaLimitChecker();
 
         $definition = [
-            'tables' => [
+            MDK::TABLES => [
                 'demo_kit_product' => [
-                    'columns' => [
+                    MDK::COLUMNS => [
                         'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
                         'name' => ['type' => 'string', 'length' => 255, 'notnull' => true],
                         'price' => ['type' => 'decimal', 'precision' => 10, 'scale' => 2, 'notnull' => true],
                         'created_at' => ['type' => 'datetime_immutable', 'notnull' => false],
                     ],
-                    'primary_key' => ['id'],
-                    'indexes' => [
-                        'idx_demo_kit_product_name' => ['columns' => ['name']],
+                    MDK::PRIMARY_KEY => ['id'],
+                    MDK::INDEXES => [
+                        'idx_demo_kit_product_name' => [MDK::COLUMNS => ['name']],
                     ],
                 ],
             ],

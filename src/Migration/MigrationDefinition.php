@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Migration;
 
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
 /**
  * Typed migration definition for use with MigrationDefinitionRunner.
  *
@@ -62,14 +64,14 @@ final readonly class MigrationDefinition
     public static function fromArray(array $definition): self
     {
         return new self(
-            tables: $definition['tables'] ?? [],
-            columns: $definition['columns'] ?? [],
-            indexes: $definition['indexes'] ?? [],
-            renameColumns: $definition['rename_columns'] ?? [],
-            modifyColumns: $definition['modify_columns'] ?? [],
-            dropIndexes: $definition['drop_indexes'] ?? [],
-            dropColumns: $definition['drop_columns'] ?? [],
-            data: $definition['data'] ?? [],
+            tables: $definition[MDK::TABLES] ?? [],
+            columns: $definition[MDK::COLUMNS] ?? [],
+            indexes: $definition[MDK::INDEXES] ?? [],
+            renameColumns: $definition[MDK::RENAME_COLUMNS] ?? [],
+            modifyColumns: $definition[MDK::MODIFY_COLUMNS] ?? [],
+            dropIndexes: $definition[MDK::DROP_INDEXES] ?? [],
+            dropColumns: $definition[MDK::DROP_COLUMNS] ?? [],
+            data: $definition[MDK::DATA] ?? [],
         );
     }
 
@@ -92,28 +94,28 @@ final readonly class MigrationDefinition
     {
         $definition = [];
         if ($this->tables !== []) {
-            $definition['tables'] = $this->tables;
+            $definition[MDK::TABLES] = $this->tables;
         }
         if ($this->columns !== []) {
-            $definition['columns'] = $this->columns;
+            $definition[MDK::COLUMNS] = $this->columns;
         }
         if ($this->indexes !== []) {
-            $definition['indexes'] = $this->indexes;
+            $definition[MDK::INDEXES] = $this->indexes;
         }
         if ($this->renameColumns !== []) {
-            $definition['rename_columns'] = $this->renameColumns;
+            $definition[MDK::RENAME_COLUMNS] = $this->renameColumns;
         }
         if ($this->modifyColumns !== []) {
-            $definition['modify_columns'] = $this->modifyColumns;
+            $definition[MDK::MODIFY_COLUMNS] = $this->modifyColumns;
         }
         if ($this->dropIndexes !== []) {
-            $definition['drop_indexes'] = $this->dropIndexes;
+            $definition[MDK::DROP_INDEXES] = $this->dropIndexes;
         }
         if ($this->dropColumns !== []) {
-            $definition['drop_columns'] = $this->dropColumns;
+            $definition[MDK::DROP_COLUMNS] = $this->dropColumns;
         }
         if ($this->data !== []) {
-            $definition['data'] = $this->data;
+            $definition[MDK::DATA] = $this->data;
         }
 
         return $definition;

@@ -6,6 +6,7 @@ namespace DoctrineMigrations;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionRunner;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Schema\StandardColumns;
@@ -33,7 +34,7 @@ final class Version20250219000006 extends AbstractMigration
         };
 
         $runner->run([
-            'columns' => StandardColumns::auditColumnSteps('demo_kit_users', $isSqlite),
+            MDK::COLUMNS => StandardColumns::auditColumnSteps('demo_kit_users', $isSqlite),
         ], $addSql);
 
         foreach (StandardColumns::auditIndexSteps('demo_kit_users', $isSqlite) as $step) {

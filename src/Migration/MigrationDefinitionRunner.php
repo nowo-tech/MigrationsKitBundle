@@ -56,7 +56,7 @@ final class MigrationDefinitionRunner
         $definition = $this->resolveDefinition($definitionOrAddSql, $addSqlOrDefinition);
         $addSql = $this->resolveAddSql($definitionOrAddSql, $addSqlOrDefinition, $definition);
 
-        $tables = $definition['tables'] ?? [];
+        $tables = $definition[MDK::TABLES] ?? [];
         foreach ($tables as $tableName => $tableDef) {
             if (!\is_array($tableDef) || empty($tableDef['create_sql'])) {
                 continue;
@@ -66,7 +66,7 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $columns = $definition['columns'] ?? [];
+        $columns = $definition[MDK::COLUMNS] ?? [];
         foreach ($columns as $col) {
             if (!\is_array($col) || empty($col['table']) || empty($col['column']) || empty($col['add_sql'])) {
                 continue;
@@ -76,7 +76,7 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $indexes = $definition['indexes'] ?? [];
+        $indexes = $definition[MDK::INDEXES] ?? [];
         foreach ($indexes as $idx) {
             if (!\is_array($idx) || empty($idx['table']) || empty($idx['index_name']) || empty($idx['add_sql'])) {
                 continue;
@@ -86,7 +86,7 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $renameColumns = $definition['rename_columns'] ?? [];
+        $renameColumns = $definition[MDK::RENAME_COLUMNS] ?? [];
         foreach ($renameColumns as $rc) {
             if (!\is_array($rc) || empty($rc['table']) || empty($rc['old_name']) || empty($rc['rename_sql'])) {
                 continue;
@@ -96,7 +96,7 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $modifyColumns = $definition['modify_columns'] ?? [];
+        $modifyColumns = $definition[MDK::MODIFY_COLUMNS] ?? [];
         foreach ($modifyColumns as $mc) {
             if (!\is_array($mc) || empty($mc['table']) || empty($mc['column']) || empty($mc['modify_sql'])) {
                 continue;
@@ -106,7 +106,7 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $dropIndexes = $definition['drop_indexes'] ?? [];
+        $dropIndexes = $definition[MDK::DROP_INDEXES] ?? [];
         foreach ($dropIndexes as $di) {
             if (!\is_array($di) || empty($di['table']) || empty($di['index_name']) || empty($di['drop_sql'])) {
                 continue;
@@ -116,7 +116,7 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $dropColumns = $definition['drop_columns'] ?? [];
+        $dropColumns = $definition[MDK::DROP_COLUMNS] ?? [];
         foreach ($dropColumns as $dc) {
             if (!\is_array($dc) || empty($dc['table']) || empty($dc['column']) || empty($dc['drop_sql'])) {
                 continue;
@@ -126,15 +126,15 @@ final class MigrationDefinitionRunner
             }
         }
 
-        $dataSteps = $definition['data'] ?? [];
+        $dataSteps = $definition[MDK::DATA] ?? [];
         foreach ($dataSteps as $step) {
             if (!\is_array($step)) {
                 continue;
             }
-            if (isset($step['insert'])) {
-                $this->runInsertStep($step['insert'], $addSql);
-            } elseif (isset($step['update'])) {
-                $this->runUpdateStep($step['update'], $addSql);
+            if (isset($step[MDK::INSERT])) {
+                $this->runInsertStep($step[MDK::INSERT], $addSql);
+            } elseif (isset($step[MDK::UPDATE])) {
+                $this->runUpdateStep($step[MDK::UPDATE], $addSql);
             }
         }
     }
@@ -217,7 +217,7 @@ final class MigrationDefinitionRunner
      */
     private function resolveDefinition(array|callable $definitionOrAddSql, array|callable $addSqlOrDefinition): array
     {
-        $definitionKeys = ['tables', 'columns', 'indexes', 'rename_columns', 'modify_columns', 'drop_indexes', 'drop_columns', 'data'];
+        $definitionKeys = MDK::allTopLevel();
         $firstIsDefinition = \is_array($definitionOrAddSql) && $this->hasAnyKey($definitionOrAddSql, $definitionKeys);
         $secondIsDefinition = \is_array($addSqlOrDefinition) && $this->hasAnyKey($addSqlOrDefinition, $definitionKeys);
         if ($firstIsDefinition && !$secondIsDefinition) {

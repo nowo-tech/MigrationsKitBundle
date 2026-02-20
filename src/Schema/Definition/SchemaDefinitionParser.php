@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Schema\Definition;
 
 use Doctrine\DBAL\Schema\Schema;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Doctrine\DBAL\Schema\Table;
 
 /**
@@ -44,10 +45,10 @@ final class SchemaDefinitionParser
     public function parse(array $definition): Schema
     {
         $schema = new Schema();
-        $tables = $definition['tables'] ?? [];
+        $tables = $definition[MDK::TABLES] ?? [];
 
         foreach ($tables as $tableName => $tableDef) {
-            if (!\is_array($tableDef) || empty($tableDef['columns'])) {
+            if (!\is_array($tableDef) || empty($tableDef[MDK::COLUMNS])) {
                 continue;
             }
             $table = $this->parseTable((string) $tableName, $tableDef);
@@ -72,7 +73,7 @@ final class SchemaDefinitionParser
     private function schemaAddTable(Schema $schema, Table $table): void
     {
         $ref = new \ReflectionClass($schema);
-        $propName = $ref->hasProperty('_tables') ? '_tables' : 'tables';
+        $propName = $ref->hasProperty('_tables') ? '_tables' : MDK::TABLES;
         $prop = $ref->getProperty($propName);
         if (!$prop->isPublic()) {
             $prop->setAccessible(true);
@@ -84,9 +85,9 @@ final class SchemaDefinitionParser
 
     private function parseTable(string $tableName, array $tableDef): Table
     {
-        $columns = $tableDef['columns'] ?? [];
-        $primaryKey = $tableDef['primary_key'] ?? null;
-        $indexes = $tableDef['indexes'] ?? [];
+        $columns = $tableDef[MDK::COLUMNS] ?? [];
+        $primaryKey = $tableDef[MDK::PRIMARY_KEY] ?? null;
+        $indexes = $tableDef[MDK::INDEXES] ?? [];
         $options = $tableDef['options'] ?? [];
 
         $table = new Table($tableName);
