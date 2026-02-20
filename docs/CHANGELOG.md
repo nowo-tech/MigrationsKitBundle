@@ -21,6 +21,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-02-20
+
+### Added
+
+- **MigrationDefinitionRunner:** New step keys in `run()`: `indexes` (add index if not exists), `rename_columns` (run rename_sql if old column exists), `modify_columns` (run modify_sql if column exists), `drop_indexes` (run drop_sql if index exists), `drop_columns` (run drop_sql if column exists). Order: tables → columns → indexes → rename_columns → modify_columns → drop_indexes → drop_columns → data. See [USAGE.md](USAGE.md).
+- **Direct methods:** `modifyColumn()`, `dropColumn()`, `dropIndex()`, `ensureForeignKey()` — run the given SQL only when the condition holds (column/index/FK exists or not).
+- **SchemaCheckerInterface:** New interface for schema checks; `SchemaChecker` implements it. Enables mocking in unit tests (PHPUnit cannot mock final classes). Service alias in DI: `SchemaCheckerInterface` → `SchemaChecker`.
+- **MigrationDefinition:** Typed value object for the full definition (tables, columns, indexes, renameColumns, modifyColumns, dropIndexes, dropColumns, data). Use `new MigrationDefinition(...)->run($runner, $addSql)` or `MigrationDefinition::fromArray([...])->run($runner, $addSql)`. PHPStan types documented. See [USAGE.md](USAGE.md#migrationdefinition-typed).
+- **Composer/Makefile:** Scripts use `vendor/bin/phpunit` and `vendor/bin/php-cs-fixer`. `make test`, `make test-coverage`, `make cs-check`, `make qa` depend on `install` so the container has dependencies before running.
+- **Coverage in console:** `composer test-coverage` uses `--coverage-text=php://stdout` and `--colors=always` so coverage percentage is shown in the terminal.
+- **Makefile and Dockerfile:** Comments and help text in English; Dockerfile documents PCOV for coverage in the container.
+
+### Changed
+
+- **phpunit.xml.dist:** Removed invalid `<coverage>` block (PHPUnit 10.5 XSD); coverage is driven by CLI options in `test-coverage` script.
+
+### Fixed
+
+- **Tests:** MigrationDefinitionRunner tests now mock `SchemaCheckerInterface` instead of final `SchemaChecker`, fixing "Class is declared final and cannot be doubled" (21 tests).
+
+---
+
 ## [1.1.0] - 2026-02-20
 
 ### Added

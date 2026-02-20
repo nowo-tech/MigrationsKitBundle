@@ -19,11 +19,4 @@
             <directory>src/Resources</directory>
         </exclude>
     </source>
-    <coverage>
-        <report>
-            <html outputDirectory="coverage"/>
-            <clover outputFile="coverage.xml"/>
-            <text outputUncoveredFiles="true"/>
-        </report>
-    </coverage>
 </phpunit>

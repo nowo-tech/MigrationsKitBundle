@@ -29,6 +29,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 1.2.0
+
+- **New features:** Extended `MigrationDefinitionRunner::run()` with `indexes`, `rename_columns`, `modify_columns`, `drop_indexes`, `drop_columns`; new methods `modifyColumn()`, `dropColumn()`, `dropIndex()`, `ensureForeignKey()`; **SchemaCheckerInterface** for testing; **MigrationDefinition** typed value object. See [CHANGELOG.md](CHANGELOG.md#120---2026-02-20).
+- **DI:** If you type-hint `SchemaCheckerInterface` in your code (e.g. custom migration factory), it resolves to the same `SchemaChecker` service. No config change needed.
+- **No breaking changes.** Existing migrations using the array format or `SchemaChecker` continue to work. Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache.
+
+---
+
 ## Upgrading to 1.1.0
 
 - **New features:** Data steps in `MigrationDefinitionRunner::run()` (insert/update with `only_if_not_exists` / `only_if_exists`), `SchemaChecker::rowExists()` and `getConnection()`, and the **StandardColumns** class for audit fields. See [CHANGELOG.md](CHANGELOG.md#110---2026-02-20).

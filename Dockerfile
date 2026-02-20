@@ -12,7 +12,7 @@ RUN docker-php-ext-install -j$(nproc) \
     zip \
     intl
 
-# PCOV for code coverage (faster than Xdebug)
+# POC: PCOV for code coverage in the container (make test-coverage; faster than Xdebug)
 RUN apk add --no-cache $PHPIZE_DEPS \
     && pecl install pcov \
     && docker-php-ext-enable pcov \

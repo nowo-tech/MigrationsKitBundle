@@ -26,7 +26,8 @@ Looking for **Doctrine migrations helpers**, **table exists migration**, **colum
 ## Features
 
 - ✅ **SchemaChecker** — `tableExists`, `columnExists`, `indexExists`, `hasPrimaryKey`, `foreignKeyExists`, `listTableColumns`; no container injection: `new SchemaChecker($this->connection)`
-- ✅ **MigrationDefinitionRunner** — run from an array (`tables`, `columns`, and `data` for insert/update steps with `only_if_not_exists` / `only_if_exists`); only executes SQL when the target does not exist; `ensureTable`, `ensureColumn`, `ensureIndex`
+- ✅ **MigrationDefinitionRunner** — run from an array (`tables`, `columns`, `indexes`, `rename_columns`, `modify_columns`, `drop_indexes`, `drop_columns`, `data`); only executes SQL when the condition holds; `ensureTable`, `ensureColumn`, `ensureIndex`, `modifyColumn`, `dropColumn`, `dropIndex`, `ensureForeignKey`
+- ✅ **MigrationDefinition** — typed value object for the full definition; `$def->run($runner, $addSql)` in each migration
 - ✅ **StandardColumns** — reusable audit columns and indexes (`created_at`, `updated_at`, `created_by`, `updated_by`); use with SchemaSync or MigrationDefinitionRunner
 - ✅ **Declarative schema (SchemaSync)** — describe the desired schema in one array; create/drop tables, add/drop/change columns and indexes; requires DBAL 3.x or 4.x
 - ✅ Compatible with **Doctrine DBAL 2.x, 3.x, 4.x** and **doctrine/migrations 3.x, 4.x**

@@ -1,12 +1,12 @@
 # Makefile for Migrations Kit Bundle
-# Development and QA targets (se ejecutan dentro del contenedor Docker)
+# Development and QA targets run inside the Docker container
 #
 COMPOSE_FILE := docker-compose.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
 SERVICE_PHP := php
 RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 
-# Solo para targets de demo que se ejecutan en el host (demo-up-*, demo-migrate-*)
+# For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
 .PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate
@@ -18,12 +18,12 @@ help:
 	@echo "Migrations Kit Bundle - Development Commands (Docker)"
 	@echo ""
 	@echo "Usage: make <target>"
-	@echo "  Los targets de desarrollo se ejecutan dentro del contenedor."
+	@echo "  Development targets run inside the container."
 	@echo ""
 	@echo "Targets:"
 	@echo "  install       Install Composer dependencies"
 	@echo "  test          Run PHPUnit tests"
-	@echo "  test-coverage Run tests with code coverage"
+	@echo "  test-coverage Run tests with code coverage (PCOV in container)"
 	@echo "  cs-check      Check code style (PHP-CS-Fixer)"
 	@echo "  cs-fix        Fix code style"
 	@echo "  qa            Run all QA (cs-check + test)"
@@ -39,20 +39,20 @@ help:
 	@echo "  demo-migrate-symfony7  Run migrations in demo/symfony7"
 	@echo "  demo-migrate-symfony8  Run migrations in demo/symfony8"
 	@echo ""
-	@echo "Demos con Docker (FrankenPHP):"
-	@echo "  up             Levantar demo symfony8 (http://localhost:8008)"
-	@echo "  up-symfony6    Levantar demo symfony6 (http://localhost:8006)"
-	@echo "  up-symfony7    Levantar demo symfony7 (http://localhost:8007)"
-	@echo "  up-symfony8    Levantar demo symfony8 (http://localhost:8008)"
+	@echo "Demos with Docker (FrankenPHP):"
+	@echo "  up             Start demo symfony8 (http://localhost:8008)"
+	@echo "  up-symfony6    Start demo symfony6 (http://localhost:8006)"
+	@echo "  up-symfony7    Start demo symfony7 (http://localhost:8007)"
+	@echo "  up-symfony8    Start demo symfony8 (http://localhost:8008)"
 	@echo "  build          Rebuild Docker image (no cache)"
 	@echo "  shell          Open shell in container"
 	@echo "  demo-install   Install Composer dependencies"
 	@echo ""
 
-# Asegura que el contenedor esté levantado; si no, levanta docker compose
+# Ensure the container is up; if not, start docker compose
 ensure-up:
 	@if ! $(COMPOSE) exec -T $(SERVICE_PHP) true 2>/dev/null; then \
-		echo "Contenedor no levantado. Iniciando docker compose..."; \
+		echo "Container not running. Starting docker compose..."; \
 		$(COMPOSE) up -d; \
 		sleep 2; \
 	fi
