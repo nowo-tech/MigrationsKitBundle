@@ -118,6 +118,7 @@ For **SchemaSync** (declarative schema) and more examples, see [docs/USAGE.md](d
 | [**Changelog**](docs/CHANGELOG.md) | Version history |
 | [**Upgrading**](docs/UPGRADING.md) | Upgrade notes between versions |
 | [**Roadmap**](docs/ROADMAP.md) | Vision and future ideas |
+| [**Security**](docs/SECURITY.md) | Reporting vulnerabilities |
 | [**Contributing**](docs/CONTRIBUTING.md) | How to contribute and code style |
 | [**Release**](docs/RELEASE.md) | Release checklist (for maintainers) |
 

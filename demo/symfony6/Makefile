@@ -40,6 +40,9 @@ up:
 down:
 	$(COMPOSE) down
 
+restart: ensure-up
+	$(COMPOSE) restart
+
 build:
 	$(COMPOSE) build --no-cache
 

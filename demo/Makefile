@@ -2,9 +2,10 @@
 # From bundle root: make demo-up-symfony8 / make demo-migrate-symfony8
 # From demo/: make up-symfony8 / make migrate-symfony8 (no Docker), or make docker-up-symfony8 (Docker)
 
-.PHONY: help up-all migrate-all clean-all
+.PHONY: help up-all migrate-all clean-all release-verify
 .PHONY: up-symfony6 up-symfony7 up-symfony8 migrate-symfony6 migrate-symfony7 migrate-symfony8
 .PHONY: docker-up-symfony6 docker-up-symfony7 docker-up-symfony8 docker-down-symfony6 docker-down-symfony7 docker-down-symfony8
+.PHONY: docker-restart-symfony6 docker-restart-symfony7 docker-restart-symfony8 docker-build-symfony6 docker-build-symfony7 docker-build-symfony8
 .PHONY: docker-install-symfony6 docker-install-symfony7 docker-install-symfony8
 .PHONY: docker-setup-symfony6 docker-setup-symfony7 docker-setup-symfony8 docker-update-bundle-symfony6 docker-update-bundle-symfony7 docker-update-bundle-symfony8
 
@@ -28,6 +29,12 @@ help:
 	@echo "  docker-up-symfony7   Start container demo/symfony7"
 	@echo "  docker-up-symfony8   Start container demo/symfony8"
 	@echo "  docker-down-symfony6  Stop container demo/symfony6"
+	@echo "  docker-restart-symfony6  Restart container (demo/symfony6)"
+	@echo "  docker-restart-symfony7  Restart container (demo/symfony7)"
+	@echo "  docker-restart-symfony8  Restart container (demo/symfony8)"
+	@echo "  docker-build-symfony6    Rebuild image no cache (demo/symfony6)"
+	@echo "  docker-build-symfony7    Rebuild image no cache (demo/symfony7)"
+	@echo "  docker-build-symfony8    Rebuild image no cache (demo/symfony8)"
 	@echo "  docker-install-symfony6  composer install in container (demo/symfony6)"
 	@echo "  docker-install-symfony7  composer install in container (demo/symfony7)"
 	@echo "  docker-install-symfony8  composer install in container (demo/symfony8)"
@@ -41,6 +48,7 @@ help:
 	@echo "  up-all         Install dependencies in all demos (no Docker)"
 	@echo "  migrate-all    Run migrations in all demos (no Docker)"
 	@echo "  clean-all      Remove vendor/ and var/ in all demos"
+	@echo "  release-verify Start each demo, healthcheck (HTTP 200), then stop (for release-check)"
 	@echo ""
 
 up-all:
@@ -51,6 +59,20 @@ migrate-all:
 
 clean-all:
 	@for d in $(DEMOS); do rm -rf $$d/vendor $$d/var; echo "Cleaned $$d"; done
+
+release-verify:
+	@for d in $(DEMOS); do \
+		port=$$(grep '^PORT=' $$d/.env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+		[ -z "$$port" ] && port=$$(case $$d in symfony6) echo 8006;; symfony7) echo 8007;; symfony8) echo 8008;; *) echo 8000;; esac); \
+		echo "🔍 Release verify: $$d (port $$port)..."; \
+		$(MAKE) docker-up-$$d; \
+		echo "⏳ Waiting for $$d to be ready..."; sleep 15; \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$$port 2>/dev/null || echo "000"); \
+		$(MAKE) docker-down-$$d 2>/dev/null || true; \
+		if [ "$$code" != "200" ]; then echo "❌ $$d healthcheck failed (HTTP $$code)"; exit 1; fi; \
+		echo "✅ $$d OK (HTTP $$code)"; \
+	done
+	@echo "✅ All demos passed release-verify."
 
 up-symfony6:
 	$(MAKE) -C .. demo-up-symfony6
@@ -88,6 +110,24 @@ docker-down-symfony7:
 
 docker-down-symfony8:
 	$(MAKE) -C symfony8 down
+
+docker-restart-symfony6:
+	$(MAKE) -C symfony6 restart
+
+docker-restart-symfony7:
+	$(MAKE) -C symfony7 restart
+
+docker-restart-symfony8:
+	$(MAKE) -C symfony8 restart
+
+docker-build-symfony6:
+	$(MAKE) -C symfony6 build
+
+docker-build-symfony7:
+	$(MAKE) -C symfony7 build
+
+docker-build-symfony8:
+	$(MAKE) -C symfony8 build
 
 docker-install-symfony6:
 	$(MAKE) -C symfony6 install

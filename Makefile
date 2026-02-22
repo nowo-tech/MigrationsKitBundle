@@ -9,9 +9,9 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets
+.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync
 .PHONY: demo-up-symfony6 demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony6 demo-migrate-symfony7 demo-migrate-symfony8
-.PHONY: up up-symfony6 up-symfony7 up-symfony8 build shell demo-install
+.PHONY: up down up-symfony6 up-symfony7 up-symfony8 build shell demo-install
 
 # Default target
 help:
@@ -27,6 +27,8 @@ help:
 	@echo "  cs-check      Check code style (PHP-CS-Fixer)"
 	@echo "  cs-fix        Fix code style"
 	@echo "  qa            Run all QA (cs-check + test)"
+	@echo "  release-check Pre-release: cs-fix, cs-check, test-coverage, demo healthchecks"
+	@echo "  composer-sync Validate composer.json and align composer.lock (no install)"
 	@echo "  clean         Remove vendor, cache, coverage"
 	@echo "  update        Update composer.lock (composer update)"
 	@echo "  validate      Run composer validate --strict"
@@ -42,6 +44,7 @@ help:
 	@echo ""
 	@echo "Demos with Docker (FrankenPHP):"
 	@echo "  up             Start demo symfony8 (http://localhost:8008)"
+	@echo "  down           Stop demo containers"
 	@echo "  up-symfony6    Start demo symfony6 (http://localhost:8006)"
 	@echo "  up-symfony7    Start demo symfony7 (http://localhost:8007)"
 	@echo "  up-symfony8    Start demo symfony8 (http://localhost:8008)"
@@ -75,6 +78,15 @@ cs-fix: install
 
 qa: install
 	$(RUN) composer qa
+
+release-check: ensure-up composer-sync cs-fix cs-check test-coverage release-check-demos
+
+release-check-demos:
+	@$(MAKE) -C demo release-verify
+
+composer-sync: ensure-up
+	$(RUN) composer validate --strict
+	$(RUN) composer update --no-install
 
 clean: ensure-up
 	$(RUN) sh -c 'rm -rf vendor .phpunit.cache coverage coverage.xml .php-cs-fixer.cache'
@@ -116,6 +128,9 @@ demo-migrate-symfony8:
 
 # Demo con Docker (FrankenPHP)
 up: up-symfony8
+
+down:
+	$(MAKE) -C demo/symfony8 down
 
 up-symfony6:
 	$(MAKE) -C demo/symfony6 up
