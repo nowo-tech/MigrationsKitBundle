@@ -29,6 +29,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 1.2.1
+
+- **Fixes:** DBAL 4 compatibility in SchemaSync (type names, altered tables, drop tables) and SchemaDefinitionParser; MigrationDefinitionRunner MDK import fix. No API or config changes.
+- **Docs:** Documentation and in-code comments are now in English.
+- **No breaking changes.** Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache.
+
+---
+
 ## Upgrading to 1.2.0
 
 - **New features:** Extended `MigrationDefinitionRunner::run()` with `indexes`, `rename_columns`, `modify_columns`, `drop_indexes`, `drop_columns`; new methods `modifyColumn()`, `dropColumn()`, `dropIndex()`, `ensureForeignKey()`; **SchemaCheckerInterface** for testing; **MigrationDefinition** typed value object. See [CHANGELOG.md](CHANGELOG.md#120---2026-02-20).

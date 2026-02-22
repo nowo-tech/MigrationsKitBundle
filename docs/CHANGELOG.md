@@ -21,6 +21,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-02-22
+
+### Fixed
+
+- **SchemaSync (DBAL 4):** Column type name resolution when building tables: use `Type::lookupName()` when `Type::getName()` is not available (DBAL 4). Ensures `buildTableWithShortNameOnly` works with DBAL 4.
+- **SchemaSync (DBAL 4):** Support `SchemaDiff::getAlteredTables()` in addition to `getModifiedTables()` for modified tables; support `TableDiff::getOldTable()->getName()` for diff table name when `name` / `getName()` are not present.
+- **SchemaSync (DBAL 4):** Use `getDropTablesSQL()` when available for dropping tables; fallback to per-table `getDropTableSQL()` with quoted names for older platforms.
+- **SchemaDefinitionParser (DBAL 4):** Broader exception handling when `Schema::createTable(Table)` fails (e.g. "must be of type string"), so the reflection-based table injection works with current DBAL 4.
+- **MigrationDefinitionRunner:** Add missing `use` for `MigrationDefinitionKeys as MDK` so `run()` works when using the constants class.
+
+### Changed
+
+- **Documentation:** All user-facing docs and comments in English (README, USAGE.md, DECLARATIVE_SCHEMA.md, phpunit.xml.dist).
+- **Tests:** Improved test coverage (MigrationDefinitionRunner, SchemaChecker, SchemaLimitChecker, SchemaDefinitionParser, MigrationDefinition, StandardColumns, DependencyInjection, SchemaSync tests with mocks). Coverage report excludes `SchemaSync.php` from the percentage (complex DBAL integration); remaining code meets the coverage target.
+
+---
+
 ## [1.2.0] - 2026-02-20
 
 ### Added

@@ -128,9 +128,9 @@ Table/column/index names are normalized (quotes stripped), so you can pass names
 
 ---
 
-## MigrationDefinitionKeys (claves estándar)
+## MigrationDefinitionKeys (standard keys)
 
-Para unificar y evitar typos en las claves de la definición de migraciones, el bundle proporciona **MigrationDefinitionKeys**, una clase de constantes al estilo de Doctrine Types. Se recomienda usarla en lugar de strings literales. Puedes importarla con el alias **MDK** para acortar el código:
+To unify and avoid typos in migration definition keys, the bundle provides **MigrationDefinitionKeys**, a constants class in the style of Doctrine Types. Use it instead of string literals. You can import it with the **MDK** alias for shorter code:
 
 ```php
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
@@ -149,7 +149,7 @@ $runner->run([
 ], $addSql);
 ```
 
-**Constantes disponibles:** `TABLES`, `COLUMNS`, `INDEXES`, `RENAME_COLUMNS`, `MODIFY_COLUMNS`, `DROP_INDEXES`, `DROP_COLUMNS`, `DATA`, `INSERT`, `UPDATE`, `PRIMARY_KEY`. Para listar todas las claves de primer nivel: `MDK::allTopLevel()`.
+**Available constants:** `TABLES`, `COLUMNS`, `INDEXES`, `RENAME_COLUMNS`, `MODIFY_COLUMNS`, `DROP_INDEXES`, `DROP_COLUMNS`, `DATA`, `INSERT`, `UPDATE`, `PRIMARY_KEY`. To list all top-level keys: `MDK::allTopLevel()`.
 
 ---
 
