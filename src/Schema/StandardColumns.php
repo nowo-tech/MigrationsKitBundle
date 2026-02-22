@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Schema;
 
+use function sprintf;
+
 /**
  * Reusable definitions for standard audit columns and indexes.
  *
@@ -59,7 +61,7 @@ final class StandardColumns
     {
         return array_merge(
             self::timestampColumns($nullable),
-            self::userRefColumns($nullable)
+            self::userRefColumns($nullable),
         );
     }
 
@@ -90,6 +92,7 @@ final class StandardColumns
                 ['table' => $table, 'column' => 'updated_at', 'add_sql' => sprintf('ALTER TABLE %s ADD COLUMN updated_at DATETIME DEFAULT NULL', $t)],
             ];
         }
+
         return [
             ['table' => $table, 'column' => 'created_at', 'add_sql' => sprintf('ALTER TABLE %s ADD created_at DATETIME DEFAULT NULL', $t)],
             ['table' => $table, 'column' => 'updated_at', 'add_sql' => sprintf('ALTER TABLE %s ADD updated_at DATETIME DEFAULT NULL', $t)],
@@ -110,6 +113,7 @@ final class StandardColumns
                 ['table' => $table, 'column' => 'updated_by', 'add_sql' => sprintf('ALTER TABLE %s ADD COLUMN updated_by INTEGER DEFAULT NULL', $t)],
             ];
         }
+
         return [
             ['table' => $table, 'column' => 'created_by', 'add_sql' => sprintf('ALTER TABLE %s ADD created_by INT DEFAULT NULL', $t)],
             ['table' => $table, 'column' => 'updated_by', 'add_sql' => sprintf('ALTER TABLE %s ADD updated_by INT DEFAULT NULL', $t)],
@@ -126,7 +130,7 @@ final class StandardColumns
     {
         return array_merge(
             self::timestampColumnSteps($table, $isSqlite),
-            self::userRefColumnSteps($table, $isSqlite)
+            self::userRefColumnSteps($table, $isSqlite),
         );
     }
 
@@ -137,7 +141,7 @@ final class StandardColumns
      */
     public static function auditIndexSteps(string $table, bool $isSqlite): array
     {
-        $t = self::quoteId($table, $isSqlite);
+        $t         = self::quoteId($table, $isSqlite);
         $createdBy = self::quoteId('created_by', $isSqlite);
         $updatedBy = self::quoteId('updated_by', $isSqlite);
 
@@ -152,6 +156,7 @@ final class StandardColumns
         if ($isSqlite) {
             return '"' . str_replace('"', '""', $id) . '"';
         }
+
         return '`' . str_replace('`', '``', $id) . '`';
     }
 }

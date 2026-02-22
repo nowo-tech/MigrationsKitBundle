@@ -24,9 +24,9 @@ final class Version20250219000006 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $checker = new SchemaChecker($this->connection);
-        $runner = new MigrationDefinitionRunner($checker);
-        $driver = $this->connection->getDatabasePlatform()->getName();
+        $checker  = new SchemaChecker($this->connection);
+        $runner   = new MigrationDefinitionRunner($checker);
+        $driver   = $this->connection->getDatabasePlatform()->getName();
         $isSqlite = str_contains(strtolower($driver), 'sqlite');
 
         $addSql = function (string $sql): void {

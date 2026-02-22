@@ -21,7 +21,7 @@ final class Version20250219000001 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $checker = new SchemaChecker($this->connection);
+        $checker  = new SchemaChecker($this->connection);
         $isSqlite = str_contains(strtolower($this->connection->getDatabasePlatform()->getName()), 'sqlite');
 
         if (!$checker->tableExists('demo_kit_app_settings')) {

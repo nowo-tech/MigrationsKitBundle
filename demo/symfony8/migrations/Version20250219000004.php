@@ -29,22 +29,22 @@ final class Version20250219000004 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $checker = new SchemaChecker($this->connection);
-        $parser = new SchemaDefinitionParser();
-        $sync = new SchemaSync($this->connection, $parser, $checker);
+        $checker      = new SchemaChecker($this->connection);
+        $parser       = new SchemaDefinitionParser();
+        $sync         = new SchemaSync($this->connection, $parser, $checker);
         $limitChecker = new SchemaLimitChecker();
 
         $definition = [
             MDK::TABLES => [
                 'demo_kit_product' => [
                     MDK::COLUMNS => [
-                        'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
-                        'name' => ['type' => 'string', 'length' => 255, 'notnull' => true],
-                        'price' => ['type' => 'decimal', 'precision' => 10, 'scale' => 2, 'notnull' => true],
+                        'id'         => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                        'name'       => ['type' => 'string', 'length' => 255, 'notnull' => true],
+                        'price'      => ['type' => 'decimal', 'precision' => 10, 'scale' => 2, 'notnull' => true],
                         'created_at' => ['type' => 'datetime_immutable', 'notnull' => false],
                     ],
                     MDK::PRIMARY_KEY => ['id'],
-                    MDK::INDEXES => [
+                    MDK::INDEXES     => [
                         'idx_demo_kit_product_name' => [MDK::COLUMNS => ['name']],
                     ],
                 ],

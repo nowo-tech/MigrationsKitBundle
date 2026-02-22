@@ -9,6 +9,10 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Index;
+use RuntimeException;
+use Throwable;
+
+use function count;
 
 /**
  * Service to check database schema (table/column/index existence).
@@ -40,7 +44,7 @@ final class SchemaChecker implements SchemaCheckerInterface
 
             return $callable();
         }
-        throw new \RuntimeException('Unable to get schema manager: neither createSchemaManager() nor getSchemaManager() is available.');
+        throw new RuntimeException('Unable to get schema manager: neither createSchemaManager() nor getSchemaManager() is available.');
     }
 
     /**
@@ -53,7 +57,7 @@ final class SchemaChecker implements SchemaCheckerInterface
         $tableName = $this->normalizeIdentifier($tableName);
         try {
             return $this->getSchemaManager()->tablesExist([$tableName]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -61,12 +65,12 @@ final class SchemaChecker implements SchemaCheckerInterface
     /**
      * Check if a column exists in a table.
      *
-     * @param string $tableName  Table name
+     * @param string $tableName Table name
      * @param string $columnName Column name
      */
     public function columnExists(string $tableName, string $columnName): bool
     {
-        $tableName = $this->normalizeIdentifier($tableName);
+        $tableName  = $this->normalizeIdentifier($tableName);
         $columnName = $this->normalizeIdentifier($columnName);
         try {
             $sm = $this->getSchemaManager();
@@ -84,7 +88,7 @@ final class SchemaChecker implements SchemaCheckerInterface
             }
 
             return false;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -112,7 +116,7 @@ final class SchemaChecker implements SchemaCheckerInterface
             }
 
             return false;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -143,7 +147,7 @@ final class SchemaChecker implements SchemaCheckerInterface
             }
 
             return false;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -152,12 +156,12 @@ final class SchemaChecker implements SchemaCheckerInterface
      * Check if a foreign key exists on a table.
      *
      * @param string $tableName Table name
-     * @param string $fkName    Foreign key constraint name
+     * @param string $fkName Foreign key constraint name
      */
     public function foreignKeyExists(string $tableName, string $fkName): bool
     {
         $tableName = $this->normalizeIdentifier($tableName);
-        $fkName = $this->normalizeIdentifier($fkName);
+        $fkName    = $this->normalizeIdentifier($fkName);
         try {
             $sm = $this->getSchemaManager();
             if (!$sm->tablesExist([$tableName])) {
@@ -174,7 +178,7 @@ final class SchemaChecker implements SchemaCheckerInterface
             }
 
             return false;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -201,7 +205,7 @@ final class SchemaChecker implements SchemaCheckerInterface
             }
 
             return $names;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return [];
         }
     }
@@ -210,7 +214,7 @@ final class SchemaChecker implements SchemaCheckerInterface
      * Check if a row exists in a table matching the given conditions (key => value).
      * Uses parameterized query; safe for any value types.
      *
-     * @param string               $table      Table name
+     * @param string $table Table name
      * @param array<string, mixed> $conditions Column => value (all must match)
      */
     public function rowExists(string $table, array $conditions): bool
@@ -220,22 +224,22 @@ final class SchemaChecker implements SchemaCheckerInterface
         }
         $table = $this->normalizeIdentifier($table);
         try {
-            $platform = $this->connection->getDatabasePlatform();
+            $platform    = $this->connection->getDatabasePlatform();
             $quotedTable = $platform->quoteIdentifier($table);
-            $wheres = [];
-            $params = [];
-            $types = [];
+            $wheres      = [];
+            $params      = [];
+            $types       = [];
             foreach ($conditions as $column => $value) {
-                $col = $this->normalizeIdentifier((string) $column);
+                $col      = $this->normalizeIdentifier((string) $column);
                 $wheres[] = $platform->quoteIdentifier($col) . ' = ?';
                 $params[] = $value;
             }
-            $types = array_fill(0, \count($params), ParameterType::STRING);
-            $sql = 'SELECT 1 FROM ' . $quotedTable . ' WHERE ' . implode(' AND ', $wheres) . ' LIMIT 1';
+            $types  = array_fill(0, count($params), ParameterType::STRING);
+            $sql    = 'SELECT 1 FROM ' . $quotedTable . ' WHERE ' . implode(' AND ', $wheres) . ' LIMIT 1';
             $result = $this->connection->executeQuery($sql, $params, $types);
 
             return $result->fetchOne() !== false;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }

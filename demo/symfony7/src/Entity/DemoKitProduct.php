@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -24,7 +25,7 @@ class DemoKitProduct
     private string $price = '0.00';
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    private ?\DateTimeImmutable $createdAt = null;
+    private ?DateTimeImmutable $createdAt = null;
 
     public function getId(): ?int
     {
@@ -39,6 +40,7 @@ class DemoKitProduct
     public function setName(string $name): static
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -50,17 +52,19 @@ class DemoKitProduct
     public function setPrice(string $price): static
     {
         $this->price = $price;
+
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): ?DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(?DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
+
         return $this;
     }
 }

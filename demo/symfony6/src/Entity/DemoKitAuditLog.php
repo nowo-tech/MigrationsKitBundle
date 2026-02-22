@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use DateTimeInterface;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -21,7 +22,7 @@ class DemoKitAuditLog
     private string $action = '';
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    private ?DateTimeInterface $createdAt = null;
 
     public function getId(): ?int
     {
@@ -36,17 +37,19 @@ class DemoKitAuditLog
     public function setAction(string $action): static
     {
         $this->action = $action;
+
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    public function getCreatedAt(): ?DateTimeInterface
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    public function setCreatedAt(DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
+
         return $this;
     }
 }

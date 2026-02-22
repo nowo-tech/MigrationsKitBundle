@@ -6,6 +6,12 @@ namespace Nowo\MigrationsKitBundle\Schema;
 
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 
+use function count;
+use function is_array;
+use function sprintf;
+
+use const E_USER_WARNING;
+
 /**
  * Checks a declarative schema definition against platform limits (MySQL/InnoDB).
  *
@@ -40,7 +46,7 @@ final class SchemaLimitChecker
      * Check definition against platform limits and return list of warning messages.
      *
      * @param array<string, mixed> $definition Declarative schema (tables with columns, indexes)
-     * @param string              $platform  Platform name (e.g. mysql, sqlite)
+     * @param string $platform Platform name (e.g. mysql, sqlite)
      *
      * @return array<int, string> Warning messages (empty if no issues)
      */
@@ -52,22 +58,22 @@ final class SchemaLimitChecker
         }
 
         $warnings = [];
-        $tables = $definition[MDK::TABLES] ?? [];
+        $tables   = $definition[MDK::TABLES] ?? [];
 
         foreach ($tables as $tableName => $tableDef) {
-            if (!\is_array($tableDef)) {
+            if (!is_array($tableDef)) {
                 continue;
             }
-            $columns = $tableDef[MDK::COLUMNS] ?? [];
-            $indexes = $tableDef[MDK::INDEXES] ?? [];
-            $columnCount = \count($columns);
+            $columns     = $tableDef[MDK::COLUMNS] ?? [];
+            $indexes     = $tableDef[MDK::INDEXES] ?? [];
+            $columnCount = count($columns);
 
             if ($columnCount > self::MYSQL_MAX_COLUMNS_PER_TABLE) {
                 $warnings[] = sprintf(
                     '[%s] Table has %d columns; MySQL/InnoDB limit is %d.',
                     $tableName,
                     $columnCount,
-                    self::MYSQL_MAX_COLUMNS_PER_TABLE
+                    self::MYSQL_MAX_COLUMNS_PER_TABLE,
                 );
             }
 
@@ -77,32 +83,32 @@ final class SchemaLimitChecker
                     '[%s] Estimated row size %d bytes exceeds MySQL limit of %d.',
                     $tableName,
                     $rowSize,
-                    self::MYSQL_MAX_ROW_SIZE
+                    self::MYSQL_MAX_ROW_SIZE,
                 );
             }
 
-            $indexCount = \count($indexes);
+            $indexCount = count($indexes);
             if ($indexCount > self::MYSQL_MAX_INDEXES_PER_TABLE) {
                 $warnings[] = sprintf(
                     '[%s] Table has %d indexes; MySQL limit is %d per table.',
                     $tableName,
                     $indexCount,
-                    self::MYSQL_MAX_INDEXES_PER_TABLE
+                    self::MYSQL_MAX_INDEXES_PER_TABLE,
                 );
             }
 
             foreach ($indexes as $indexName => $indexDef) {
                 $indexCols = $indexDef[MDK::COLUMNS] ?? $indexDef;
-                if (!\is_array($indexCols)) {
+                if (!is_array($indexCols)) {
                     $indexCols = [$indexCols];
                 }
-                if (\count($indexCols) > self::MYSQL_MAX_INDEX_COLUMNS) {
+                if (count($indexCols) > self::MYSQL_MAX_INDEX_COLUMNS) {
                     $warnings[] = sprintf(
                         '[%s] Index "%s" has %d columns; MySQL limit is %d per index.',
                         $tableName,
                         $indexName,
-                        \count($indexCols),
-                        self::MYSQL_MAX_INDEX_COLUMNS
+                        count($indexCols),
+                        self::MYSQL_MAX_INDEX_COLUMNS,
                     );
                 }
                 $indexLength = $this->estimateIndexLength($indexCols, $columns);
@@ -112,7 +118,7 @@ final class SchemaLimitChecker
                         $tableName,
                         $indexName,
                         $indexLength,
-                        self::MYSQL_MAX_INDEX_KEY_LENGTH
+                        self::MYSQL_MAX_INDEX_KEY_LENGTH,
                     );
                 }
             }
@@ -139,13 +145,13 @@ final class SchemaLimitChecker
     {
         $size = 0;
         foreach ($columns as $colDef) {
-            if (!\is_array($colDef)) {
+            if (!is_array($colDef)) {
                 continue;
             }
-            $type = strtolower((string) ($colDef['type'] ?? ''));
-            $length = (int) ($colDef['length'] ?? 0);
+            $type      = strtolower((string) ($colDef['type'] ?? ''));
+            $length    = (int) ($colDef['length'] ?? 0);
             $precision = (int) ($colDef['precision'] ?? 0);
-            $scale = (int) ($colDef['scale'] ?? 0);
+            $scale     = (int) ($colDef['scale'] ?? 0);
 
             if ($type === 'string' || $type === 'varchar') {
                 $size += $length > 0 ? $length * self::BYTES_PER_CHAR_UTF8MB4 : 255 * self::BYTES_PER_CHAR_UTF8MB4;
@@ -164,7 +170,7 @@ final class SchemaLimitChecker
             } elseif (str_contains($type, 'datetime') || $type === 'date' || $type === 'time') {
                 $size += 8;
             } elseif ($type === 'boolean') {
-                $size += 1;
+                ++$size;
             } else {
                 $size += 16; // fallback
             }
@@ -181,11 +187,11 @@ final class SchemaLimitChecker
         $length = 0;
         foreach ($indexColumnNames as $colName) {
             $colDef = $tableColumns[$colName] ?? [];
-            if (!\is_array($colDef)) {
+            if (!is_array($colDef)) {
                 $length += 255 * self::BYTES_PER_CHAR_UTF8MB4;
                 continue;
             }
-            $type = strtolower((string) ($colDef['type'] ?? ''));
+            $type      = strtolower((string) ($colDef['type'] ?? ''));
             $colLength = (int) ($colDef['length'] ?? 0);
             if ($type === 'string' || $type === 'varchar') {
                 $length += ($colLength > 0 ? $colLength : 255) * self::BYTES_PER_CHAR_UTF8MB4;

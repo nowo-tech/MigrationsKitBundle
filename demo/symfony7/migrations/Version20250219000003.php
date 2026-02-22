@@ -8,6 +8,8 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 
+use function in_array;
+
 /**
  * Demo: listTableColumns to add only missing columns.
  * Adds phone and notes to demo_kit_users if they do not exist (table created in Version20250219000000).
@@ -26,7 +28,7 @@ final class Version20250219000003 extends AbstractMigration
             return;
         }
 
-        $columns = $checker->listTableColumns('demo_kit_users');
+        $columns  = $checker->listTableColumns('demo_kit_users');
         $isSqlite = str_contains(strtolower($this->connection->getDatabasePlatform()->getName()), 'sqlite');
 
         if (!in_array('phone', $columns, true)) {

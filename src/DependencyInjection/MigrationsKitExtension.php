@@ -19,7 +19,7 @@ class MigrationsKitExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
-        $config = $this->processConfiguration($configuration, $configs);
+        $config        = $this->processConfiguration($configuration, $configs);
 
         $container->setParameter('nowo_migrations_kit.connection', $config['connection']);
 

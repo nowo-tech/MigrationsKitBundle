@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Migration;
 
+use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
+use function count;
+use function is_array;
+use function is_callable;
+use function is_object;
+use function sprintf;
 
 /**
  * Runs migration steps from an array definition.
@@ -51,16 +58,16 @@ final class MigrationDefinitionRunner
      * Accepts (array $definition, callable $addSql) or (callable $addSql, array $definition) for backwards compatibility.
      *
      * @param array<string, mixed>|callable $definitionOrAddSql Keys: 'tables' => [...], 'columns' => [...] OR addSql callable
-     * @param callable|array<string, mixed> $addSqlOrDefinition addSql callable OR definition array
+     * @param array<string, mixed>|callable $addSqlOrDefinition addSql callable OR definition array
      */
     public function run(array|callable $definitionOrAddSql, array|callable $addSqlOrDefinition): void
     {
         $definition = $this->resolveDefinition($definitionOrAddSql, $addSqlOrDefinition);
-        $addSql = $this->resolveAddSql($definitionOrAddSql, $addSqlOrDefinition, $definition);
+        $addSql     = $this->resolveAddSql($definitionOrAddSql, $addSqlOrDefinition, $definition);
 
         $tables = $definition[MDK::TABLES] ?? [];
         foreach ($tables as $tableName => $tableDef) {
-            if (!\is_array($tableDef) || empty($tableDef['create_sql'])) {
+            if (!is_array($tableDef) || empty($tableDef['create_sql'])) {
                 continue;
             }
             if (!$this->schemaChecker->tableExists($tableName)) {
@@ -70,7 +77,7 @@ final class MigrationDefinitionRunner
 
         $columns = $definition[MDK::COLUMNS] ?? [];
         foreach ($columns as $col) {
-            if (!\is_array($col) || empty($col['table']) || empty($col['column']) || empty($col['add_sql'])) {
+            if (!is_array($col) || empty($col['table']) || empty($col['column']) || empty($col['add_sql'])) {
                 continue;
             }
             if (!$this->schemaChecker->columnExists($col['table'], $col['column'])) {
@@ -80,7 +87,7 @@ final class MigrationDefinitionRunner
 
         $indexes = $definition[MDK::INDEXES] ?? [];
         foreach ($indexes as $idx) {
-            if (!\is_array($idx) || empty($idx['table']) || empty($idx['index_name']) || empty($idx['add_sql'])) {
+            if (!is_array($idx) || empty($idx['table']) || empty($idx['index_name']) || empty($idx['add_sql'])) {
                 continue;
             }
             if (!$this->schemaChecker->indexExists($idx['table'], $idx['index_name'])) {
@@ -90,7 +97,7 @@ final class MigrationDefinitionRunner
 
         $renameColumns = $definition[MDK::RENAME_COLUMNS] ?? [];
         foreach ($renameColumns as $rc) {
-            if (!\is_array($rc) || empty($rc['table']) || empty($rc['old_name']) || empty($rc['rename_sql'])) {
+            if (!is_array($rc) || empty($rc['table']) || empty($rc['old_name']) || empty($rc['rename_sql'])) {
                 continue;
             }
             if ($this->schemaChecker->columnExists($rc['table'], $rc['old_name'])) {
@@ -100,7 +107,7 @@ final class MigrationDefinitionRunner
 
         $modifyColumns = $definition[MDK::MODIFY_COLUMNS] ?? [];
         foreach ($modifyColumns as $mc) {
-            if (!\is_array($mc) || empty($mc['table']) || empty($mc['column']) || empty($mc['modify_sql'])) {
+            if (!is_array($mc) || empty($mc['table']) || empty($mc['column']) || empty($mc['modify_sql'])) {
                 continue;
             }
             if ($this->schemaChecker->columnExists($mc['table'], $mc['column'])) {
@@ -110,7 +117,7 @@ final class MigrationDefinitionRunner
 
         $dropIndexes = $definition[MDK::DROP_INDEXES] ?? [];
         foreach ($dropIndexes as $di) {
-            if (!\is_array($di) || empty($di['table']) || empty($di['index_name']) || empty($di['drop_sql'])) {
+            if (!is_array($di) || empty($di['table']) || empty($di['index_name']) || empty($di['drop_sql'])) {
                 continue;
             }
             if ($this->schemaChecker->indexExists($di['table'], $di['index_name'])) {
@@ -120,7 +127,7 @@ final class MigrationDefinitionRunner
 
         $dropColumns = $definition[MDK::DROP_COLUMNS] ?? [];
         foreach ($dropColumns as $dc) {
-            if (!\is_array($dc) || empty($dc['table']) || empty($dc['column']) || empty($dc['drop_sql'])) {
+            if (!is_array($dc) || empty($dc['table']) || empty($dc['column']) || empty($dc['drop_sql'])) {
                 continue;
             }
             if ($this->schemaChecker->columnExists($dc['table'], $dc['column'])) {
@@ -130,7 +137,7 @@ final class MigrationDefinitionRunner
 
         $dataSteps = $definition[MDK::DATA] ?? [];
         foreach ($dataSteps as $step) {
-            if (!\is_array($step)) {
+            if (!is_array($step)) {
                 continue;
             }
             if (isset($step[MDK::INSERT])) {
@@ -143,57 +150,57 @@ final class MigrationDefinitionRunner
 
     /**
      * @param array<string, mixed> $insertDef table, row, optional only_if_not_exists
-     * @param callable             $addSql   (string $sql, array $params = []): void
+     * @param callable $addSql (string $sql, array $params = []): void
      */
     private function runInsertStep(array $insertDef, callable $addSql): void
     {
         $table = $insertDef['table'] ?? null;
-        $row = $insertDef['row'] ?? null;
-        if ($table === null || $table === '' || !\is_array($row) || $row === []) {
+        $row   = $insertDef['row'] ?? null;
+        if ($table === null || $table === '' || !is_array($row) || $row === []) {
             return;
         }
         $onlyIfNotExists = $insertDef['only_if_not_exists'] ?? null;
-        if (\is_array($onlyIfNotExists) && $onlyIfNotExists !== [] && $this->schemaChecker->rowExists($table, $onlyIfNotExists)) {
+        if (is_array($onlyIfNotExists) && $onlyIfNotExists !== [] && $this->schemaChecker->rowExists($table, $onlyIfNotExists)) {
             return;
         }
-        $platform = $this->schemaChecker->getConnection()->getDatabasePlatform();
-        $quotedTable = $platform->quoteIdentifier($table);
-        $cols = array_keys($row);
-        $quotedCols = array_map(fn (string $c) => $platform->quoteIdentifier($c), $cols);
-        $placeholders = array_fill(0, \count($row), '?');
-        $sql = 'INSERT INTO ' . $quotedTable . ' (' . implode(', ', $quotedCols) . ') VALUES (' . implode(', ', $placeholders) . ')';
-        $params = array_values($row);
+        $platform     = $this->schemaChecker->getConnection()->getDatabasePlatform();
+        $quotedTable  = $platform->quoteIdentifier($table);
+        $cols         = array_keys($row);
+        $quotedCols   = array_map(static fn (string $c) => $platform->quoteIdentifier($c), $cols);
+        $placeholders = array_fill(0, count($row), '?');
+        $sql          = 'INSERT INTO ' . $quotedTable . ' (' . implode(', ', $quotedCols) . ') VALUES (' . implode(', ', $placeholders) . ')';
+        $params       = array_values($row);
         $addSql($sql, $params);
     }
 
     /**
      * @param array<string, mixed> $updateDef table, set, where, optional only_if_exists
-     * @param callable             $addSql   (string $sql, array $params = []): void
+     * @param callable $addSql (string $sql, array $params = []): void
      */
     private function runUpdateStep(array $updateDef, callable $addSql): void
     {
         $table = $updateDef['table'] ?? null;
-        $set = $updateDef['set'] ?? null;
+        $set   = $updateDef['set'] ?? null;
         $where = $updateDef['where'] ?? null;
-        if ($table === null || $table === '' || !\is_array($set) || $set === [] || !\is_array($where) || $where === []) {
+        if ($table === null || $table === '' || !is_array($set) || $set === [] || !is_array($where) || $where === []) {
             return;
         }
         $onlyIfExists = $updateDef['only_if_exists'] ?? false;
         if ($onlyIfExists && !$this->schemaChecker->rowExists($table, $where)) {
             return;
         }
-        $platform = $this->schemaChecker->getConnection()->getDatabasePlatform();
+        $platform    = $this->schemaChecker->getConnection()->getDatabasePlatform();
         $quotedTable = $platform->quoteIdentifier($table);
-        $setParts = [];
-        $params = [];
+        $setParts    = [];
+        $params      = [];
         foreach ($set as $col => $value) {
             $setParts[] = $platform->quoteIdentifier((string) $col) . ' = ?';
-            $params[] = $value;
+            $params[]   = $value;
         }
         $whereParts = [];
         foreach ($where as $col => $value) {
             $whereParts[] = $platform->quoteIdentifier((string) $col) . ' = ?';
-            $params[] = $value;
+            $params[]     = $value;
         }
         $sql = 'UPDATE ' . $quotedTable . ' SET ' . implode(', ', $setParts) . ' WHERE ' . implode(' AND ', $whereParts);
         $addSql($sql, $params);
@@ -201,7 +208,7 @@ final class MigrationDefinitionRunner
 
     /**
      * @param array<string, mixed> $arr
-     * @param list<string>        $keys
+     * @param list<string> $keys
      */
     private function hasAnyKey(array $arr, array $keys): bool
     {
@@ -219,9 +226,9 @@ final class MigrationDefinitionRunner
      */
     private function resolveDefinition(array|callable $definitionOrAddSql, array|callable $addSqlOrDefinition): array
     {
-        $definitionKeys = MDK::allTopLevel();
-        $firstIsDefinition = \is_array($definitionOrAddSql) && $this->hasAnyKey($definitionOrAddSql, $definitionKeys);
-        $secondIsDefinition = \is_array($addSqlOrDefinition) && $this->hasAnyKey($addSqlOrDefinition, $definitionKeys);
+        $definitionKeys     = MDK::allTopLevel();
+        $firstIsDefinition  = is_array($definitionOrAddSql) && $this->hasAnyKey($definitionOrAddSql, $definitionKeys);
+        $secondIsDefinition = is_array($addSqlOrDefinition) && $this->hasAnyKey($addSqlOrDefinition, $definitionKeys);
         if ($firstIsDefinition && !$secondIsDefinition) {
             return $definitionOrAddSql;
         }
@@ -231,11 +238,7 @@ final class MigrationDefinitionRunner
         if ($firstIsDefinition && $secondIsDefinition) {
             return $definitionOrAddSql;
         }
-        throw new \InvalidArgumentException(sprintf(
-            'MigrationDefinitionRunner::run() expects (array $definition, callable $addSql) or (callable $addSql, array $definition), got (%s, %s).',
-            get_debug_type($definitionOrAddSql),
-            get_debug_type($addSqlOrDefinition)
-        ));
+        throw new InvalidArgumentException(sprintf('MigrationDefinitionRunner::run() expects (array $definition, callable $addSql) or (callable $addSql, array $definition), got (%s, %s).', get_debug_type($definitionOrAddSql), get_debug_type($addSqlOrDefinition)));
     }
 
     /**
@@ -247,21 +250,15 @@ final class MigrationDefinitionRunner
             if ($candidate === $definition) {
                 continue;
             }
-            if (\is_callable($candidate)) {
+            if (is_callable($candidate)) {
                 return $candidate;
             }
             // [$this, 'addSql'] is an array; addSql is protected so it cannot be invoked from this class. Migrations must pass a closure instead, e.g. fn (string $sql): void => $this->addSql($sql).
-            if (\is_array($candidate) && \count($candidate) === 2 && ($candidate[1] ?? null) === 'addSql' && \is_object($candidate[0] ?? null)) {
-                throw new \InvalidArgumentException(
-                    'MigrationDefinitionRunner::run() received [$this, \'addSql\'] but addSql() is protected. Pass a closure instead, e.g. run($definition, fn (string $sql): void => $this->addSql($sql));'
-                );
+            if (is_array($candidate) && count($candidate) === 2 && ($candidate[1] ?? null) === 'addSql' && is_object($candidate[0] ?? null)) {
+                throw new InvalidArgumentException('MigrationDefinitionRunner::run() received [$this, \'addSql\'] but addSql() is protected. Pass a closure instead, e.g. run($definition, fn (string $sql): void => $this->addSql($sql));');
             }
         }
-        throw new \InvalidArgumentException(sprintf(
-            'MigrationDefinitionRunner::run() expects one argument to be a callable (e.g. [$this, \'addSql\']), got (%s, %s).',
-            get_debug_type($definitionOrAddSql),
-            get_debug_type($addSqlOrDefinition)
-        ));
+        throw new InvalidArgumentException(sprintf('MigrationDefinitionRunner::run() expects one argument to be a callable (e.g. [$this, \'addSql\']), got (%s, %s).', get_debug_type($definitionOrAddSql), get_debug_type($addSqlOrDefinition)));
     }
 
     /**

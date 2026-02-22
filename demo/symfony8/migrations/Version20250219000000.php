@@ -23,9 +23,9 @@ final class Version20250219000000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $checker = new SchemaChecker($this->connection);
-        $runner = new MigrationDefinitionRunner($checker);
+        $runner  = new MigrationDefinitionRunner($checker);
 
-        $driver = $this->connection->getDatabasePlatform()->getName();
+        $driver   = $this->connection->getDatabasePlatform()->getName();
         $isSqlite = str_contains(strtolower($driver), 'sqlite');
 
         $runner->run(
@@ -39,8 +39,8 @@ final class Version20250219000000 extends AbstractMigration
                 ],
                 MDK::COLUMNS => [
                     [
-                        'table' => 'demo_kit_users',
-                        'column' => 'email',
+                        'table'   => 'demo_kit_users',
+                        'column'  => 'email',
                         'add_sql' => $isSqlite
                             ? 'ALTER TABLE demo_kit_users ADD COLUMN email VARCHAR(180) DEFAULT NULL'
                             : 'ALTER TABLE demo_kit_users ADD email VARCHAR(180) DEFAULT NULL',
@@ -49,7 +49,7 @@ final class Version20250219000000 extends AbstractMigration
             ],
             function (string $sql): void {
                 $this->addSql($sql);
-            }
+            },
         );
     }
 

@@ -20,7 +20,6 @@ use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
  * @phpstan-type DropIndexStep array{table: string, index_name: string, drop_sql: string}
  * @phpstan-type DropColumnStep array{table: string, column: string, drop_sql: string}
  * @phpstan-type DataStep array{insert?: array{table: string, row: array<string, mixed>, only_if_not_exists?: array<string, mixed>}, update?: array{table: string, set: array<string, mixed>, where: array<string, mixed>, only_if_exists?: bool}}
- *
  * @phpstan-type DefinitionArray array{
  *   tables?: array<string, TableDef>,
  *   columns?: list<ColumnStep>,

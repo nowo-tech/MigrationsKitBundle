@@ -28,11 +28,11 @@ class SchemaDefinitionParserTest extends TestCase
             'tables' => [
                 'users' => [
                     'columns' => [
-                        'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                        'id'    => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
                         'email' => ['type' => 'string', 'length' => 180, 'notnull' => true],
                     ],
                     'primary_key' => ['id'],
-                    'indexes' => [
+                    'indexes'     => [
                         'uniq_email' => ['columns' => ['email'], 'unique' => true],
                     ],
                 ],
@@ -84,14 +84,14 @@ class SchemaDefinitionParserTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'   => ['type' => 'integer'],
                         'name' => [],
                     ],
                 ],
             ],
         ];
         $schema = $this->parser->parse($definition);
-        $table = $schema->getTable('t');
+        $table  = $schema->getTable('t');
         self::assertTrue($table->hasColumn('id'));
         self::assertFalse($table->hasColumn('name'));
     }
@@ -102,7 +102,7 @@ class SchemaDefinitionParserTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'   => ['type' => 'integer'],
                         'code' => ['type' => 'string', 'length' => 50],
                     ],
                     'indexes' => [
@@ -112,7 +112,7 @@ class SchemaDefinitionParserTest extends TestCase
             ],
         ];
         $schema = $this->parser->parse($definition);
-        $table = $schema->getTable('t');
+        $table  = $schema->getTable('t');
         self::assertTrue($table->hasIndex('idx_code'));
         self::assertFalse($table->getIndex('idx_code')->isUnique());
     }
@@ -133,7 +133,7 @@ class SchemaDefinitionParserTest extends TestCase
             ],
         ];
         $schema = $this->parser->parse($definition);
-        $table = $schema->getTable('t');
+        $table  = $schema->getTable('t');
         self::assertSame(['a', 'b'], $table->getIndex('idx_ab')->getColumns());
     }
 
@@ -144,21 +144,21 @@ class SchemaDefinitionParserTest extends TestCase
                 't' => [
                     'columns' => [
                         'id' => [
-                            'type' => 'integer',
+                            'type'          => 'integer',
                             'autoincrement' => true,
-                            'notnull' => true,
+                            'notnull'       => true,
                         ],
                         'amount' => [
-                            'type' => 'decimal',
+                            'type'      => 'decimal',
                             'precision' => 10,
-                            'scale' => 2,
+                            'scale'     => 2,
                         ],
                     ],
                 ],
             ],
         ];
         $schema = $this->parser->parse($definition);
-        $table = $schema->getTable('t');
+        $table  = $schema->getTable('t');
         self::assertTrue($table->hasColumn('amount'));
     }
 
@@ -183,16 +183,16 @@ class SchemaDefinitionParserTest extends TestCase
                 't' => [
                     'columns' => [
                         'id' => [
-                            'type' => 'integer',
-                            'length' => 11,
-                            'precision' => 10,
-                            'scale' => 2,
-                            'notnull' => true,
-                            'default' => 0,
+                            'type'          => 'integer',
+                            'length'        => 11,
+                            'precision'     => 10,
+                            'scale'         => 2,
+                            'notnull'       => true,
+                            'default'       => 0,
                             'autoincrement' => true,
-                            'comment' => 'ID',
-                            'unsigned' => true,
-                            'fixed' => false,
+                            'comment'       => 'ID',
+                            'unsigned'      => true,
+                            'fixed'         => false,
                         ],
                     ],
                 ],

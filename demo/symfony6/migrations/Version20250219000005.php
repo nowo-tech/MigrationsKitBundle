@@ -24,7 +24,7 @@ final class Version20250219000005 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $checker = new SchemaChecker($this->connection);
-        $runner = new MigrationDefinitionRunner($checker);
+        $runner  = new MigrationDefinitionRunner($checker);
 
         $addSql = function (string $sql, array $params = []): void {
             $this->addSql($sql, $params);
@@ -34,23 +34,23 @@ final class Version20250219000005 extends AbstractMigration
             MDK::DATA => [
                 [
                     MDK::INSERT => [
-                        'table' => 'demo_kit_app_settings',
-                        'row' => ['key_name' => 'app.version', 'value' => '1.0'],
+                        'table'              => 'demo_kit_app_settings',
+                        'row'                => ['key_name' => 'app.version', 'value' => '1.0'],
                         'only_if_not_exists' => ['key_name' => 'app.version'],
                     ],
                 ],
                 [
                     MDK::INSERT => [
-                        'table' => 'demo_kit_app_settings',
-                        'row' => ['key_name' => 'app.name', 'value' => 'MigrationsKit Demo'],
+                        'table'              => 'demo_kit_app_settings',
+                        'row'                => ['key_name' => 'app.name', 'value' => 'MigrationsKit Demo'],
                         'only_if_not_exists' => ['key_name' => 'app.name'],
                     ],
                 ],
                 [
                     MDK::UPDATE => [
-                        'table' => 'demo_kit_app_settings',
-                        'set' => ['value' => '1.1'],
-                        'where' => ['key_name' => 'app.version'],
+                        'table'          => 'demo_kit_app_settings',
+                        'set'            => ['value' => '1.1'],
+                        'where'          => ['key_name' => 'app.version'],
                         'only_if_exists' => true,
                     ],
                 ],

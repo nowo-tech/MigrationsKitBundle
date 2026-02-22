@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Tests\Migration;
 
+use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionRunner;
 use Nowo\MigrationsKitBundle\Migration\SchemaCheckerInterface;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 class MigrationDefinitionRunnerTest extends TestCase
 {
@@ -16,8 +18,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('tableExists')->with('users')->willReturn(false);
         $checker->method('columnExists')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -38,8 +40,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('tableExists')->with('users')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -61,14 +63,14 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')
             ->willReturnMap([['users', 'email', false]]);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
         $runner = new MigrationDefinitionRunner($checker);
         $runner->run([
-            'tables' => [],
+            'tables'  => [],
             'columns' => [
                 ['table' => 'users', 'column' => 'email', 'add_sql' => 'ALTER TABLE users ADD email VARCHAR(180)'],
             ],
@@ -83,8 +85,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('tableExists')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -107,7 +109,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('tableExists')->with('users')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -123,7 +125,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('tableExists')->with('users')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -139,7 +141,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')->with('users', 'email')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -155,7 +157,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')->with('users', 'email')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -179,8 +181,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('rowExists')->with('settings', ['key_name' => 'app.version'])->willReturn(false);
         $checker->method('getConnection')->willReturn($connection);
 
-        $calls = [];
-        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+        $calls  = [];
+        $addSql = static function (string $sql, array $params = []) use (&$calls): void {
             $calls[] = ['sql' => $sql, 'params' => $params];
         };
 
@@ -201,8 +203,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('rowExists')->with('settings', ['key_name' => 'app.version'])->willReturn(true);
 
-        $calls = [];
-        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+        $calls  = [];
+        $addSql = static function (string $sql, array $params = []) use (&$calls): void {
             $calls[] = ['sql' => $sql, 'params' => $params];
         };
 
@@ -228,8 +230,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('rowExists')->with('settings', ['key_name' => 'app.version'])->willReturn(true);
         $checker->method('getConnection')->willReturn($connection);
 
-        $calls = [];
-        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+        $calls  = [];
+        $addSql = static function (string $sql, array $params = []) use (&$calls): void {
             $calls[] = ['sql' => $sql, 'params' => $params];
         };
 
@@ -251,8 +253,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('indexExists')->with('users', 'idx_email')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -272,8 +274,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->with('users', 'email')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -293,8 +295,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->with('users', 'email')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -313,8 +315,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->with('users', 'aka')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -334,8 +336,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->with('files', 'bucket')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -355,8 +357,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('indexExists')->with('users', 'uniq_old')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -377,7 +379,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')->with('users', 'email')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -393,7 +395,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')->with('users', 'email')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -409,7 +411,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')->with('users', 'aka')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -425,7 +427,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('columnExists')->with('users', 'aka')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -441,7 +443,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('indexExists')->with('users', 'idx_old')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -457,7 +459,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('indexExists')->with('users', 'idx_old')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -473,7 +475,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('foreignKeyExists')->with('orders', 'fk_orders_user')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -489,7 +491,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('foreignKeyExists')->with('orders', 'fk_orders_user')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -504,8 +506,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('tableExists')->with('users')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -523,21 +525,21 @@ class MigrationDefinitionRunnerTest extends TestCase
     public function testRunThrowsWhenNeitherArgumentIsDefinition(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
-        $runner = new MigrationDefinitionRunner($checker);
+        $runner  = new MigrationDefinitionRunner($checker);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('expects (array $definition, callable $addSql) or (callable $addSql, array $definition)');
 
         // Array without any MDK key is not a definition; callable is not a definition
-        $runner->run([], function (): void {});
+        $runner->run([], static function (): void {});
     }
 
     public function testRunThrowsWhenNoCallableProvided(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
-        $runner = new MigrationDefinitionRunner($checker);
+        $runner  = new MigrationDefinitionRunner($checker);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('expects one argument to be a callable');
 
         // Both are arrays with definition keys, so definition is resolved; but neither is callable
@@ -546,11 +548,11 @@ class MigrationDefinitionRunnerTest extends TestCase
 
     public function testRunThrowsWhenReceivedAddSqlArrayInsteadOfCallable(): void
     {
-        $checker = $this->createMock(SchemaCheckerInterface::class);
-        $runner = new MigrationDefinitionRunner($checker);
-        $fakeThis = new \stdClass();
+        $checker  = $this->createMock(SchemaCheckerInterface::class);
+        $runner   = new MigrationDefinitionRunner($checker);
+        $fakeThis = new stdClass();
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('received [$this, \'addSql\']');
 
         $runner->run([$fakeThis, 'addSql'], ['tables' => []]);
@@ -565,8 +567,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('getConnection')->willReturn($connection);
 
-        $calls = [];
-        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+        $calls  = [];
+        $addSql = static function (string $sql, array $params = []) use (&$calls): void {
             $calls[] = ['sql' => $sql, 'params' => $params];
         };
 
@@ -584,8 +586,8 @@ class MigrationDefinitionRunnerTest extends TestCase
     public function testRunDataInsertSkipsWhenTableEmpty(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
-        $calls = [];
-        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+        $calls   = [];
+        $addSql  = static function (string $sql, array $params = []) use (&$calls): void {
             $calls[] = 1;
         };
 
@@ -606,8 +608,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('rowExists')->with('settings', ['key' => 'x'])->willReturn(false);
 
-        $calls = [];
-        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+        $calls  = [];
+        $addSql = static function (string $sql, array $params = []) use (&$calls): void {
             $calls[] = 1;
         };
 
@@ -624,8 +626,8 @@ class MigrationDefinitionRunnerTest extends TestCase
     public function testRunDataUpdateSkipsWhenSetOrWhereEmpty(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
-        $calls = [];
-        $addSql = function (string $sql) use (&$calls): void {
+        $calls   = [];
+        $addSql  = static function (string $sql) use (&$calls): void {
             $calls[] = 1;
         };
 
@@ -643,8 +645,8 @@ class MigrationDefinitionRunnerTest extends TestCase
     public function testRunSkipsNonArrayDataStep(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
-        $calls = [];
-        $addSql = function (string $sql) use (&$calls): void {
+        $calls   = [];
+        $addSql  = static function (string $sql) use (&$calls): void {
             $calls[] = 1;
         };
 
@@ -664,8 +666,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('indexExists')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -685,8 +687,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -705,8 +707,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->willReturn(true);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -726,8 +728,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->with('f', 'old_col')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -746,8 +748,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('indexExists')->with('u', 'idx_old')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 
@@ -767,7 +769,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('indexExists')->with('users', 'idx_email')->willReturn(false);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -783,7 +785,7 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker->method('indexExists')->with('users', 'idx_email')->willReturn(true);
 
         $called = false;
-        $addSql = function (string $sql) use (&$called): void {
+        $addSql = static function (string $sql) use (&$called): void {
             $called = true;
         };
 
@@ -798,8 +800,8 @@ class MigrationDefinitionRunnerTest extends TestCase
         $checker = $this->createMock(SchemaCheckerInterface::class);
         $checker->method('columnExists')->willReturn(false);
 
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 

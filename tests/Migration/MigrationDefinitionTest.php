@@ -14,7 +14,7 @@ class MigrationDefinitionTest extends TestCase
     public function testFromArrayBuildsDefinition(): void
     {
         $def = MigrationDefinition::fromArray([
-            'tables' => ['users' => ['create_sql' => 'CREATE TABLE users (id INT)']],
+            'tables'  => ['users' => ['create_sql' => 'CREATE TABLE users (id INT)']],
             'columns' => [['table' => 'users', 'column' => 'email', 'add_sql' => 'ALTER TABLE users ADD email VARCHAR(180)']],
         ]);
 
@@ -49,8 +49,8 @@ class MigrationDefinitionTest extends TestCase
 
     public function testRunDelegatesToRunner(): void
     {
-        $sqls = [];
-        $addSql = function (string $sql) use (&$sqls): void {
+        $sqls   = [];
+        $addSql = static function (string $sql) use (&$sqls): void {
             $sqls[] = $sql;
         };
 

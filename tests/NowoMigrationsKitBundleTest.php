@@ -13,7 +13,7 @@ class NowoMigrationsKitBundleTest extends TestCase
 {
     public function testGetContainerExtensionReturnsExtension(): void
     {
-        $bundle = new NowoMigrationsKitBundle();
+        $bundle    = new NowoMigrationsKitBundle();
         $extension = $bundle->getContainerExtension();
 
         self::assertInstanceOf(ExtensionInterface::class, $extension);

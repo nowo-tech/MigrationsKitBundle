@@ -11,6 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Profiler\Profiler;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 /**
  * Shows whether entity mappings are in sync with the database.
@@ -26,26 +27,26 @@ class SchemaStatusController extends AbstractController
         }
 
         $mappingErrors = [];
-        $schemaErrors = [];
+        $schemaErrors  = [];
 
         try {
-            $validator = new SchemaValidator($em);
+            $validator     = new SchemaValidator($em);
             $mappingErrors = $validator->validateMapping();
 
-            $metadata = $em->getMetadataFactory()->getAllMetadata();
-            $schemaTool = new SchemaTool($em);
-            $schemaSql = $schemaTool->getUpdateSchemaSql($metadata);
+            $metadata     = $em->getMetadataFactory()->getAllMetadata();
+            $schemaTool   = new SchemaTool($em);
+            $schemaSql    = $schemaTool->getUpdateSchemaSql($metadata);
             $schemaErrors = array_map('strval', $schemaSql);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $schemaErrors = [$e->getMessage()];
         }
 
-        $inSync = [] === $mappingErrors && [] === $schemaErrors;
+        $inSync = $mappingErrors === [] && $schemaErrors === [];
 
         return $this->render('schema_status/index.html.twig', [
-            'in_sync' => $inSync,
+            'in_sync'        => $inSync,
             'mapping_errors' => $mappingErrors,
-            'schema_errors' => $schemaErrors,
+            'schema_errors'  => $schemaErrors,
         ]);
     }
 }

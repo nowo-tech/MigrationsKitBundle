@@ -34,7 +34,7 @@ class ConfigurationTest extends TestCase
      */
     private function processConfiguration(array $configs): array
     {
-        $processor = new Processor();
+        $processor     = new Processor();
         $configuration = new Configuration();
 
         return $processor->processConfiguration($configuration, $configs);

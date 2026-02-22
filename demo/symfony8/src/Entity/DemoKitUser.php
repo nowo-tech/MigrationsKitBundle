@@ -41,6 +41,7 @@ class DemoKitUser
     public function setName(string $name): static
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -52,6 +53,7 @@ class DemoKitUser
     public function setEmail(?string $email): static
     {
         $this->email = $email;
+
         return $this;
     }
 
@@ -63,6 +65,7 @@ class DemoKitUser
     public function setPhone(?string $phone): static
     {
         $this->phone = $phone;
+
         return $this;
     }
 
@@ -74,6 +77,7 @@ class DemoKitUser
     public function setNotes(?string $notes): static
     {
         $this->notes = $notes;
+
         return $this;
     }
 }

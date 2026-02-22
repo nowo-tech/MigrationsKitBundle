@@ -7,6 +7,8 @@ namespace Nowo\MigrationsKitBundle\Tests\Schema;
 use Nowo\MigrationsKitBundle\Schema\SchemaLimitChecker;
 use PHPUnit\Framework\TestCase;
 
+use const E_USER_WARNING;
+
 class SchemaLimitCheckerTest extends TestCase
 {
     private SchemaLimitChecker $checker;
@@ -29,7 +31,7 @@ class SchemaLimitCheckerTest extends TestCase
             'tables' => [
                 'users' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'    => ['type' => 'integer'],
                         'email' => ['type' => 'string', 'length' => 180],
                     ],
                     'indexes' => [
@@ -47,7 +49,7 @@ class SchemaLimitCheckerTest extends TestCase
         for ($i = 0; $i < 1020; ++$i) {
             $columns['col_' . $i] = ['type' => 'integer'];
         }
-        $def = ['tables' => ['huge' => ['columns' => $columns, 'indexes' => []]]];
+        $def      = ['tables' => ['huge' => ['columns' => $columns, 'indexes' => []]]];
         $warnings = $this->checker->check($def, 'mysql');
         self::assertCount(1, $warnings);
         self::assertStringContainsString('1017', $warnings[0]);
@@ -119,7 +121,7 @@ class SchemaLimitCheckerTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'   => ['type' => 'integer'],
                         'long' => ['type' => 'string', 'length' => 1000],
                     ],
                     'indexes' => [
@@ -153,6 +155,7 @@ class SchemaLimitCheckerTest extends TestCase
             if ($errno === E_USER_WARNING && str_contains($errstr, 'MigrationsKitBundle')) {
                 $raised = true;
             }
+
             return true;
         });
         try {
@@ -189,15 +192,15 @@ class SchemaLimitCheckerTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
-                        'name' => ['type' => 'string', 'length' => 500],
+                        'id'      => ['type' => 'integer'],
+                        'name'    => ['type' => 'string', 'length' => 500],
                         'content' => ['type' => 'text'],
-                        'data' => ['type' => 'json'],
-                        'bin' => ['type' => 'blob'],
-                        'amount' => ['type' => 'decimal', 'precision' => 10, 'scale' => 2],
-                        'ratio' => ['type' => 'float'],
-                        'birth' => ['type' => 'datetime_immutable'],
-                        'active' => ['type' => 'boolean'],
+                        'data'    => ['type' => 'json'],
+                        'bin'     => ['type' => 'blob'],
+                        'amount'  => ['type' => 'decimal', 'precision' => 10, 'scale' => 2],
+                        'ratio'   => ['type' => 'float'],
+                        'birth'   => ['type' => 'datetime_immutable'],
+                        'active'  => ['type' => 'boolean'],
                     ],
                     'indexes' => [],
                 ],
@@ -213,12 +216,12 @@ class SchemaLimitCheckerTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'   => ['type' => 'integer'],
                         'code' => ['type' => 'string', 'length' => 100],
                     ],
                     'indexes' => [
                         'idx_code' => ['columns' => ['code']],
-                        'idx_id' => ['columns' => ['id']],
+                        'idx_id'   => ['columns' => ['id']],
                     ],
                 ],
             ],
@@ -233,7 +236,7 @@ class SchemaLimitCheckerTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'      => ['type' => 'integer'],
                         'payload' => ['type' => 'guid'],
                     ],
                     'indexes' => [],
@@ -250,7 +253,7 @@ class SchemaLimitCheckerTest extends TestCase
             'tables' => [
                 't' => [
                     'columns' => [
-                        'id' => ['type' => 'integer'],
+                        'id'         => ['type' => 'integer'],
                         'created_at' => ['type' => 'datetime_immutable'],
                     ],
                     'indexes' => [
@@ -265,12 +268,13 @@ class SchemaLimitCheckerTest extends TestCase
 
     public function testWarnIfOverLimitsNoWarnings(): void
     {
-        $def = ['tables' => ['t' => ['columns' => ['id' => ['type' => 'integer']], 'indexes' => []]]];
+        $def    = ['tables' => ['t' => ['columns' => ['id' => ['type' => 'integer']], 'indexes' => []]]];
         $raised = false;
         set_error_handler(static function (int $errno) use (&$raised): bool {
             if ($errno === E_USER_WARNING) {
                 $raised = true;
             }
+
             return true;
         });
         try {

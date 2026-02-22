@@ -11,9 +11,9 @@ $projectRoot = dirname(__DIR__);
 chdir($projectRoot);
 
 $console = $projectRoot . '/bin/console';
-$cmd = 'php ' . escapeshellarg($console) . ' doctrine:database:create --if-not-exists 2>&1';
-$output = [];
-$code = 0;
+$cmd     = 'php ' . escapeshellarg($console) . ' doctrine:database:create --if-not-exists 2>&1';
+$output  = [];
+$code    = 0;
 exec($cmd, $output, $code);
 $out = implode("\n", $output);
 
