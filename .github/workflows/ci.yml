@@ -56,10 +56,22 @@ jobs:
             ${{ runner.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-
             ${{ runner.os }}-php-${{ matrix.php }}-composer-
 
-      - name: Install dependencies with Symfony ${{ matrix.symfony }}
+      - name: Pin Symfony version
         run: |
+          composer config platform.php ${{ matrix.php }}.0
           composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/yaml:^${{ matrix.symfony }} --no-interaction --no-update
-          composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+
+      - name: Pin doctrine-bundle for Symfony 8
+        if: matrix.symfony == '8.0'
+        run: composer require doctrine/doctrine-bundle:^3.0 --no-interaction --no-update
+
+      - name: Update dependencies
+        run: |
+          if [ "${{ matrix.symfony }}" = "8.0" ]; then
+            composer update doctrine/doctrine-bundle symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          else
+            composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          fi
 
       - name: Run tests
         run: |
