@@ -5,7 +5,7 @@ COMPOSE_FILE := docker-compose.yml
 COMPOSE := docker-compose -f $(COMPOSE_FILE)
 SERVICE_PHP := php
 
-.PHONY: help up down build install shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql cache-clear update-bundle ensure-up
+.PHONY: help up down build install shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql cache-clear update-bundle ensure-up test test-coverage
 
 help:
 	@echo "Migrations Kit Bundle Demo - Symfony 8"
@@ -23,12 +23,17 @@ help:
 	@echo "  make logs              Show container logs"
 	@echo "  make cache-clear       Clear Symfony cache"
 	@echo "  make update-bundle     Update bundle from path repo"
+	@echo "  make test              Run tests"
+	@echo "  make test-coverage     Run tests with coverage (console output)"
 	@echo ""
 
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || (echo "APP_ENV=dev" > .env; echo "APP_SECRET=change-me" >> .env; echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env); fi
 	$(COMPOSE) up -d
-	@sleep 2
+	@echo "Waiting for container to be ready..."
+	@sleep 5
+	@echo "Installing dependencies..."
+	@$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 $(SERVICE_PHP) composer install --no-interaction
 	$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'mkdir -p var && composer migrate'
 	@echo "App: http://localhost:$${PORT:-8008} (schema sync status)."
 
@@ -42,12 +47,12 @@ ensure-up:
 	@if ! $(COMPOSE) exec -T $(SERVICE_PHP) true 2>/dev/null; then \
 		echo "Starting container..."; \
 		$(COMPOSE) up -d; \
-		sleep 2; \
-		$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction; \
+		sleep 5; \
+		$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 $(SERVICE_PHP) composer install --no-interaction; \
 	fi
 
 install: ensure-up
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction
+	$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 $(SERVICE_PHP) composer install --no-interaction
 
 migrate: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'mkdir -p var && composer migrate'
@@ -80,3 +85,9 @@ update-bundle: ensure-up
 	$(COMPOSE) exec $(SERVICE_PHP) composer update nowo-tech/migrations-kit-bundle --no-interaction
 	$(COMPOSE) exec -T $(SERVICE_PHP) php bin/console cache:clear
 	@echo "Bundle updated."
+
+test: ensure-up
+	$(COMPOSE) exec -e APP_ENV=test $(SERVICE_PHP) composer test 2>/dev/null || $(COMPOSE) exec $(SERVICE_PHP) php bin/console list
+
+test-coverage: ensure-up
+	$(COMPOSE) exec -e APP_ENV=test $(SERVICE_PHP) composer test-coverage 2>/dev/null || $(COMPOSE) exec $(SERVICE_PHP) composer test

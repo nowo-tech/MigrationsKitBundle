@@ -121,8 +121,13 @@ final class SchemaSync
         }
 
         if ($dropTables) {
-            foreach ($this->getDroppedTablesFromDiff($diff) as $table) {
-                foreach ($platform->getDropTableSQL($table) as $sql) {
+            $droppedTables = $this->getDroppedTablesFromDiff($diff);
+            if ($droppedTables !== []) {
+                $dropSqls = method_exists($platform, 'getDropTablesSQL')
+                    ? $platform->getDropTablesSQL($droppedTables)
+                    : array_map(fn ($t) => $platform->getDropTableSQL(method_exists($t, 'getQuotedName') ? $t->getQuotedName($platform) : $t->getName()), $droppedTables);
+                $dropSqls = is_array($dropSqls) ? $dropSqls : [$dropSqls];
+                foreach ($dropSqls as $sql) {
                     $addSql($sql);
                 }
             }
@@ -215,8 +220,13 @@ final class SchemaSync
             }
         }
         if ($dropTables) {
-            foreach ($this->getDroppedTablesFromDiff($diff) as $table) {
-                foreach ($platform->getDropTableSQL($table) as $s) {
+            $droppedTables = $this->getDroppedTablesFromDiff($diff);
+            if ($droppedTables !== []) {
+                $dropSqls = method_exists($platform, 'getDropTablesSQL')
+                    ? $platform->getDropTablesSQL($droppedTables)
+                    : array_map(fn ($t) => $platform->getDropTableSQL(method_exists($t, 'getQuotedName') ? $t->getQuotedName($platform) : $t->getName()), $droppedTables);
+                $dropSqls = is_array($dropSqls) ? $dropSqls : [$dropSqls];
+                foreach ($dropSqls as $s) {
                     $sql[] = $s;
                 }
             }
@@ -243,6 +253,9 @@ final class SchemaSync
     {
         if (method_exists($diff, 'getModifiedTables')) {
             return $diff->getModifiedTables();
+        }
+        if (method_exists($diff, 'getAlteredTables')) {
+            return $diff->getAlteredTables();
         }
         return $diff->changedTables ?? $diff->modifiedTables ?? [];
     }
@@ -284,7 +297,9 @@ final class SchemaSync
             if (method_exists($col, 'getComment') && $col->getComment() !== null) {
                 $opts['comment'] = $col->getComment();
             }
-            $t->addColumn($col->getName(), $col->getType()->getName(), $opts);
+            $type = $col->getType();
+            $typeName = method_exists($type, 'getName') ? $type->getName() : \Doctrine\DBAL\Types\Type::lookupName($type);
+            $t->addColumn($col->getName(), $typeName, $opts);
         }
         $pk = $source->getPrimaryKey();
         if ($pk !== null) {
@@ -360,6 +375,9 @@ final class SchemaSync
         }
         if (method_exists($tableDiff, 'getName')) {
             return $tableDiff->getName();
+        }
+        if (method_exists($tableDiff, 'getOldTable')) {
+            return $tableDiff->getOldTable()->getName();
         }
         return null;
     }

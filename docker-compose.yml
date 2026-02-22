@@ -1,3 +1,4 @@
+name: migrations-kit-bundle
 services:
   php:
     build:

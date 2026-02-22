@@ -9,7 +9,7 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate
+.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets
 .PHONY: demo-up-symfony6 demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony6 demo-migrate-symfony7 demo-migrate-symfony8
 .PHONY: up up-symfony6 up-symfony7 up-symfony8 build shell demo-install
 
@@ -30,6 +30,7 @@ help:
 	@echo "  clean         Remove vendor, cache, coverage"
 	@echo "  update        Update composer.lock (composer update)"
 	@echo "  validate      Run composer validate --strict"
+	@echo "  assets        No frontend assets in this bundle (no-op)"
 	@echo ""
 	@echo "Demos (run from bundle root; demos use path repo ../..):"
 	@echo "  demo-up-symfony6   Install deps in demo/symfony6"
@@ -83,6 +84,10 @@ update: ensure-up
 
 validate: ensure-up
 	$(RUN) composer validate --strict
+
+# No frontend assets in this bundle
+assets:
+	@echo "No frontend assets in this bundle."
 
 # Demo targets (install + migrate)
 demo-up-symfony6:

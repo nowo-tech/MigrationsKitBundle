@@ -149,6 +149,22 @@ class MigrationDefinitionRunnerTest extends TestCase
         self::assertTrue($called);
     }
 
+    public function testEnsureColumnDoesNotCallAddSqlWhenColumnExists(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->with('users', 'email')->willReturn(true);
+
+        $called = false;
+        $addSql = function (string $sql) use (&$called): void {
+            $called = true;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->ensureColumn('users', 'email', 'ALTER TABLE users ADD email VARCHAR(180)', $addSql);
+
+        self::assertFalse($called);
+    }
+
     public function testRunDataInsertCallsAddSqlWithParams(): void
     {
         $platform = $this->createMock(\Doctrine\DBAL\Platforms\AbstractPlatform::class);
@@ -371,6 +387,22 @@ class MigrationDefinitionRunnerTest extends TestCase
         self::assertTrue($called);
     }
 
+    public function testModifyColumnDoesNotCallAddSqlWhenColumnDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->with('users', 'email')->willReturn(false);
+
+        $called = false;
+        $addSql = function (string $sql) use (&$called): void {
+            $called = true;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->modifyColumn('users', 'email', 'ALTER TABLE users MODIFY email VARCHAR(255)', $addSql);
+
+        self::assertFalse($called);
+    }
+
     public function testDropColumnCallsAddSqlWhenColumnExists(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
@@ -387,6 +419,22 @@ class MigrationDefinitionRunnerTest extends TestCase
         self::assertTrue($called);
     }
 
+    public function testDropColumnDoesNotCallAddSqlWhenColumnDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->with('users', 'aka')->willReturn(false);
+
+        $called = false;
+        $addSql = function (string $sql) use (&$called): void {
+            $called = true;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->dropColumn('users', 'aka', 'ALTER TABLE users DROP COLUMN aka', $addSql);
+
+        self::assertFalse($called);
+    }
+
     public function testDropIndexCallsAddSqlWhenIndexExists(): void
     {
         $checker = $this->createMock(SchemaCheckerInterface::class);
@@ -401,6 +449,22 @@ class MigrationDefinitionRunnerTest extends TestCase
         $runner->dropIndex('users', 'idx_old', 'ALTER TABLE users DROP INDEX idx_old', $addSql);
 
         self::assertTrue($called);
+    }
+
+    public function testDropIndexDoesNotCallAddSqlWhenIndexDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('indexExists')->with('users', 'idx_old')->willReturn(false);
+
+        $called = false;
+        $addSql = function (string $sql) use (&$called): void {
+            $called = true;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->dropIndex('users', 'idx_old', 'ALTER TABLE users DROP INDEX idx_old', $addSql);
+
+        self::assertFalse($called);
     }
 
     public function testEnsureForeignKeyCallsAddSqlWhenFkDoesNotExist(): void
@@ -433,5 +497,320 @@ class MigrationDefinitionRunnerTest extends TestCase
         $runner->ensureForeignKey('orders', 'fk_orders_user', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_user ...', $addSql);
 
         self::assertFalse($called);
+    }
+
+    public function testRunAcceptsAddSqlFirstThenDefinition(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('tableExists')->with('users')->willReturn(false);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run($addSql, [
+            'tables' => [
+                'users' => ['create_sql' => 'CREATE TABLE users (id INT)'],
+            ],
+        ]);
+
+        self::assertCount(1, $sqls);
+        self::assertSame('CREATE TABLE users (id INT)', $sqls[0]);
+    }
+
+    public function testRunThrowsWhenNeitherArgumentIsDefinition(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $runner = new MigrationDefinitionRunner($checker);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('expects (array $definition, callable $addSql) or (callable $addSql, array $definition)');
+
+        // Array without any MDK key is not a definition; callable is not a definition
+        $runner->run([], function (): void {});
+    }
+
+    public function testRunThrowsWhenNoCallableProvided(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $runner = new MigrationDefinitionRunner($checker);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('expects one argument to be a callable');
+
+        // Both are arrays with definition keys, so definition is resolved; but neither is callable
+        $runner->run(['tables' => []], ['columns' => []]);
+    }
+
+    public function testRunThrowsWhenReceivedAddSqlArrayInsteadOfCallable(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $runner = new MigrationDefinitionRunner($checker);
+        $fakeThis = new \stdClass();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('received [$this, \'addSql\']');
+
+        $runner->run([$fakeThis, 'addSql'], ['tables' => []]);
+    }
+
+    public function testRunDataInsertWithoutOnlyIfNotExistsCallsAddSql(): void
+    {
+        $platform = $this->createMock(\Doctrine\DBAL\Platforms\AbstractPlatform::class);
+        $platform->method('quoteIdentifier')->willReturnArgument(0);
+        $connection = $this->createMock(\Doctrine\DBAL\Connection::class);
+        $connection->method('getDatabasePlatform')->willReturn($platform);
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('getConnection')->willReturn($connection);
+
+        $calls = [];
+        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+            $calls[] = ['sql' => $sql, 'params' => $params];
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'data' => [
+                ['insert' => ['table' => 'config', 'row' => ['k' => 'v']]],
+            ],
+        ], $addSql);
+
+        self::assertCount(1, $calls);
+        self::assertStringContainsString('INSERT INTO config', $calls[0]['sql']);
+    }
+
+    public function testRunDataInsertSkipsWhenTableEmpty(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $calls = [];
+        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+            $calls[] = 1;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'data' => [
+                ['insert' => ['table' => '', 'row' => ['a' => 1]]],
+                ['insert' => ['table' => 't', 'row' => []]],
+                ['insert' => ['table' => 't', 'row' => ['a' => 1]]],
+            ],
+        ], $addSql);
+
+        self::assertCount(1, $calls);
+    }
+
+    public function testRunDataUpdateSkipsWhenOnlyIfExistsAndRowDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('rowExists')->with('settings', ['key' => 'x'])->willReturn(false);
+
+        $calls = [];
+        $addSql = function (string $sql, array $params = []) use (&$calls): void {
+            $calls[] = 1;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'data' => [
+                ['update' => ['table' => 'settings', 'set' => ['v' => '2'], 'where' => ['key' => 'x'], 'only_if_exists' => true]],
+            ],
+        ], $addSql);
+
+        self::assertCount(0, $calls);
+    }
+
+    public function testRunDataUpdateSkipsWhenSetOrWhereEmpty(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $calls = [];
+        $addSql = function (string $sql) use (&$calls): void {
+            $calls[] = 1;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'data' => [
+                ['update' => ['table' => 't', 'set' => [], 'where' => ['id' => 1]]],
+                ['update' => ['table' => 't', 'set' => ['v' => 1], 'where' => []]],
+            ],
+        ], $addSql);
+
+        self::assertCount(0, $calls);
+    }
+
+    public function testRunSkipsNonArrayDataStep(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $calls = [];
+        $addSql = function (string $sql) use (&$calls): void {
+            $calls[] = 1;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'data' => [
+                'not-an-array',
+                null,
+            ],
+        ], $addSql);
+
+        self::assertCount(0, $calls);
+    }
+
+    public function testRunSkipsInvalidIndexDefinition(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('indexExists')->willReturn(false);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'indexes' => [
+                ['table' => 'u', 'index_name' => 'i1'], // missing add_sql
+                ['table' => 'u', 'index_name' => 'i2', 'add_sql' => 'CREATE INDEX i2 ON u (c)'],
+            ],
+        ], $addSql);
+
+        self::assertCount(1, $sqls);
+    }
+
+    public function testRunSkipsInvalidRenameColumnDefinition(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->willReturn(true);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'rename_columns' => [
+                ['table' => 'f', 'old_name' => 'a', 'rename_sql' => 'ALTER TABLE f CHANGE a b INT'],
+            ],
+        ], $addSql);
+
+        self::assertCount(1, $sqls);
+    }
+
+    public function testRunSkipsInvalidDropColumnDefinition(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->willReturn(true);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'drop_columns' => [
+                ['table' => 'u', 'column' => 'x'], // missing drop_sql
+                ['table' => 'u', 'column' => 'y', 'drop_sql' => 'ALTER TABLE u DROP y'],
+            ],
+        ], $addSql);
+
+        self::assertCount(1, $sqls);
+    }
+
+    public function testRunRenameColumnSkipsWhenOldColumnDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->with('f', 'old_col')->willReturn(false);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'rename_columns' => [
+                ['table' => 'f', 'old_name' => 'old_col', 'new_name' => 'new_col', 'rename_sql' => 'ALTER TABLE f CHANGE old_col new_col INT'],
+            ],
+        ], $addSql);
+
+        self::assertCount(0, $sqls);
+    }
+
+    public function testRunDropIndexSkipsWhenIndexDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('indexExists')->with('u', 'idx_old')->willReturn(false);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'drop_indexes' => [
+                ['table' => 'u', 'index_name' => 'idx_old', 'drop_sql' => 'ALTER TABLE u DROP INDEX idx_old'],
+            ],
+        ], $addSql);
+
+        self::assertCount(0, $sqls);
+    }
+
+    public function testEnsureIndexCallsAddSqlWhenIndexDoesNotExist(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('indexExists')->with('users', 'idx_email')->willReturn(false);
+
+        $called = false;
+        $addSql = function (string $sql) use (&$called): void {
+            $called = true;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->ensureIndex('users', 'idx_email', 'CREATE INDEX idx_email ON users (email)', $addSql);
+
+        self::assertTrue($called);
+    }
+
+    public function testEnsureIndexDoesNotCallAddSqlWhenIndexExists(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('indexExists')->with('users', 'idx_email')->willReturn(true);
+
+        $called = false;
+        $addSql = function (string $sql) use (&$called): void {
+            $called = true;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->ensureIndex('users', 'idx_email', 'CREATE INDEX idx_email ON users (email)', $addSql);
+
+        self::assertFalse($called);
+    }
+
+    public function testRunSkipsInvalidColumnDefinition(): void
+    {
+        $checker = $this->createMock(SchemaCheckerInterface::class);
+        $checker->method('columnExists')->willReturn(false);
+
+        $sqls = [];
+        $addSql = function (string $sql) use (&$sqls): void {
+            $sqls[] = $sql;
+        };
+
+        $runner = new MigrationDefinitionRunner($checker);
+        $runner->run([
+            'columns' => [
+                ['table' => 'u', 'column' => 'e', 'add_sql' => 'ALTER TABLE u ADD e VARCHAR(180)'],
+                ['table' => 'u'], // missing column/add_sql
+            ],
+        ], $addSql);
+
+        self::assertCount(1, $sqls);
     }
 }

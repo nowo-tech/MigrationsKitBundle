@@ -1,3 +1,4 @@
+name: migrations-kit-bundle-demo-symfony-7
 services:
   php:
     build:
@@ -8,6 +9,7 @@ services:
     restart: unless-stopped
     volumes:
       - .:/app
+      # Mount bundle root so the demo uses bundle files from the repo
       - ../..:/var/migrations-kit-bundle
       - composer-cache:/root/.composer/cache
     environment:

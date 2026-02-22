@@ -55,8 +55,10 @@ final class SchemaDefinitionParser
             try {
                 $schema->createTable($table);
             } catch (\Throwable $e) {
-                // DBAL 4.x: createTable(Table) may pass Table to new Table() internally; inject the full table instead
-                if (str_contains($e->getMessage(), 'Table::__construct') && str_contains($e->getMessage(), 'must be of type string')) {
+                // DBAL 4.x: createTable() may expect (string $name) or Table::__construct rejects Table; inject via reflection
+                $msg = $e->getMessage();
+                if ((str_contains($msg, 'Table::__construct') && str_contains($msg, 'must be of type string'))
+                    || (str_contains($msg, 'createTable') && str_contains($msg, 'must be of type string'))) {
                     $this->schemaAddTable($schema, $table);
                 } else {
                     throw $e;

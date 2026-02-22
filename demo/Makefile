@@ -5,7 +5,8 @@
 .PHONY: help up-all migrate-all clean-all
 .PHONY: up-symfony6 up-symfony7 up-symfony8 migrate-symfony6 migrate-symfony7 migrate-symfony8
 .PHONY: docker-up-symfony6 docker-up-symfony7 docker-up-symfony8 docker-down-symfony6 docker-down-symfony7 docker-down-symfony8
-.PHONY: docker-setup-symfony6 docker-setup-symfony7 docker-setup-symfony8
+.PHONY: docker-install-symfony6 docker-install-symfony7 docker-install-symfony8
+.PHONY: docker-setup-symfony6 docker-setup-symfony7 docker-setup-symfony8 docker-update-bundle-symfony6 docker-update-bundle-symfony7 docker-update-bundle-symfony8
 
 DEMOS := symfony6 symfony7 symfony8
 
@@ -27,9 +28,15 @@ help:
 	@echo "  docker-up-symfony7   Start container demo/symfony7"
 	@echo "  docker-up-symfony8   Start container demo/symfony8"
 	@echo "  docker-down-symfony6  Stop container demo/symfony6"
+	@echo "  docker-install-symfony6  composer install in container (demo/symfony6)"
+	@echo "  docker-install-symfony7  composer install in container (demo/symfony7)"
+	@echo "  docker-install-symfony8  composer install in container (demo/symfony8)"
 	@echo "  docker-setup-symfony6 install + migrate in container (demo/symfony6)"
 	@echo "  docker-setup-symfony7 install + migrate in container (demo/symfony7)"
 	@echo "  docker-setup-symfony8 install + migrate in container (demo/symfony8)"
+	@echo "  docker-update-bundle-symfony6  Update bundle from path repo (demo/symfony6)"
+	@echo "  docker-update-bundle-symfony7  Update bundle from path repo (demo/symfony7)"
+	@echo "  docker-update-bundle-symfony8  Update bundle from path repo (demo/symfony8)"
 	@echo ""
 	@echo "  up-all         Install dependencies in all demos (no Docker)"
 	@echo "  migrate-all    Run migrations in all demos (no Docker)"
@@ -82,6 +89,15 @@ docker-down-symfony7:
 docker-down-symfony8:
 	$(MAKE) -C symfony8 down
 
+docker-install-symfony6:
+	$(MAKE) -C symfony6 install
+
+docker-install-symfony7:
+	$(MAKE) -C symfony7 install
+
+docker-install-symfony8:
+	$(MAKE) -C symfony8 install
+
 docker-setup-symfony6:
 	$(MAKE) -C symfony6 setup
 
@@ -90,3 +106,12 @@ docker-setup-symfony7:
 
 docker-setup-symfony8:
 	$(MAKE) -C symfony8 setup
+
+docker-update-bundle-symfony6:
+	$(MAKE) -C symfony6 update-bundle
+
+docker-update-bundle-symfony7:
+	$(MAKE) -C symfony7 update-bundle
+
+docker-update-bundle-symfony8:
+	$(MAKE) -C symfony8 update-bundle

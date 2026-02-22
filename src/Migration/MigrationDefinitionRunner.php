@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Migration;
 
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
 /**
  * Runs migration steps from an array definition.
  *
