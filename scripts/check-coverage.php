@@ -8,11 +8,10 @@ declare(strict_types=1);
  *
  * Usage: php scripts/check-coverage.php [coverage.xml] [min-percent]
  *
- * Target is 95% long-term. Current threshold 81% until CreateTablesService and other
- * classes have more tests. To require 95%: php scripts/check-coverage.php coverage.xml 95
+ * Minimum required: 95%. Override: php scripts/check-coverage.php coverage.xml 90
  */
 $coverageFile = $argv[1] ?? __DIR__ . '/../coverage.xml';
-$minPercent   = isset($argv[2]) ? (float) $argv[2] : 81.0;
+$minPercent   = isset($argv[2]) ? (float) $argv[2] : 95.0;
 
 if (!is_file($coverageFile)) {
     fwrite(\STDERR, "Coverage file not found: {$coverageFile}\n");
