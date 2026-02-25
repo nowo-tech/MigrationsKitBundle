@@ -1,14 +1,31 @@
-# Declarative schema - Migrations Kit Bundle
+# Declarative schema — Migrations Kit Bundle
 
-This document describes the **declarative schema definition** format and the **SchemaSync** service. You describe the desired database schema in a single array; the toolkit compares it with the current DB and runs only the needed SQL (create/drop tables, add/drop/change columns, add/drop indexes).
+This document describes the **declarative schema definition** used with **CreateTablesService**. You describe the desired tables, columns, indexes and foreign keys in an array (keys from **MigrationDefinitionKeys**, alias **MDK**); the service uses the Doctrine Schema API and emits only the needed SQL.
 
-**Requirements:** Doctrine DBAL 3.x or 4.x (for `introspectSchema` and `createComparator`).
+**CreateTablesService:** Pass an **introspected** schema and a definition. The service checks table/column/index/FK existence and: creates tables that do not exist (with columns and primary key); **if the table does not exist and the definition only has column entries with RENAME** (no full column types), the service skips creation (nothing to create or rename). Otherwise: renames columns (Phase 3a, `RENAME`); modifies column type/options (Phase 3b); adds missing columns; creates indexes/unique (Phase 4a, `INDEXES`); creates foreign keys (Phase 4b). Drops: FKs that reference DROP_TABLES, FKs by name, indexes, columns, PK, tables (Phases 1–2). Column definitions with `MDK::DROP => true` are skipped when adding; use `DROP_COLUMNS` to drop columns.
+
+**Requirements:** Doctrine DBAL 2.x, 3.x or 4.x (see [INSTALLATION.md](INSTALLATION.md#requirements)). Schema is passed from the migration's `up()`/`down()`; for accurate checks, use `$this->connection->createSchemaManager()->introspectSchema()`.
+
+## Order of operations (apply execution order)
+
+The bundle applies changes in this fixed order so that dependencies are respected (e.g. drop FKs before tables, create columns before indexes):
+
+| Phase | Action | Status |
+|-------|--------|--------|
+| **1** | **Drop** FKs that reference tables in DROP_TABLES; drop FKs by name (DROP_FOREIGN_KEYS); drop indexes (DROP_INDEXES) | ✅ Implemented |
+| **2** | **Drop** columns (DROP_COLUMNS), drop primary key (DROP_PRIMARY_KEYS), drop tables (DROP_TABLES) | ✅ Implemented |
+| **3** | **Create or edit** tables (CREATE TABLE if missing); rename columns (RENAME); modify columns (type/options); add missing columns; add or change primary key on existing table | ✅ Implemented |
+| **4** | **Create** indexes and unique (INDEXES); create foreign keys (FOREIGN_KEYS) | ✅ Implemented |
+
+The sections below describe each key and operation in full. For a use-cases matrix and expected SQL per demo migration, see [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md).
+
+**Recommended:** Use **independent, well-ordered migrations**: when adding, first add the column, then (in a later migration) add the index, then add the foreign key; when dropping, first drop indexes/FKs, then drop columns. See [USAGE.md](USAGE.md#recommended-independent-well-ordered-migrations).
 
 ---
 
-## MigrationDefinitionKeys (standard keys)
+## MigrationDefinitionKeys (MDK)
 
-Definition keys (`tables`, `columns`, `primary_key`, `indexes`, `data`, `insert`, `update`, etc.) are centralized in **MigrationDefinitionKeys**, in the style of Doctrine Types. Using these constants avoids typos and standardizes code. The **MDK** alias is recommended for shorter code:
+Use the constants so keys are consistent and typo-free. The **MDK** alias is recommended:
 
 ```php
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
@@ -17,56 +34,146 @@ $definition = [
     MDK::TABLES => [
         'users' => [
             MDK::COLUMNS => [
-                'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
-                'email' => ['type' => 'string', 'length' => 180, 'notnull' => true],
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'email', 'type' => 'string', 'length' => 180, 'notnull' => true],
             ],
-            MDK::PRIMARY_KEY => ['id'],
+            MDK::PRIMARY_KEY => [['columns' => ['id']]],
             MDK::INDEXES => [
-                'uniq_email' => [MDK::COLUMNS => ['email'], 'unique' => true],
+                ['columns' => ['email'], 'unique' => true],
             ],
         ],
     ],
 ];
 ```
 
-Constants: `TABLES`, `COLUMNS`, `INDEXES`, `PRIMARY_KEY`, `DATA`, `INSERT`, `UPDATE`, and alteration keys (`RENAME_COLUMNS`, `MODIFY_COLUMNS`, `DROP_INDEXES`, `DROP_COLUMNS`). See [USAGE.md](USAGE.md#migrationdefinitionkeys-standard-keys) for the full list.
+**Model: array of associative arrays.** For `columns`, `primary_key`, `indexes`, and `foreign_keys`, each value is an array of associative arrays. Each element describes one item (column, PK, index, FK). Use `drop: true` to remove it, or `rename: 'new_name'` where supported.
+
+**Constants:** `TABLES`, `COLUMNS`, `PRIMARY_KEY`, `INDEXES`, `FOREIGN_KEYS`, `RENAME`, `DROP`, `DROP_TABLES`, `DROP_COLUMNS`, `DROP_INDEXES`, `DROP_FOREIGN_KEYS`, `DROP_PRIMARY_KEYS`. See the class docblock in `MigrationDefinitionKeys.php` for the full structure.
 
 ---
 
-## Definition format
+## Top-level structure
 
-Top-level key: `tables`. Each table has:
+- **drop_tables** (optional): list of table names to drop. The bundle applies two phases: (1) drop any foreign key that **references** one of these tables (so the drop can succeed); (2) drop each table only if it exists. See demo migrations Version20250223100004 (simple drop) and Version20250223100006 (drop table that was referenced by another; migration 00005 drops the FK first).
+- **tables** (required for create/edit): map of table name => table definition.
 
-- **columns** (required): map of column name => column options
-- **primary_key** (optional): array of column names
-- **indexes** (optional): map of index name => index definition
-- **options** (optional): table options (e.g. `charset`, `collate` for MySQL)
+Each table definition can be:
 
-### Column options
+- **Create or edit:** `columns`, `primary_key`, `indexes`, `foreign_keys` (arrays of associative arrays), and/or shortcuts `drop_columns`, `drop_indexes`, `drop_foreign_keys`, `drop_primary_keys`. To **drop** a table, list it in top-level **drop_tables** (the bundle does not support `drop => true` inside a table definition).
 
-| Option          | Description                    | Example                    |
-|-----------------|--------------------------------|----------------------------|
-| `type`          | DBAL type name (required)      | `string`, `integer`, `json`|
-| `length`        | Length for string/decimal      | `180`                      |
-| `precision`     | Precision for decimal          | `10`                       |
-| `scale`         | Scale for decimal              | `2`                        |
-| `notnull`       | Not null                       | `true`                     |
-| `default`       | Default value                  | `null`, `0`, `CURRENT_TIMESTAMP` |
-| `autoincrement` | Auto-increment                 | `true`                     |
-| `comment`       | Column comment                 | `'User email'`            |
-| `unsigned`      | Unsigned (integer)             | `true`                     |
-| `fixed`         | Fixed-length string            | `false`                    |
+---
 
-### Supported types (DBAL type names)
+## Columns
+
+Each column is an associative array. Identified by **name**. Other keys define the column or the operation.
+
+| Key            | Description                    | Example                    |
+|----------------|--------------------------------|----------------------------|
+| `name`         | Column name (required)         | `'email'`                  |
+| `type`         | DBAL type (required for add)  | `'string'`, `'integer'`   |
+| `length`       | Length for string/decimal     | `180`                      |
+| `precision`    | Precision for decimal          | `10`                       |
+| `scale`        | Scale for decimal              | `2`                        |
+| `notnull`      | Not null                       | `true`                     |
+| `default`      | Default value                  | `null`, `0`                |
+| `autoincrement`| Auto-increment                 | `true`                     |
+| `comment`      | Column comment                 | `'User email'`             |
+| **drop**       | Remove this column             | `true`                     |
+| **rename**     | New name (rename column)       | `'new_name'`               |
+
+**Note:** For a unique constraint on a column, use **INDEXES** with `unique => true` (e.g. `['columns' => ['email'], 'unique' => true]`). The column definition itself does not support a `unique` key.
+
+**Example (add/update):**
+
+```php
+MDK::COLUMNS => [
+    ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+    ['name' => 'title', 'type' => 'string', 'length' => 255, 'notnull' => true],
+    ['name' => 'email', 'type' => 'string', 'length' => 180, 'notnull' => false],
+]
+// For unique on email, add in MDK::INDEXES: ['columns' => ['email'], 'unique' => true]
+```
+
+**Example (rename):** `['name' => 'title', MDK::RENAME => 'name']`  
+**Example (drop):** `['name' => 'legacy_field', MDK::DROP => true]`
+
+**If the column has an index:** You must drop the index first, then rename the column, then add the index on the new name. The bundle applies `drop_indexes` before column renames, then adds new indexes, so you can do it in one definition. See [USAGE.md](USAGE.md#renaming-a-column-that-has-an-index).
+
+**Reusing column definitions:** The bundle provides **`Nowo\MigrationsKitBundle\FieldDictionary\IdField`** for the standard `id` column: `IdField::column()` and `IdField::primaryKey()`. You can centralise other common columns (e.g. audit timestamps, created_by/updated_by) in a helper class. The demos provide **`migrations/FieldDictionary/AuditFields`** for this; see [demo/README.md](../demo/README.md#field-dictionary-migrationsfielddictionary) and [USAGE.md](USAGE.md#reusable-audit-columns-field-dictionary).
+
+### Supported types (DBAL)
 
 `string`, `integer`, `smallint`, `bigint`, `boolean`, `decimal`, `float`, `text`, `datetime`, `datetime_immutable`, `date`, `time`, `json`, `blob`, `guid`, `ascii_string`, etc. See [Doctrine DBAL types](https://www.doctrine-project.org/projects/doctrine-dbal/en/stable/reference/types.html).
 
-### Indexes
+---
 
-Each index can be:
+## Primary key
 
-- **Short form:** `'index_name' => ['columns' => ['col1', 'col2']]` or `'index_name' => ['col1', 'col2']`
-- **With unique:** `'index_name' => ['columns' => ['email'], 'unique' => true]`
+Array of associative arrays. Usually one element with **columns** (list of column names):
+
+```php
+MDK::PRIMARY_KEY => [['columns' => ['id']]]
+```
+
+Use **drop_primary_keys** (e.g. `[]`) in the table def to drop the primary key. To **change** the primary key on an existing table, define `PRIMARY_KEY` with the new columns; the bundle will drop the current PK and add the new one (via comparator). On SQLite this may not emit SQL due to platform limitations.
+
+---
+
+## Indexes
+
+Array of associative arrays. Keys: **columns** (array of column names), **unique** (bool), **name** (optional). Use **drop: true** to remove an index by name.
+
+```php
+MDK::INDEXES => [
+    ['columns' => ['email'], 'unique' => true],
+    ['columns' => ['created_at'], 'name' => 'idx_created'],
+]
+```
+
+**Shortcut:** `drop_indexes` => `['idx_old', 'idx_foo']` to drop by name.
+
+**Renaming a column that is in an index:** Drop the index first, then rename the column, then add the index on the new column name. See [USAGE.md](USAGE.md#renaming-a-column-that-has-an-index).
+
+---
+
+## Foreign keys
+
+Array of associative arrays. Keys: **columns** (local columns), **foreign_table**, **foreign_columns**, optional **name**, **onUpdate**, **onDelete**. Use **drop: true** to remove.
+
+```php
+MDK::FOREIGN_KEYS => [
+    [
+        'columns' => ['user_id'],
+        'foreign_table' => 'users',
+        'foreign_columns' => ['id'],
+    ],
+]
+```
+
+**Shortcut:** `drop_foreign_keys` => `['fk_table_user_id']` to drop by name. Use **SchemaNameGenerator::generateForeignKeyName($tableName, $columns)** to get deterministic names when reverting migrations.
+
+---
+
+## Using CreateTablesService in a migration
+
+In a migration you **introspect the schema** and call **apply()** with the definition. The service returns the list of SQL statements; add each with `$this->addSql()`:
+
+```php
+use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
+
+// In up() or down():
+$schema = $this->connection->createSchemaManager()->introspectSchema();
+$service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+$definition = [ MDK::TABLES => [ ... ] ];
+
+foreach ($service->apply($schema, $definition) as $sql) {
+    $this->addSql($sql);
+}
+```
+
+**Important:** Pass the **introspected** schema (`introspectSchema()`) so the service sees the current database state and only emits SQL for what is missing or changed.
 
 ---
 
@@ -74,30 +181,29 @@ Each index can be:
 
 ```php
 $definition = [
-    'tables' => [
+    MDK::TABLES => [
         'users' => [
-            'columns' => [
-                'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
-                'email' => ['type' => 'string', 'length' => 180, 'notnull' => true],
-                'roles' => ['type' => 'json', 'notnull' => true],
-                'password' => ['type' => 'string', 'length' => 255, 'notnull' => true],
-                'created_at' => ['type' => 'datetime_immutable', 'notnull' => false],
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'email', 'type' => 'string', 'length' => 180, 'notnull' => true],
+                ['name' => 'roles', 'type' => 'json', 'notnull' => true],
+                ['name' => 'created_at', 'type' => 'datetime_immutable', 'notnull' => false],
             ],
-            'primary_key' => ['id'],
-            'indexes' => [
-                'uniq_email' => ['columns' => ['email'], 'unique' => true],
+            MDK::PRIMARY_KEY => [['columns' => ['id']]],
+            MDK::INDEXES => [
+                ['columns' => ['email'], 'unique' => true],
             ],
-            'options' => ['charset' => 'utf8mb4', 'collate' => 'utf8mb4_unicode_ci'],
         ],
         'orders' => [
-            'columns' => [
-                'id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true],
-                'user_id' => ['type' => 'integer', 'notnull' => true],
-                'total' => ['type' => 'decimal', 'precision' => 10, 'scale' => 2, 'notnull' => true],
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
+                ['name' => 'total', 'type' => 'decimal', 'precision' => 10, 'scale' => 2, 'notnull' => true],
             ],
-            'primary_key' => ['id'],
-            'indexes' => [
-                'idx_orders_user' => ['columns' => ['user_id']],
+            MDK::PRIMARY_KEY => [['columns' => ['id']]],
+            MDK::INDEXES => [['columns' => ['user_id']]],
+            MDK::FOREIGN_KEYS => [
+                ['columns' => ['user_id'], 'foreign_table' => 'users', 'foreign_columns' => ['id']],
             ],
         ],
     ],
@@ -106,248 +212,27 @@ $definition = [
 
 ---
 
-## Common column definitions (StandardColumns)
+## SchemaChecker (checks only)
 
-The bundle provides **StandardColumns** for reusable audit fields. Use them in declarative schema (SchemaSync) or to add columns/indexes in migrations (MigrationDefinitionRunner).
+For conditional logic without the full definition format, use **SchemaChecker**:
 
-### Declarative (SchemaSync): merge into your table definition
+- `tableExists(string $tableName): bool`
+- `columnExists(string $table, string $column): bool`
+- `indexExists(string $table, string $indexName): bool`
+- `hasPrimaryKey(string $tableName): bool`
+- `foreignKeyExists(string $table, string $fkName): bool`
+- `listTableColumns(string $table): array`
+- `getConnection(): Connection`
 
-```php
-use Nowo\MigrationsKitBundle\Schema\StandardColumns;
-
-$definition = [
-    'tables' => [
-        'my_table' => [
-            'columns' => array_merge(
-                ['id' => ['type' => 'integer', 'autoincrement' => true, 'notnull' => true], 'name' => ['type' => 'string', 'length' => 255]],
-                StandardColumns::auditColumns()
-            ),
-            'primary_key' => ['id'],
-            'indexes' => StandardColumns::auditIndexes(),
-        ],
-    ],
-];
-```
-
-- **StandardColumns::timestampColumns(bool $nullable = true)** — `created_at`, `updated_at`
-- **StandardColumns::userRefColumns(bool $nullable = true)** — `created_by`, `updated_by`
-- **StandardColumns::auditColumns(bool $nullable = true)** — timestamps + user refs
-- **StandardColumns::auditIndexes()** — `idx_created_by`, `idx_updated_by`
-
-### Adding standard columns to an existing table (MigrationDefinitionRunner)
-
-```php
-$runner->run([
-    'columns' => array_merge(
-        StandardColumns::auditColumnSteps('my_table', $isSqlite),
-        // other steps...
-    ),
-], $addSql);
-
-foreach (StandardColumns::auditIndexSteps('my_table', $isSqlite) as $step) {
-    $runner->ensureIndex($step['table'], $step['index'], $step['add_sql'], $addSql);
-}
-```
-
-- **StandardColumns::timestampColumnSteps($table, $isSqlite)** — only created_at, updated_at
-- **StandardColumns::userRefColumnSteps($table, $isSqlite)** — only created_by, updated_by
-- **StandardColumns::auditIndexSteps($table, $isSqlite)** — for ensureIndex()
-
-### Manual definitions (copy-paste)
-
-If you prefer not to use the class: use created_at/updated_at as datetime_immutable, created_by/updated_by as integer, and indexes idx_created_by, idx_updated_by. Foreign keys: add in a separate migration.
-
---- `created_by`, `updated_by` (with index to user table)
-
-```php
-// Columns: integer, nullable (anonymous or system actions)
-'created_by' => ['type' => 'integer', 'notnull' => false],
-'updated_by' => ['type' => 'integer', 'notnull' => false],
-
-// Indexes: for joins and lookups (replace user_id with your user table primary key column name if different)
-'idx_created_by' => ['columns' => ['created_by']],
-'idx_updated_by' => ['columns' => ['updated_by']],
-```
-
-### Full audit block (timestamps + user refs + indexes)
-
-Copy into your table definition as needed:
-
-```php
-'columns' => [
-    // ... your business columns ...
-    'created_at' => ['type' => 'datetime_immutable', 'notnull' => false],
-    'updated_at' => ['type' => 'datetime_immutable', 'notnull' => false],
-    'created_by' => ['type' => 'integer', 'notnull' => false],
-    'updated_by' => ['type' => 'integer', 'notnull' => false],
-],
-'indexes' => [
-    // ... your other indexes ...
-    'idx_created_by' => ['columns' => ['created_by']],
-    'idx_updated_by' => ['columns' => ['updated_by']],
-],
-```
-
-To add a **foreign key** to a `user` table (DBAL/DB dependent), add the constraint in a separate migration or via your platform’s ALTER TABLE after the table is created; the bundle’s declarative format focuses on columns and indexes. The index on `created_by` / `updated_by` is what you need for typical “index to another table” lookups and joins.
+See [USAGE.md](USAGE.md) for examples.
 
 ---
 
-## Data steps (insert / update)
+## See also
 
-Besides schema (tables, columns), **MigrationDefinitionRunner::run()** accepts a **`data`** key to insert or update rows with optional checks. Use it to seed config, set defaults, or backfill values. The callable you pass must accept `(string $sql, array $params = [])` so parameterized SQL is used.
-
-You can combine **tables**, **columns**, **indexes**, **rename_columns**, **modify_columns**, **drop_indexes**, **drop_columns** and **data** in the same `run()`. The runner runs steps in that order, so it is safe to create a table, add columns, add indexes, rename or modify columns, drop indexes/columns, and then insert or update rows in a single migration. See [USAGE.md](USAGE.md) for the full array format.
-
-### Format
-
-- **`data`**: array of steps. Each step is an array with exactly one of:
-  - **`insert`**: `table`, `row` (column => value), and optional **`only_if_not_exists`** (column => value). If `only_if_not_exists` is set, the row is inserted only when no row matches those conditions.
-  - **`update`**: `table`, `set` (column => value), `where` (column => value), and optional **`only_if_exists`** (bool). If `only_if_exists` is true, the update runs only when a row matching `where` exists.
-
-### Example: seed app settings
-
-```php
-use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionRunner;
-use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
-
-$checker = new SchemaChecker($this->connection);
-$runner = new MigrationDefinitionRunner($checker);
-
-$addSql = function (string $sql, array $params = []): void {
-    $this->addSql($sql, $params);
-};
-
-$runner->run([
-    'data' => [
-        [
-            'insert' => [
-                'table' => 'app_settings',
-                'row' => ['key_name' => 'app.version', 'value' => '1.0'],
-                'only_if_not_exists' => ['key_name' => 'app.version'],
-            ],
-        ],
-        [
-            'update' => [
-                'table' => 'app_settings',
-                'set' => ['value' => '1.1'],
-                'where' => ['key_name' => 'app.version'],
-                'only_if_exists' => true,
-            ],
-        ],
-    ],
-], $addSql);
-```
-
-**SchemaChecker::rowExists()** is used for the checks; you can also call it directly in migrations for custom logic.
-
----
-
-## SchemaSync usage
-
-### In a migration
-
-```php
-use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
-use Nowo\MigrationsKitBundle\Schema\SchemaSync;
-use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
-
-public function up(Schema $schema): void
-{
-    $checker = new SchemaChecker($this->connection);
-    $parser = new SchemaDefinitionParser();
-    $sync = new SchemaSync($this->connection, $parser, $checker);
-
-    $sync->sync([$this, 'addSql'], $definition);
-}
-```
-
-### Dropping columns, indexes, primary key, and tables
-
-The definition is the **desired state**. Whatever is **not** in the definition is dropped when you run `sync()`:
-
-- **Columns**: omit a column from `columns` → it will be dropped (ALTER TABLE ... DROP COLUMN).
-- **Indexes**: omit an index from `indexes` → it will be dropped.
-- **Primary key**: change or omit `primary_key` → the comparator will generate the appropriate ALTER.
-- **Tables**: omit a table from `tables` → it will be dropped **only if** you pass `['drop_tables' => true]` in options (by default tables that exist in DB but not in the definition are **not** dropped, for safety).
-
-Example: to remove column `created_at` and index `idx_old`, update the definition so they are no longer present and run `$sync->sync([$this, 'addSql'], $definition)` again; the diff will drop them.
-
-### Options
-
-- **drop_tables** (default: `false`): if `true`, drop tables that exist in the DB but are not in the definition.
-- Columns and indexes not in the definition are always dropped when altering the table (no extra option).
-
-### Dry-run: get SQL without executing
-
-```php
-$sql = $sync->diff($definition);
-foreach ($sql as $statement) {
-    echo $statement . ";\n";
-}
-
-// With drop_tables
-$sql = $sync->diff($definition, ['drop_tables' => true]);
-```
-
----
-
-## What SchemaSync does
-
-1. **Parse** the definition into a Doctrine `Schema` (desired state).
-2. **Introspect** the current database into a Doctrine `Schema` (current state).
-3. **Compare** with Doctrine's `SchemaComparator` (platform-aware).
-4. **Generate SQL** from the diff:
-   - **New tables** → `CREATE TABLE`
-   - **Modified tables** → `ALTER TABLE` (add/drop/change columns, add/drop indexes)
-   - **Dropped tables** (only if `drop_tables` is true) → `DROP TABLE`
-
-So you get: add/drop tables, add/drop/change columns (including type changes), add/drop indexes, and primary key handling, without writing raw SQL.
-
----
-
-## SchemaLimitChecker (MySQL / MariaDB limits)
-
-Before or after defining your schema, you can check that it does not exceed platform limits. **SchemaLimitChecker** validates the definition and returns (or emits) warnings for:
-
-- **Max columns per table**: 1017 (InnoDB).
-- **Max row size**: 65535 bytes (estimated from column types and lengths).
-- **Max indexes per table**: 64.
-- **Max columns per index**: 16.
-- **Max index key length**: 3072 bytes (InnoDB utf8mb4; estimated from indexed string lengths).
-
-Usage in a migration:
-
-```php
-use Nowo\MigrationsKitBundle\Schema\SchemaLimitChecker;
-
-$limitChecker = new SchemaLimitChecker();
-$platform = $this->connection->getDatabasePlatform()->getName();
-
-// Option 1: get list of warnings
-$warnings = $limitChecker->check($definition, $platform);
-foreach ($warnings as $msg) {
-    echo $msg . "\n";
-}
-
-// Option 2: trigger E_USER_WARNING for each (e.g. visible in console)
-$limitChecker->warnIfOverLimits($definition, $platform);
-```
-
-Only runs for `mysql` and `maria` platforms; other platforms return no warnings.
-
----
-
-## SchemaChecker: hasTable, hasColumn, hasPrimaryKey
-
-For manual checks (without SchemaSync) you can use:
-
-- `$checker->tableExists($tableName)`
-- `$checker->columnExists($tableName, $columnName)`
-- `$checker->indexExists($tableName, $indexName)`
-- `$checker->hasPrimaryKey($tableName)`
-- `$checker->foreignKeyExists($tableName, $fkName)`
-- `$checker->listTableColumns($tableName)`
-- `$checker->rowExists($tableName, $conditions)` — for data steps: check if a row matching the key-value map exists
-- `$checker->getConnection()` — get the DBAL connection (e.g. for building parameterized SQL)
-
-These work on DBAL 2.x, 3.x and 4.x and are used internally by the legacy `MigrationDefinitionRunner` and by your own migrations when you don’t use the declarative format.
+- [FLOWCHARTS.md](FLOWCHARTS.md) — Flow diagrams (Mermaid) for apply(), drop/create/edit paths, checks and DBAL API used.
+- [EXAMPLE.md](EXAMPLE.md) — Minimal migration examples with `apply()` and interleaved `addSql()`.
+- [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) — Use cases matrix, expected SQL per migration, safety.
+- [CONFIGURATION.md](CONFIGURATION.md) — Bundle configuration.
+- [USAGE.md](USAGE.md#reusable-audit-columns-field-dictionary) — Reusable audit columns (field dictionary).
+- Demo migrations in `demo/symfony7`, `demo/symfony8` — runnable definitions and **FieldDictionary/AuditFields** for create, edit, rename, drop (columns, indexes, FKs, tables). See Version20250223100000–00013.

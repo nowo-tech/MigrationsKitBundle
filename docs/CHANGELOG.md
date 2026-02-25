@@ -21,6 +21,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2026-02-23
+
+**Major release: incompatible with 1.x.** The bundle now exposes only **SchemaChecker** and **CreateTablesService** (MDK declarative definitions). All previous runners, sync, and data-step APIs have been removed.
+
+### Breaking changes
+
+- **Removed `MigrationDefinitionRunner`** — No longer available. Use **CreateTablesService::apply()** with a definition array (MDK format) instead. Replace `ensureTable` / `ensureColumn` / `ensureIndex` with table definitions under `MDK::TABLES`; run returned SQL in a loop with `$this->addSql($sql)` or pass `$this` as the emitter.
+- **Removed `SchemaSync`** — Declarative “sync from array” is replaced by **CreateTablesService::apply()**: pass the migration’s `Schema` and your definition; the service returns the list of SQL statements to run.
+- **Removed `StandardColumns`** — No replacement. Define audit columns (e.g. `created_at`, `updated_at`) directly in your MDK definition arrays.
+- **Removed `MigrationDefinition`** (typed value object) — Use plain arrays with **MigrationDefinitionKeys (MDK)** constants and pass them to **CreateTablesService::apply()**.
+- **Removed data steps** — The `data` key and insert/update steps (`only_if_not_exists`, `only_if_exists`) are no longer supported. Perform data migrations with raw `$this->addSql()` or your own logic.
+- **Removed `SchemaChecker::rowExists()`** — Use the migration connection and run a simple `SELECT` (or inject a repository) when you need to check row existence.
+- **Removed direct runner methods** — `modifyColumn()`, `dropColumn()`, `dropIndex()`, `ensureForeignKey()` no longer exist. Use **CreateTablesService** with MDK `columns` / `indexes` / `foreign_keys` and `drop` / `drop_columns` / `drop_indexes` / `drop_foreign_keys` keys.
+
+### Added
+
+- **CreateTablesService::applyWithAddSql()** — Apply a definition with a custom callable to emit SQL (e.g. for logging or custom handling).
+- **SchemaChecker::getSchemaManager()** — Access the DBAL schema manager (DBAL 2.x and 3.x/4.x compatible).
+- **DBAL 2.x compatibility in CreateTablesService** — `resolveTableName()` supports both `Schema::getTables()` (DBAL 3+) and `Schema::getTableNames()` (DBAL 2.x) for correct table name resolution.
+- **PHPUnit coverage configuration** — `<coverage>` in `phpunit.xml.dist` with HTML report and bounds (90% / 95%) for development.
+- Additional tests for SchemaChecker (exception paths), CreateTablesService (warn-on-mix, rename+index, drop PK, column options), and SchemaDefinitionParser (foreign_keys alias).
+
+### Changed
+
+- **Documentation** — README, USAGE, CONFIGURATION, UPGRADING, and DECLARATIVE_SCHEMA describe only the 2.0 API (SchemaChecker + CreateTablesService + MDK). References to MigrationDefinitionRunner, SchemaSync, StandardColumns, MigrationDefinition, and data steps have been removed or archived in CHANGELOG.
+- **Demos** — Demo migrations use only **CreateTablesService** and MDK; no MigrationDefinitionRunner or SchemaSync.
+
+### Fixed
+
+- **CreateTablesService (DBAL 2.x)** — Fixed “Call to undefined method Schema::getTableNames()” when resolving table names; uses `getTables()` when available and falls back to `getTableNames()` on DBAL 2.x.
+
+---
+
 ## [1.2.1] - 2026-02-22
 
 ### Fixed
@@ -85,6 +118,6 @@ First release under **nowo-tech**.
 - **MigrationDefinitionRunner:** run from array (`tables` + `columns`), `ensureTable`, `ensureColumn`, `ensureIndex`; only runs SQL when the target does not exist.
 - **SchemaSync (declarative schema):** desired schema in one array; create/alter/drop tables, columns, indexes; requires DBAL 3.x or 4.x.
 - **Configuration:** `nowo_migrations_kit.connection` for the injected SchemaChecker service.
-- Demos for Symfony 6, 7 and 8 with doctrine/migrations 3.x and 4.x.
+- Demos for Symfony 7 and 8 with doctrine/migrations 3.x and 4.x.
 - Documentation in `docs/` (CONFIGURATION, INSTALLATION, USAGE, DECLARATIVE_SCHEMA, CONTRIBUTING, EXAMPLE, RELEASE, ROADMAP, UPGRADING).
 - Makefile, Docker, and GitHub CI for development and releases.

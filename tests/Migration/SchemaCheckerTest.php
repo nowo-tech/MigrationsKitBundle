@@ -69,9 +69,7 @@ class SchemaCheckerTest extends TestCase
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
         $table = $this->createMock(Table::class);
-        $col   = $this->createMock(Column::class);
-        $col->method('getName')->willReturn('email');
-        $table->method('getColumns')->willReturn([$col]);
+        $table->method('hasColumn')->with('email')->willReturn(true);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
@@ -82,9 +80,7 @@ class SchemaCheckerTest extends TestCase
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
         $table = $this->createMock(Table::class);
-        $col   = $this->createMock(Column::class);
-        $col->method('getName')->willReturn('name');
-        $table->method('getColumns')->willReturn([$col]);
+        $table->method('hasColumn')->with('email')->willReturn(false);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
@@ -95,52 +91,11 @@ class SchemaCheckerTest extends TestCase
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
         $table = $this->createMock(Table::class);
-        $index = $this->createMock(Index::class);
-        $index->method('getName')->willReturn('idx_email');
-        $table->method('getIndexes')->willReturn([$index]);
+        $table->method('hasIndex')->with('idx_email')->willReturn(true);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
         self::assertTrue($checker->indexExists('users', 'idx_email'));
-    }
-
-    public function testListTableColumnsReturnsEmptyWhenTableDoesNotExist(): void
-    {
-        $this->schemaManager->method('tablesExist')->willReturn(false);
-
-        $checker = new SchemaChecker($this->connection);
-        self::assertSame([], $checker->listTableColumns('users'));
-    }
-
-    public function testListTableColumnsReturnsColumnNames(): void
-    {
-        $this->schemaManager->method('tablesExist')->willReturn(true);
-        $table = $this->createMock(Table::class);
-        $c1    = $this->createMock(Column::class);
-        $c1->method('getName')->willReturn('id');
-        $c2 = $this->createMock(Column::class);
-        $c2->method('getName')->willReturn('email');
-        $table->method('getColumns')->willReturn([$c1, $c2]);
-        $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
-
-        $checker = new SchemaChecker($this->connection);
-        self::assertSame(['id', 'email'], $checker->listTableColumns('users'));
-    }
-
-    public function testWithConnectionReturnsNewInstance(): void
-    {
-        $otherConnection = $this->createMock(Connection::class);
-        $checker         = new SchemaChecker($this->connection);
-        $newChecker      = $checker->withConnection($otherConnection);
-
-        self::assertNotSame($checker, $newChecker);
-        self::assertInstanceOf(SchemaChecker::class, $newChecker);
-    }
-
-    public function testRowExistsReturnsFalseWhenConditionsEmpty(): void
-    {
-        $checker = new SchemaChecker($this->connection);
-        self::assertFalse($checker->rowExists('settings', []));
     }
 
     public function testGetConnectionReturnsInjectedConnection(): void
@@ -149,13 +104,17 @@ class SchemaCheckerTest extends TestCase
         self::assertSame($this->connection, $checker->getConnection());
     }
 
+    public function testGetSchemaManagerReturnsManagerWhenCreateSchemaManagerExists(): void
+    {
+        $checker = new SchemaChecker($this->connection);
+        self::assertSame($this->schemaManager, $checker->getSchemaManager());
+    }
+
     public function testIndexExistsReturnsFalseWhenIndexDoesNotExist(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
         $table = $this->createMock(Table::class);
-        $index = $this->createMock(Index::class);
-        $index->method('getName')->willReturn('idx_name');
-        $table->method('getIndexes')->willReturn([$index]);
+        $table->method('hasIndex')->with('idx_other')->willReturn(false);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
@@ -174,11 +133,9 @@ class SchemaCheckerTest extends TestCase
     public function testHasPrimaryKeyReturnsTrueWhenPrimaryKeyExists(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $table = $this->createMock(Table::class);
-        $index = $this->createMock(Index::class);
-        $index->method('getName')->willReturn('primary');
-        $index->method('isPrimary')->willReturn(true);
-        $table->method('getIndexes')->willReturn([$index]);
+        $table   = $this->createMock(Table::class);
+        $primary = $this->createMock(Index::class);
+        $table->method('getPrimaryKey')->willReturn($primary);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
@@ -189,9 +146,7 @@ class SchemaCheckerTest extends TestCase
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
         $table = $this->createMock(Table::class);
-        $index = $this->createMock(Index::class);
-        $index->method('isPrimary')->willReturn(false);
-        $table->method('getIndexes')->willReturn([$index]);
+        $table->method('getPrimaryKey')->willReturn(null);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
@@ -217,12 +172,10 @@ class SchemaCheckerTest extends TestCase
 
     public function testForeignKeyExistsReturnsTrueWhenFkExists(): void
     {
-        $fk = $this->createMock(\Doctrine\DBAL\Schema\ForeignKeyConstraint::class);
-        $fk->method('getName')->willReturn('fk_user');
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->with('orders')->willReturn(
-            $this->createTableWithForeignKeys([$fk]),
-        );
+        $table = $this->createMock(Table::class);
+        $table->method('hasForeignKey')->with('fk_user')->willReturn(true);
+        $this->schemaManager->method('introspectTable')->with('orders')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
         self::assertTrue($checker->foreignKeyExists('orders', 'fk_user'));
@@ -230,12 +183,10 @@ class SchemaCheckerTest extends TestCase
 
     public function testForeignKeyExistsReturnsFalseWhenFkDoesNotExist(): void
     {
-        $fk = $this->createMock(\Doctrine\DBAL\Schema\ForeignKeyConstraint::class);
-        $fk->method('getName')->willReturn('fk_other');
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->with('orders')->willReturn(
-            $this->createTableWithForeignKeys([$fk]),
-        );
+        $table = $this->createMock(Table::class);
+        $table->method('hasForeignKey')->with('fk_missing')->willReturn(false);
+        $this->schemaManager->method('introspectTable')->with('orders')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
         self::assertFalse($checker->foreignKeyExists('orders', 'fk_missing'));
@@ -258,38 +209,6 @@ class SchemaCheckerTest extends TestCase
         self::assertFalse($checker->foreignKeyExists('orders', 'fk_x'));
     }
 
-    public function testListTableColumnsReturnsEmptyOnException(): void
-    {
-        $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('error'));
-
-        $checker = new SchemaChecker($this->connection);
-        self::assertSame([], $checker->listTableColumns('users'));
-    }
-
-    public function testRowExistsReturnsTrueWhenRowMatches(): void
-    {
-        $result = $this->createMock(\Doctrine\DBAL\Result::class);
-        $result->method('fetchOne')->willReturn('1');
-        $platform = $this->createMock(\Doctrine\DBAL\Platforms\AbstractPlatform::class);
-        $platform->method('quoteIdentifier')->willReturnArgument(0);
-        $this->connection->method('getDatabasePlatform')->willReturn($platform);
-        $this->connection->method('executeQuery')->willReturn($result);
-
-        $checker = new SchemaChecker($this->connection);
-        self::assertTrue($checker->rowExists('settings', ['key_name' => 'app.version']));
-    }
-
-    public function testRowExistsReturnsFalseOnException(): void
-    {
-        $this->connection->method('getDatabasePlatform')
-            ->willReturn($this->createMock(\Doctrine\DBAL\Platforms\AbstractPlatform::class));
-        $this->connection->method('executeQuery')->willThrowException(new Exception('DB error'));
-
-        $checker = new SchemaChecker($this->connection);
-        self::assertFalse($checker->rowExists('settings', ['key_name' => 'x']));
-    }
-
     public function testTableExistsReturnsFalseOnException(): void
     {
         $this->schemaManager->method('tablesExist')->willThrowException(new Exception('introspect error'));
@@ -302,20 +221,81 @@ class SchemaCheckerTest extends TestCase
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
         $table = $this->createMock(Table::class);
-        $col   = $this->createMock(Column::class);
-        $col->method('getName')->willReturn('email');
-        $table->method('getColumns')->willReturn([$col]);
+        $table->method('hasColumn')->with('email')->willReturn(true);
         $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
 
         $checker = new SchemaChecker($this->connection);
         self::assertTrue($checker->columnExists('users', '`email`'));
     }
 
-    private function createTableWithForeignKeys(array $foreignKeys): Table
+    public function testColumnExistsReturnsFalseOnException(): void
     {
-        $table = $this->createMock(Table::class);
-        $table->method('getForeignKeys')->willReturn($foreignKeys);
+        $this->schemaManager->method('tablesExist')->willReturn(true);
+        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('introspect error'));
 
-        return $table;
+        $checker = new SchemaChecker($this->connection);
+        self::assertFalse($checker->columnExists('users', 'email'));
+    }
+
+    public function testIndexExistsReturnsFalseWhenTableDoesNotExist(): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(false);
+
+        $checker = new SchemaChecker($this->connection);
+        self::assertFalse($checker->indexExists('missing', 'idx_x'));
+    }
+
+    public function testForeignKeyExistsNormalizesQuotedNames(): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(true);
+        $table = $this->createMock(Table::class);
+        $table->method('hasForeignKey')->with('fk_user')->willReturn(true);
+        $this->schemaManager->method('introspectTable')->with('orders')->willReturn($table);
+
+        $checker = new SchemaChecker($this->connection);
+        self::assertTrue($checker->foreignKeyExists('"orders"', '"fk_user"'));
+    }
+
+    public function testHasPrimaryKeyNormalizesQuotedTableName(): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(true);
+        $table = $this->createMock(Table::class);
+        $table->method('getPrimaryKey')->willReturn($this->createMock(Index::class));
+        $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
+
+        $checker = new SchemaChecker($this->connection);
+        self::assertTrue($checker->hasPrimaryKey("'users'"));
+    }
+
+    public function testListTableColumnsReturnsColumnNamesWhenTableExists(): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(true);
+        $col1 = $this->createMock(Column::class);
+        $col1->method('getName')->willReturn('id');
+        $col2 = $this->createMock(Column::class);
+        $col2->method('getName')->willReturn('email');
+        $table = $this->createMock(Table::class);
+        $table->method('getColumns')->willReturn([$col1, $col2]);
+        $this->schemaManager->method('introspectTable')->with('users')->willReturn($table);
+
+        $checker = new SchemaChecker($this->connection);
+        self::assertSame(['id', 'email'], $checker->listTableColumns('users'));
+    }
+
+    public function testListTableColumnsReturnsEmptyWhenTableDoesNotExist(): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(false);
+
+        $checker = new SchemaChecker($this->connection);
+        self::assertSame([], $checker->listTableColumns('missing'));
+    }
+
+    public function testListTableColumnsReturnsEmptyOnException(): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(true);
+        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('introspect error'));
+
+        $checker = new SchemaChecker($this->connection);
+        self::assertSame([], $checker->listTableColumns('users'));
     }
 }

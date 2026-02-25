@@ -4,17 +4,15 @@ This guide covers installing Migrations Kit Bundle in a Symfony application.
 
 ## Requirements
 
-The bundle is **compatible with Symfony 6, 7 and 8** (and PHP 8.2+).
+The bundle is **compatible with Symfony 7 and 8** (and PHP 8.2+).
 
 - **PHP** >= 8.2
-- **Symfony** ^6.0 || ^7.0 || ^8.0
+- **Symfony** ^7.0 || ^8.0
 - **doctrine/doctrine-bundle** ^2.8 || ^3.0
 - **doctrine/dbal** ^2.13 || ^3.0 || ^4.0
 - **doctrine/migrations** ^3.5 || ^4.0
 
-**Databases:** the bundle works with **SQLite**, **MySQL** and **PostgreSQL**. SchemaChecker, MigrationDefinitionRunner and SchemaSync use Doctrine DBAL, which generates the appropriate SQL for each platform.
-
-**SchemaSync** (declarative schema) requires DBAL 3.x or 4.x.
+**Databases:** the bundle works with **SQLite**, **MySQL** and **PostgreSQL**. SchemaChecker and CreateTablesService use Doctrine DBAL, which generates the appropriate SQL for each platform.
 
 ## Install with Composer
 
@@ -47,28 +45,32 @@ return [
 
 ```yaml
 nowo_migrations_kit:
-    connection: default   # Doctrine connection for the injected SchemaChecker service
+    connection: default   # Doctrine connection for CreateTablesService when injected from the container
 ```
 
 If the file is omitted, the bundle uses `connection: default`. See [Configuration](CONFIGURATION.md) for details.
 
 ## Using in migrations
 
-No extra configuration is required. In your migration classes (`AbstractMigration`) you have `$this->connection`; instantiate **SchemaChecker** and **MigrationDefinitionRunner** with it:
+No extra configuration is required. In your migration classes (`AbstractMigration`) you have `$this->connection`. Use **CreateTablesService** with an **introspected** schema:
 
 ```php
-use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
-use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionRunner;
+use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
+use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 
-$checker = new SchemaChecker($this->connection);
-$runner = new MigrationDefinitionRunner($checker);
+$schema = $this->connection->createSchemaManager()->introspectSchema();
+$service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+foreach ($service->apply($schema, $definition) as $sql) {
+    $this->addSql($sql);
+}
 ```
 
-If you prefer to inject the **SchemaChecker** service into migrations (e.g. to use the configured `connection`), configure a [custom migration factory](https://symfony.com/doc/current/bundles/DoctrineMigrationsBundle/index.html#custom-migration-factory).
+If you inject **CreateTablesService** from the container (e.g. via a custom migration factory), it will use the `connection` configured here. See [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Next steps
 
 - [Configuration](CONFIGURATION.md) — connection option.
-- [Usage](USAGE.md) — SchemaChecker, MigrationDefinitionRunner, SchemaSync, multiple connections.
+- [Usage](USAGE.md) — SchemaChecker, CreateTablesService, MDK, multiple connections.
 - [Example](EXAMPLE.md) — full migration examples.
-- [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md) — declarative schema format and SchemaSync.
+- [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md) — declarative definition format (MDK) and apply().
+- [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) — use cases matrix, expected SQL per migration, safety.

@@ -1,0 +1,51 @@
+[notice] Migrating up to DoctrineMigrations\Version20250223100013
+[info] ++ migrating DoctrineMigrations\Version20250223100000 (Create table kit_item with one column (id))
+[debug] CREATE TABLE kit_item (id INT AUTO_INCREMENT NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE `utf8_unicode_ci` ENGINE = InnoDB 
+[info] Migration DoctrineMigrations\Version20250223100000 migrated (took 17ms, used 16M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100001 (Create table kit_example (all column types and options))
+[debug] CREATE TABLE kit_example (id INT AUTO_INCREMENT NOT NULL, col_smallint SMALLINT DEFAULT 0 NOT NULL, col_bigint BIGINT DEFAULT NULL, col_boolean TINYINT(1) DEFAULT 1 NOT NULL, col_decimal NUMERIC(10, 2) DEFAULT '0.00' NOT NULL, col_float DOUBLE PRECISION DEFAULT NULL, col_string VARCHAR(255) NOT NULL, col_string_nullable VARCHAR(100) DEFAULT NULL, col_text LONGTEXT DEFAULT NULL, col_ascii VARCHAR(64) DEFAULT NULL, col_datetime DATETIME DEFAULT NULL, col_datetime_immutable DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)', col_date DATE DEFAULT NULL, col_time TIME DEFAULT NULL, col_json JSON DEFAULT NULL, col_blob LONGBLOB DEFAULT NULL, col_guid CHAR(36) DEFAULT NULL COMMENT '(DC2Type:guid)', col_comment VARCHAR(50) DEFAULT NULL COMMENT 'Example comment', created_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)', updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)', PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE `utf8_unicode_ci` ENGINE = InnoDB 
+[info] Migration DoctrineMigrations\Version20250223100001 migrated (took 15.5ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100002 (Create table kit_user and add user_id to kit_item)
+[debug] CREATE TABLE kit_user (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(180) NOT NULL, created_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)', updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)', PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE `utf8_unicode_ci` ENGINE = InnoDB 
+[debug] ALTER TABLE kit_item ADD user_id INT DEFAULT NULL 
+[info] Migration DoctrineMigrations\Version20250223100002 migrated (took 33.8ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100003 (Add foreign key kit_item.user_id -> kit_user.id)
+[debug] ALTER TABLE kit_item ADD CONSTRAINT fk_kit_item_user_id FOREIGN KEY (user_id) REFERENCES kit_user (id) ON DELETE SET NULL 
+[debug] CREATE INDEX IDX_E222877DA76ED395 ON kit_item (user_id) 
+[info] Migration DoctrineMigrations\Version20250223100003 migrated (took 42ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100004 (Drop table kit_example (simple drop, no dependencies))
+[debug] DROP TABLE kit_example 
+[info] Migration DoctrineMigrations\Version20250223100004 migrated (took 11.8ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100005 (Drop index and FK on kit_item (user_id) — DROP_INDEXES, DROP_FOREIGN_KEYS)
+[debug] ALTER TABLE kit_item DROP FOREIGN KEY fk_kit_item_user_id 
+[debug] DROP INDEX IDX_E222877DA76ED395 ON kit_item 
+[info] Migration DoctrineMigrations\Version20250223100005 migrated (took 16ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100006 (Drop table kit_user)
+[debug] DROP TABLE kit_user 
+[info] Migration DoctrineMigrations\Version20250223100006 migrated (took 10.8ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100007 (Drop column user_id from kit_item — DROP_COLUMNS)
+[debug] ALTER TABLE kit_item DROP user_id 
+[info] Migration DoctrineMigrations\Version20250223100007 migrated (took 24ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100008 (Rename col_string to col_title in kit_example — RENAME)
+[warning] Migration DoctrineMigrations\Version20250223100008 was executed but did not result in any SQL statements.
+[info] Migration DoctrineMigrations\Version20250223100008 migrated (took 3.8ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100009 (Modify col_string_nullable length to 200 in kit_example)
+[debug] CREATE TABLE kit_example (col_string_nullable VARCHAR(200) DEFAULT NULL) DEFAULT CHARACTER SET utf8 COLLATE `utf8_unicode_ci` ENGINE = InnoDB 
+[info] Migration DoctrineMigrations\Version20250223100009 migrated (took 13.8ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100010 (Add index and unique on kit_example — INDEXES)
+[warning] Migration DoctrineMigrations\Version20250223100010 was executed but did not result in any SQL statements.
+[info] Migration DoctrineMigrations\Version20250223100010 migrated (took 4.3ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100011 (Create table kit_pk_demo (for PK drop/change demos))
+[debug] CREATE TABLE kit_pk_demo (id INT NOT NULL, code VARCHAR(32) NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE `utf8_unicode_ci` ENGINE = InnoDB 
+[info] Migration DoctrineMigrations\Version20250223100011 migrated (took 15.7ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100012 (Drop primary key on kit_pk_demo — DROP_PRIMARY_KEYS)
+[debug] ALTER TABLE `kit_pk_demo` DROP PRIMARY KEY 
+[info] Migration DoctrineMigrations\Version20250223100012 migrated (took 30.6ms, used 18M memory)
+[info] ++ migrating DoctrineMigrations\Version20250223100013 (Add primary key on kit_pk_demo (code) — PRIMARY_KEY (existing table))
+[debug] ALTER TABLE kit_pk_demo ADD PRIMARY KEY (code) 
+[info] Migration DoctrineMigrations\Version20250223100013 migrated (took 24.9ms, used 18M memory)
+[notice] finished in 291.2ms, used 18M memory, 14 migrations executed, 15 sql queries
+
+ [OK] Successfully migrated to version: DoctrineMigrations\Version20250223100013
+
+

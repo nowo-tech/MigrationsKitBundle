@@ -1,22 +1,10 @@
+# Migrations Kit Bundle – create tables via apply() with schema checks.
+#
+# In migrations: pass introspectSchema() and a definition; apply() returns SQL to create
+# only tables that do not exist (checks via $schema->hasTable()).
+
 services:
   _defaults:
     autowire: true
     autoconfigure: true
-    public: false
-
-  # SchemaChecker: connection is set in MigrationsKitExtension from nowo_migrations_kit.connection
-  Nowo\MigrationsKitBundle\Migration\SchemaChecker: ~
-
-  # Alias so MigrationDefinitionRunner (and others) can type-hint the interface
-  Nowo\MigrationsKitBundle\Migration\SchemaCheckerInterface: '@Nowo\MigrationsKitBundle\Migration\SchemaChecker'
-
-  Nowo\MigrationsKitBundle\Migration\MigrationDefinitionRunner: ~
-
-  # Declarative schema: parse array definition to Doctrine Schema
-  Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser: ~
-
-  # Sync DB to a declarative definition (compare current vs desired, generate SQL). Requires DBAL 3+
-  Nowo\MigrationsKitBundle\Schema\SchemaSync: ~
-
-  # Check schema definition against platform limits (MySQL columns, row size, index length). Emit warnings.
-  Nowo\MigrationsKitBundle\Schema\SchemaLimitChecker: ~
+    public: true

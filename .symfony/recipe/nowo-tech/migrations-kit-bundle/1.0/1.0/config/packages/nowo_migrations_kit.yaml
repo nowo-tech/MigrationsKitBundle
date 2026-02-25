@@ -1,6 +1,6 @@
 # Migrations Kit Bundle
 # https://github.com/nowo-tech/migrations-kit-bundle
-# Use SchemaChecker and MigrationDefinitionRunner in Doctrine Migrations. See README for examples.
+# Use SchemaChecker and CreateTablesService in Doctrine Migrations. See README for examples.
 
 nowo_migrations_kit:
     # Doctrine connection name used by SchemaChecker when injected as service (e.g. bin/console)

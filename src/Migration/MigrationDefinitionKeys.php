@@ -5,63 +5,56 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Migration;
 
 /**
- * Standard keys for migration definitions and declarative schema.
+ * Keys for the migration definition array.
  *
- * Use these constants instead of string literals to standardize and lock the vocabulary
- * (similar to Doctrine DBAL Types). Required when building arrays for MigrationDefinitionRunner::run(),
- * MigrationDefinition::fromArray(), or SchemaSync / SchemaDefinitionParser.
+ * Apply execution order (see docs/DECLARATIVE_SCHEMA.md):
+ *   1. Drop FKs referencing DROP_TABLES; drop FKs by name (DROP_FOREIGN_KEYS); drop indexes (DROP_INDEXES).
+ *   2. Drop columns, drop tables.
+ *   3. Create or edit columns and tables (TABLES, COLUMNS, PRIMARY_KEY).
+ *   4. Create indexes, foreign keys, unique.
+ *
+ * Use in migrations with the CreateTablesService::apply() flow:
+ *   $schema = $this->connection->createSchemaManager()->introspectSchema();
+ *   foreach ($service->apply($schema, $definition) as $sql) { $this->addSql($sql); }
+ *
+ * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
+ * @copyright 2026 Nowo.tech
  */
 final class MigrationDefinitionKeys
 {
-    /** Top-level: table definitions (create_sql per table). */
+    /** Top-level: list of table names to drop. Before dropping, the bundle drops any FK that references these tables. */
+    public const DROP_TABLES = 'drop_tables';
+
+    /** Top-level: map of table name => table definition. */
     public const TABLES = 'tables';
 
-    /** Top-level: column add steps (table, column, add_sql). */
+    /** Table definition: array of column definitions (name, type, length, notnull, default, etc.). */
     public const COLUMNS = 'columns';
 
-    /** Top-level: index add steps (table, index_name, add_sql). */
-    public const INDEXES = 'indexes';
-
-    /** Top-level: column rename steps (table, old_name, new_name, rename_sql). */
-    public const RENAME_COLUMNS = 'rename_columns';
-
-    /** Top-level: column modify steps (table, column, modify_sql). */
-    public const MODIFY_COLUMNS = 'modify_columns';
-
-    /** Top-level: index drop steps (table, index_name, drop_sql). */
-    public const DROP_INDEXES = 'drop_indexes';
-
-    /** Top-level: column drop steps (table, column, drop_sql). */
-    public const DROP_COLUMNS = 'drop_columns';
-
-    /** Top-level: data steps (insert / update). */
-    public const DATA = 'data';
-
-    /** Data step type: insert (table, row, only_if_not_exists). */
-    public const INSERT = 'insert';
-
-    /** Data step type: update (table, set, where, only_if_exists). */
-    public const UPDATE = 'update';
-
-    /** Table definition (declarative): primary key column names. */
+    /** Table definition: primary key column name(s). e.g. ['columns' => ['id']]. */
     public const PRIMARY_KEY = 'primary_key';
 
-    /**
-     * All top-level definition keys recognized by MigrationDefinitionRunner::run().
-     *
-     * @return list<string>
-     */
-    public static function allTopLevel(): array
-    {
-        return [
-            self::TABLES,
-            self::COLUMNS,
-            self::INDEXES,
-            self::RENAME_COLUMNS,
-            self::MODIFY_COLUMNS,
-            self::DROP_INDEXES,
-            self::DROP_COLUMNS,
-            self::DATA,
-        ];
-    }
+    /** Table definition: array of foreign key definitions (columns, foreign_table, foreign_columns, optional name, onUpdate, onDelete). */
+    public const FOREIGN_KEYS = 'foreign_keys';
+
+    /** Table definition: list of foreign key names to drop. Emits ALTER TABLE … DROP FOREIGN KEY. */
+    public const DROP_FOREIGN_KEYS = 'drop_foreign_keys';
+
+    /** Table definition: list of index names to drop. Emits DROP INDEX. */
+    public const DROP_INDEXES = 'drop_indexes';
+
+    /** Table definition: list of column names to drop. Emits ALTER TABLE … DROP COLUMN. */
+    public const DROP_COLUMNS = 'drop_columns';
+
+    /** Table definition: drop primary key (e.g. empty list or true). Emits ALTER TABLE … DROP PRIMARY KEY. */
+    public const DROP_PRIMARY_KEYS = 'drop_primary_keys';
+
+    /** Column/table definition: mark for removal (e.g. drop column). */
+    public const DROP = 'drop';
+
+    /** Column definition: new name when renaming. e.g. ['name' => 'old_title', 'rename' => 'title']. */
+    public const RENAME = 'rename';
+
+    /** Table definition: array of index definitions. e.g. [['columns'=>['c1'], 'name'=>'idx_c1'], ['columns'=>['email'], 'unique'=>true]]. */
+    public const INDEXES = 'indexes';
 }

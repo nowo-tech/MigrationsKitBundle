@@ -17,6 +17,9 @@ final class Configuration implements ConfigurationInterface
 {
     public const ALIAS = 'nowo_migrations_kit';
 
+    /**
+     * {@inheritdoc}
+     */
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder(self::ALIAS);
@@ -25,7 +28,7 @@ final class Configuration implements ConfigurationInterface
         $root
             ->children()
                 ->scalarNode('connection')
-                    ->info('Doctrine connection name used by SchemaChecker when injected as service')
+                    ->info('Doctrine connection name used by CreateTablesService when injected from the container')
                     ->defaultValue('default')
                 ->end()
             ->end();

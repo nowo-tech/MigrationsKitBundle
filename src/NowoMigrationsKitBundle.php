@@ -21,6 +21,9 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 class NowoMigrationsKitBundle extends Bundle
 {
+    /**
+     * {@inheritdoc}
+     */
     public function getContainerExtension(): ?ExtensionInterface
     {
         return $this->extension ??= new MigrationsKitExtension();

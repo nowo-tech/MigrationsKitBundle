@@ -17,8 +17,12 @@
         </include>
         <exclude>
             <directory>src/Resources</directory>
-            <!-- SchemaSync: DBAL integration logic (introspectSchema, Comparator); tests with mocks cover main flows -->
-            <file>src/Schema/SchemaSync.php</file>
         </exclude>
     </source>
+    <coverage includeUncoveredFiles="true">
+        <report>
+            <html outputDirectory="coverage" lowUpperBound="90" highLowerBound="95"/>
+            <text outputFile="php://stdout" showUncoveredFiles="false"/>
+        </report>
+    </coverage>
 </phpunit>

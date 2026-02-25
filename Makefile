@@ -10,8 +10,8 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 COMPOSER ?= composer
 
 .PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync
-.PHONY: demo-up-symfony6 demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony6 demo-migrate-symfony7 demo-migrate-symfony8
-.PHONY: up down up-symfony6 up-symfony7 up-symfony8 build shell demo-install
+.PHONY: demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony7 demo-migrate-symfony8
+.PHONY: up down up-symfony7 up-symfony8 build shell demo-install
 
 # Default target
 help:
@@ -35,17 +35,14 @@ help:
 	@echo "  assets        No frontend assets in this bundle (no-op)"
 	@echo ""
 	@echo "Demos (run from bundle root; demos use path repo ../..):"
-	@echo "  demo-up-symfony6   Install deps in demo/symfony6"
 	@echo "  demo-up-symfony7   Install deps in demo/symfony7"
 	@echo "  demo-up-symfony8   Install deps in demo/symfony8"
-	@echo "  demo-migrate-symfony6  Run migrations in demo/symfony6"
 	@echo "  demo-migrate-symfony7  Run migrations in demo/symfony7"
 	@echo "  demo-migrate-symfony8  Run migrations in demo/symfony8"
 	@echo ""
 	@echo "Demos with Docker (FrankenPHP):"
 	@echo "  up             Start demo symfony8 (http://localhost:8008)"
 	@echo "  down           Stop demo containers"
-	@echo "  up-symfony6    Start demo symfony6 (http://localhost:8006)"
 	@echo "  up-symfony7    Start demo symfony7 (http://localhost:8007)"
 	@echo "  up-symfony8    Start demo symfony8 (http://localhost:8008)"
 	@echo "  build          Rebuild Docker image (no cache)"
@@ -102,11 +99,6 @@ assets:
 	@echo "No frontend assets in this bundle."
 
 # Demo targets (install + migrate)
-demo-up-symfony6:
-	@echo "Installing demo symfony6..."
-	cd demo/symfony6 && $(COMPOSER) install --no-interaction
-	@echo "✅ demo/symfony6 ready"
-
 demo-up-symfony7:
 	@echo "Installing demo symfony7..."
 	cd demo/symfony7 && $(COMPOSER) install --no-interaction
@@ -116,9 +108,6 @@ demo-up-symfony8:
 	@echo "Installing demo symfony8..."
 	cd demo/symfony8 && $(COMPOSER) install --no-interaction
 	@echo "✅ demo/symfony8 ready"
-
-demo-migrate-symfony6:
-	cd demo/symfony6 && mkdir -p var && $(COMPOSER) migrate
 
 demo-migrate-symfony7:
 	cd demo/symfony7 && mkdir -p var && $(COMPOSER) migrate
@@ -131,9 +120,6 @@ up: up-symfony8
 
 down:
 	$(MAKE) -C demo/symfony8 down
-
-up-symfony6:
-	$(MAKE) -C demo/symfony6 up
 
 up-symfony7:
 	$(MAKE) -C demo/symfony7 up

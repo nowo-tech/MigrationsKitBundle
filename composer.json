@@ -1,6 +1,6 @@
 {
     "name": "nowo-tech/migrations-kit-bundle",
-    "description": "Symfony bundle providing migration helpers: schema checks (table/column/index exists) and array-based migration definitions. Use in Doctrine Migrations with Symfony 6|7|8.",
+    "description": "Symfony bundle providing migration helpers: schema checks (table/column/index exists) and array-based migration definitions. Use in Doctrine Migrations with Symfony 7|8.",
     "type": "symfony-bundle",
     "license": "MIT",
     "keywords": [
@@ -37,10 +37,10 @@
         "doctrine/dbal": "^2.13 || ^3.0 || ^4.0",
         "doctrine/doctrine-bundle": "^2.8 || ^3.0",
         "doctrine/migrations": "^3.5 || ^4.0",
-        "symfony/config": "^6.0 || ^7.0 || ^8.0",
-        "symfony/dependency-injection": "^6.0 || ^7.0 || ^8.0",
-        "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
-        "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
+        "symfony/config": "^7.0 || ^8.0",
+        "symfony/dependency-injection": "^7.0 || ^8.0",
+        "symfony/http-kernel": "^7.0 || ^8.0",
+        "symfony/yaml": "^7.0 || ^8.0"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
@@ -69,14 +69,14 @@
     "prefer-stable": true,
     "scripts": {
         "test": "vendor/bin/phpunit",
-        "test-coverage": "vendor/bin/phpunit --colors=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text=php://stdout",
+        "test-coverage": ["vendor/bin/phpunit --colors=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text=php://stdout", "php scripts/check-coverage.php"],
         "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs-fix": "vendor/bin/php-cs-fixer fix",
         "qa": ["@cs-check", "@test"]
     },
     "scripts-descriptions": {
         "test": "Run PHPUnit tests",
-        "test-coverage": "Run PHPUnit tests with code coverage",
+        "test-coverage": "Run PHPUnit with code coverage and enforce minimum (see scripts/check-coverage.php)",
         "cs-check": "Check code style with PHP-CS-Fixer",
         "cs-fix": "Fix code style with PHP-CS-Fixer",
         "qa": "Run all quality assurance checks"

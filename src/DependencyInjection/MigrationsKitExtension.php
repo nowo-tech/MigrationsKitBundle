@@ -11,11 +11,16 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
+ * Loads MigrationsKitBundle configuration and services.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
 class MigrationsKitExtension extends Extension
 {
+    /**
+     * {@inheritdoc}
+     */
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
@@ -27,10 +32,15 @@ class MigrationsKitExtension extends Extension
         $loader->load('services.yaml');
 
         $connectionId = 'doctrine.dbal.' . $config['connection'] . '_connection';
-        $container->getDefinition(\Nowo\MigrationsKitBundle\Migration\SchemaChecker::class)
-            ->setArgument('$connection', new Reference($connectionId));
+        if ($container->hasDefinition(\Nowo\MigrationsKitBundle\Migration\CreateTablesService::class)) {
+            $container->getDefinition(\Nowo\MigrationsKitBundle\Migration\CreateTablesService::class)
+                ->setArgument('$connection', new Reference($connectionId));
+        }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function getAlias(): string
     {
         return Configuration::ALIAS;

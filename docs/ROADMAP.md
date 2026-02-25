@@ -4,11 +4,11 @@ This document outlines the direction of Migrations Kit Bundle and helps contribu
 
 ## Vision
 
-Migrations Kit Bundle aims to provide **simple, reliable helpers for Doctrine Migrations** in Symfony: schema checks (table/column/index exist), array-based migration definitions, declarative schema (SchemaSync), and **data steps** (insert/update with optional checks) so you can write idempotent migrations without repeating SQL. The bundle stays compatible with multiple Doctrine DBAL and doctrine/migrations versions.
+Migrations Kit Bundle aims to provide **simple, reliable helpers for Doctrine Migrations** in Symfony: **SchemaChecker** (table/column/index/FK exist), and **CreateTablesService** with a declarative definition format (MDK) so you can describe schema changes in arrays and emit only the needed SQL. The bundle stays compatible with multiple Doctrine DBAL and doctrine/migrations versions.
 
 ## Current focus (1.x)
 
-- **Stability & compatibility:** The bundle is compatible with **Symfony 6, 7 and 8**, Doctrine DBAL 2.x/3.x/4.x, and doctrine/migrations 3.x/4.x. Fix regressions and deprecations as they appear.
+- **Stability & compatibility:** The bundle is compatible with **Symfony 7 and 8**, Doctrine DBAL 2.x/3.x/4.x, and doctrine/migrations 3.x/4.x. Fix regressions and deprecations as they appear.
 - **Documentation:** Clear install, config, usage, upgrade, and example docs so new users can adopt the bundle quickly.
 - **Testing:** Maintain test coverage and CI (PHP × Symfony matrix, code style).
 - **Recipe:** Get the Flex recipe merged in [symfony/recipes-contrib](https://github.com/symfony/recipes-contrib) so `composer require nowo-tech/migrations-kit-bundle` registers the bundle and config automatically.
@@ -17,14 +17,16 @@ No breaking changes are planned for the 1.x line; new options will be additive w
 
 ## Short term (next releases)
 
-- **Demos:** Keep demos (Symfony 6/7/8) working and referenced from the docs.
+- **Demos:** Keep demos (Symfony 7/8) working and referenced from the docs.
 - **Code coverage:** Keep or raise coverage and ensure coverage runs in CI.
-- **SchemaSync:** Refinements and documentation for edge cases (e.g. type changes, renames, MySQL limits).
+- **CreateTablesService:** Refinements and documentation for edge cases (e.g. type changes, renames, platform limits).
 
 ## Implemented
 
-- **Setting values (data):** MigrationDefinitionRunner supports a **`data`** key in the definition: **insert** (with optional `only_if_not_exists`) and **update** (with optional `only_if_exists`). SchemaChecker provides **rowExists($table, $conditions)** for checks. See [Declarative schema – Data steps](DECLARATIVE_SCHEMA.md#data-steps-insert--update) and demo migration Version20250219000005.
-- **Standard columns (audit fields):** **StandardColumns** provides reusable definitions for `created_at`, `updated_at`, `created_by`, `updated_by` and their indexes: use **auditColumns()** / **auditIndexes()** in declarative schema, or **auditColumnSteps()** / **auditIndexSteps()** to add them to existing tables in migrations. See [Common column definitions](DECLARATIVE_SCHEMA.md#common-column-definitions-standardcolumns) and demo Version20250219000006.
+- **SchemaChecker:** `tableExists`, `columnExists`, `indexExists`, `hasPrimaryKey`, `foreignKeyExists`, `listTableColumns`, `getConnection`, `getSchemaManager`. See [USAGE.md](USAGE.md).
+- **CreateTablesService:** Declarative definitions (MDK) — tables, columns, primary_key, indexes, foreign_keys; add, modify, rename, drop; optional emitter or return SQL list for interleaved `addSql()`. See [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md) and [EXAMPLE.md](EXAMPLE.md).
+- **MigrationDefinitionKeys (MDK):** Constants for definition keys; array-of-associative-arrays model for columns, indexes, FKs. See the class docblock and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md).
+- **Demos:** Symfony 7 and 8 with example migrations using the bundle.
 
 ## Possible future (ideas, not committed)
 - **Additional DB platforms:** Improve or document behavior on PostgreSQL, SQLite, and other platforms where SQL differs.
@@ -36,7 +38,7 @@ A major version would only be considered if we introduce breaking changes (e.g. 
 
 - **ORM schema diff / SchemaTool:** This bundle does not replace Doctrine ORM’s schema diff; it focuses on migrations and raw SQL / DBAL.
 - **Migration generation from entities:** Migration *content* is written by you (or driven by the declarative array); the bundle does not generate migrations from entity mappings.
-- **Multi-database migration orchestration:** Using multiple connections in one migration (e.g. with `withConnection`) is supported, but the bundle does not orchestrate ordering or cross-DB workflows.
+- **Multi-database migration orchestration:** Using multiple connections in one migration is supported by creating a `new SchemaChecker($otherConnection)` for each connection; the bundle does not orchestrate ordering or cross-DB workflows.
 
 ## Community
 

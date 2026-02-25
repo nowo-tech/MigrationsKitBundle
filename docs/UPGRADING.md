@@ -2,6 +2,8 @@
 
 This guide explains how to upgrade Migrations Kit Bundle between versions. For a list of changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 
+**Current API:** The bundle provides **SchemaChecker** (table/column/index/FK checks, `listTableColumns`, `getConnection`, `getSchemaManager`) and **CreateTablesService** (declarative definitions in MDK format). Use **introspected** schema: `$schema = $this->connection->createSchemaManager()->introspectSchema()`, then call `$service->apply($schema, $definition)` and add each returned SQL with `$this->addSql($sql)` in a loop. Build the service with `new CreateTablesService($this->connection, new SchemaDefinitionParser())`. Supporting classes: **MigrationDefinitionKeys** (MDK constants), **SchemaDefinitionParser**. See [USAGE.md](USAGE.md) and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md).
+
 ## General upgrade process
 
 1. **Back up configuration**  
@@ -26,6 +28,63 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.0
+
+**2.0.0 is a major release and is not backward compatible with 1.x.** If you rely on **MigrationDefinitionRunner**, **SchemaSync**, **StandardColumns**, **MigrationDefinition**, **data steps**, or **SchemaChecker::rowExists()**, you must migrate to the new API before upgrading.
+
+### What was removed
+
+| Removed | Replacement in 2.0 |
+|--------|---------------------|
+| `MigrationDefinitionRunner` and `run()` (tables, columns, indexes, data, ensureTable, ensureColumn, ensureIndex, etc.) | **CreateTablesService::apply($schema, $definition)** with an MDK-format array. Build the service with `new CreateTablesService($this->connection, new SchemaDefinitionParser())`. Loop over returned SQL and call `$this->addSql($sql)`. |
+| `SchemaSync` (declarative sync from array) | Same: **CreateTablesService::apply($schema, $definition)**. Pass your migration’s `Schema` and the definition; the service returns the SQL to run. |
+| `StandardColumns` (audit columns, timestamps, user refs) | Define columns directly in your MDK definition (e.g. under `MDK::COLUMNS` with `name`, `type`, `notnull`, etc.). No bundled helper class. |
+| `MigrationDefinition` (typed value object) | Use plain PHP arrays and **MigrationDefinitionKeys (MDK)** constants. See [USAGE.md](USAGE.md) and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md). |
+| Data steps (`data` key, `only_if_not_exists`, `only_if_exists`) | Use raw `$this->addSql()` for INSERT/UPDATE, or implement your own checks (e.g. with `SchemaChecker::getConnection()` and a SELECT). |
+| `SchemaChecker::rowExists()` | Run a SELECT via `$checker->getConnection()` or your repository when you need to check row existence. |
+| Runner methods: `modifyColumn()`, `dropColumn()`, `dropIndex()`, `ensureForeignKey()` | Use MDK definition keys: `columns` (with `drop` or `rename`), `drop_columns`, `indexes` (with `drop`), `drop_indexes`, `foreign_keys` (with `drop`), `drop_foreign_keys`. See [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md). |
+
+### What stays the same
+
+- **SchemaChecker** — `tableExists()`, `columnExists()`, `indexExists()`, `hasPrimaryKey()`, `foreignKeyExists()`, `listTableColumns()`, `getConnection()`, `getSchemaManager()`. Same usage: `new SchemaChecker($this->connection)` in migrations.
+- **Configuration** — `nowo_migrations_kit.connection` (optional, default `default`). No change.
+- **Bundle registration** — `NowoMigrationsKitBundle` in `config/bundles.php`. No change.
+
+### Upgrade steps
+
+1. **Replace MigrationDefinitionRunner / SchemaSync usage**  
+   Convert each migration that used `MigrationDefinitionRunner::run()` or SchemaSync to use **CreateTablesService::apply()** with an MDK definition. Example:
+
+   ```php
+   use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
+   use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+   use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
+
+   $schema = $this->connection->createSchemaManager()->introspectSchema();
+   $service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+   $def = [ MDK::TABLES => [ 'my_table' => [ MDK::COLUMNS => [ ... ], MDK::PRIMARY_KEY => [ ... ] ] ] ];
+   foreach ($service->apply($schema, $def) as $sql) {
+       $this->addSql($sql);
+   }
+   ```
+
+2. **Replace data steps**  
+   Migrations that used the `data` key must be rewritten to use `$this->addSql()` (and optional checks with `getConnection()` or a query).
+
+3. **Replace StandardColumns**  
+   Inline the column definitions (e.g. `created_at`, `updated_at`) in your MDK `columns` arrays.
+
+4. **Update Composer and clear cache**
+
+   ```bash
+   composer update nowo-tech/migrations-kit-bundle
+   php bin/console cache:clear
+   ```
+
+5. **Run tests and migrations** (e.g. in a test environment) to confirm everything works.
 
 ---
 

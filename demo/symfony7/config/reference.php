@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 // This file is auto-generated and is for apps only. Bundles SHOULD NOT rely on its content.
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
@@ -994,7 +992,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     transactional?: bool|Param, // Whether or not to wrap migrations in a single transaction. // Default: true
  * }
  * @psalm-type NowoMigrationsKitConfig = array{
- *     connection?: scalar|Param|null, // Doctrine connection name used by SchemaChecker when injected as service // Default: "default"
+ *     connection?: scalar|Param|null, // Doctrine connection name used by CreateTablesService when injected from the container // Default: "default"
  * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
