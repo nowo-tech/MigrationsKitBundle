@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.0.0] - 2026-02-23
+## [2.0.0] - 2025-02-25
 
 **Major release: incompatible with 1.x.** The bundle now exposes only **SchemaChecker** and **CreateTablesService** (MDK declarative definitions). All previous runners, sync, and data-step APIs have been removed.
 
@@ -42,15 +42,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DBAL 2.x compatibility in CreateTablesService** — `resolveTableName()` supports both `Schema::getTables()` (DBAL 3+) and `Schema::getTableNames()` (DBAL 2.x) for correct table name resolution.
 - **PHPUnit coverage configuration** — `<coverage>` in `phpunit.xml.dist` with HTML report and bounds (90% / 95%) for development.
 - Additional tests for SchemaChecker (exception paths), CreateTablesService (warn-on-mix, rename+index, drop PK, column options), and SchemaDefinitionParser (foreign_keys alias).
+- Demo migrations Version20250223100011–00013 (create table kit_pk_demo, DROP_PRIMARY_KEYS, PRIMARY_KEY on existing table); USAGE.md section "Exporting and viewing SQL before applying"; demo MIGRATIONS_VALIDATION.md (symfony7/symfony8).
 
 ### Changed
 
-- **Documentation** — README, USAGE, CONFIGURATION, UPGRADING, and DECLARATIVE_SCHEMA describe only the 2.0 API (SchemaChecker + CreateTablesService + MDK). References to MigrationDefinitionRunner, SchemaSync, StandardColumns, MigrationDefinition, and data steps have been removed or archived in CHANGELOG.
-- **Demos** — Demo migrations use only **CreateTablesService** and MDK; no MigrationDefinitionRunner or SchemaSync.
+- **Documentation** — README, USAGE, CONFIGURATION, UPGRADING, INSTALLATION, and DECLARATIVE_SCHEMA describe only the 2.0 API. Option `connection` documented for CreateTablesService (when injected from container). DEMO_MIGRATIONS_REFERENCE and demo README/Makefile in English. References to removed APIs archived in CHANGELOG.
+- **Demos** — Demo migrations use only CreateTablesService and MDK; Makefiles aligned (symfony7/symfony8).
 
 ### Fixed
 
 - **CreateTablesService (DBAL 2.x)** — Fixed “Call to undefined method Schema::getTableNames()” when resolving table names; uses `getTables()` when available and falls back to `getTableNames()` on DBAL 2.x.
+- **CreateTablesService (MySQL / protected getDropPrimaryKeySQL)** — When the platform's `getDropPrimaryKeySQL()` is protected (e.g. some DBAL versions), use reflection to call it only if public; otherwise generate `ALTER TABLE … DROP PRIMARY KEY` with quoted table name.
+- **CreateTablesService** — Fallbacks that build SQL manually (DROP TABLE, DROP FOREIGN KEY) now use quoted table and identifier names via `quotedTableName()` and `quoteSingleIdentifier()` for reserved/special characters.
 
 ---
 

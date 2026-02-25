@@ -1,5 +1,21 @@
 # Release process
 
+## Release v2.0.0 (ready)
+
+Documentation and changelog are prepared for **v2.0.0**. To publish the release:
+
+```bash
+git add -A
+git commit -m "Prepare v2.0.0 release"
+git push origin master
+git tag -a v2.0.0 -m "Release v2.0.0"
+git push origin v2.0.0
+```
+
+Then (optional): open GitHub → Releases → Draft a new release from tag `v2.0.0` and paste the [2.0.0] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## Creating a new version (e.g. v2.0.0)
 
 1. **Ensure everything is ready**
@@ -32,10 +48,14 @@
 
 ---
 
-## v2.0.0 (2026-02-23)
+## v2.0.0 (2025-02-25)
 
-- **Scope:** Major release. Removed MigrationDefinitionRunner, SchemaSync, StandardColumns, MigrationDefinition, data steps, rowExists; API is now SchemaChecker + CreateTablesService (MDK) only. DBAL 2.x compatibility in resolveTableName; PHPUnit coverage config; docs aligned to 2.0.
-- **Checklist:** CHANGELOG and UPGRADING updated; tag `v2.0.0` created and pushed.
+- **Scope:** Major release. Removed MigrationDefinitionRunner, SchemaSync, StandardColumns, MigrationDefinition, data steps, rowExists; API is now SchemaChecker + CreateTablesService (MDK) only. DBAL 2.x compatibility; getDropPrimaryKeySQL reflection fallback for protected method; quoted identifiers in SQL fallbacks; demo migrations 00011–00013 (DROP_PRIMARY_KEYS, PRIMARY_KEY); docs and Makefiles aligned; MIGRATIONS_VALIDATION.md and USAGE export-SQL section.
+- **Checklist:** CHANGELOG and UPGRADING updated. To release:
+  1. Commit all changes: `git add -A && git commit -m "Prepare v2.0.0 release"`
+  2. Push branch: `git push origin master`
+  3. Create and push tag: `git tag -a v2.0.0 -m "Release v2.0.0"` then `git push origin v2.0.0`
+  4. (Optional) Create GitHub Release from tag with notes from CHANGELOG [2.0.0].
 
 ---
 
