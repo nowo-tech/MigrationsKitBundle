@@ -21,6 +21,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.2] - 2025-02-25
+
+### Added
+
+- **CreateTablesService** — In a single `apply()` call, when the definition adds new columns and also defines indexes and/or foreign keys on those columns, the bundle now emits all SQL (ADD COLUMN, index, FK) in one run. No need for a separate manual block with `SchemaChecker` and `addSql()` for indexes/FKs on newly added columns. On SQLite, FK creation via this path is skipped (platform does not support it); indexes and columns still work.
+- **DEMO_MIGRATIONS_REFERENCE.md** — Matrix row for “Add column + index + FK in one apply” and note in recommendations that column, index and FK on the same new columns can be defined in one definition. Unit test `testApplyAddColumnAndIndexAndFkOnNewColumnsEmitsAllSqlInOrder` covers this behaviour.
+
+### Changed
+
+- (No changes.)
+
+### Fixed
+
+- (No changes.)
+
+---
+
 ## [2.0.1] - 2025-02-25
 
 ### Changed

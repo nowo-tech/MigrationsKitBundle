@@ -31,6 +31,13 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.2
+
+- **No breaking changes.** New behaviour: when you add new columns and define indexes and/or foreign keys on those columns in the same MDK definition, **CreateTablesService::apply()** now emits ADD COLUMN, index and FK SQL in one run (no manual `addSql` for index/FK needed). See [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) and [CHANGELOG.md](CHANGELOG.md#202---2025-02-25).
+- Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
+
+---
+
 ## Upgrading to 2.0.1
 
 - **No breaking changes.** Only documentation and release-process updates (RELEASE.md).
