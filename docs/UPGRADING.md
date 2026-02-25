@@ -31,6 +31,13 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.1
+
+- **No breaking changes.** Only documentation and release-process updates (RELEASE.md).
+- Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
+
+---
+
 ## Upgrading to 2.0.0
 
 **2.0.0 is a major release and is not backward compatible with 1.x.** If you rely on **MigrationDefinitionRunner**, **SchemaSync**, **StandardColumns**, **MigrationDefinition**, **data steps**, or **SchemaChecker::rowExists()**, you must migrate to the new API before upgrading.

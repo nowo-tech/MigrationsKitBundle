@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.1] - 2025-02-25
+
+### Changed
+
+- **RELEASE.md** — Release checklist now includes syncing `composer.lock` before tagging (`make composer-sync` or `composer update --no-install` + `composer validate --strict`). General "Creating a new version" steps updated with the same requirement.
+
+---
+
 ## [2.0.0] - 2025-02-25
 
 **Major release: incompatible with 1.x.** The bundle now exposes only **SchemaChecker** and **CreateTablesService** (MDK declarative definitions). All previous runners, sync, and data-step APIs have been removed.

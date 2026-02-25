@@ -1,18 +1,30 @@
 # Release process
 
-## Release v2.0.0 (ready)
+## Release v2.0.1 (ready)
 
-Documentation and changelog are prepared for **v2.0.0**. To publish the release:
+Documentation and changelog are prepared for **v2.0.1**. Before tagging, ensure the lock file is valid:
 
-```bash
-git add -A
-git commit -m "Prepare v2.0.0 release"
-git push origin master
-git tag -a v2.0.0 -m "Release v2.0.0"
-git push origin v2.0.0
-```
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
 
-Then (optional): open GitHub → Releases → Draft a new release from tag `v2.0.0` and paste the [2.0.0] section from [CHANGELOG.md](CHANGELOG.md).
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.1 release"
+   git push origin master
+   git tag -a v2.0.1 -m "Release v2.0.1"
+   git push origin v2.0.1
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.1` and paste the [2.0.1] section from [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -21,20 +33,21 @@ Then (optional): open GitHub → Releases → Draft a new release from tag `v2.0
 1. **Ensure everything is ready**
    - [CHANGELOG.md](CHANGELOG.md) has the target version (e.g. `[2.0.0]`) with date and full entry; `[Unreleased]` is at the top and empty or updated for the next cycle.
    - [UPGRADING.md](UPGRADING.md) has a section “Upgrading to X.Y.Z” with what’s new, breaking changes (if any), and upgrade steps.
+   - **composer.lock** is up to date: run `make composer-sync` (or `composer update --no-install` then `composer validate --strict`) and commit the lock if changed.
    - Tests pass: `make test` or `composer test`.
    - Code style: `make cs-check` or `composer cs-check`.
 
 2. **Commit and push** any last changes to your default branch (e.g. `main` or `master`):
    ```bash
    git add -A
-   git commit -m "Prepare v2.0.0 release"
+   git commit -m "Prepare v2.0.1 release"
    git push origin HEAD
    ```
 
 3. **Create and push the tag**
    ```bash
-   git tag -a v2.0.0 -m "Release v2.0.0"
-   git push origin v2.0.0
+   git tag -a v2.0.1 -m "Release v2.0.1"
+   git push origin v2.0.1
    ```
 
 4. **GitHub Actions** (if configured) may create the GitHub Release from the tag.
@@ -48,14 +61,17 @@ Then (optional): open GitHub → Releases → Draft a new release from tag `v2.0
 
 ---
 
+## v2.0.1 (2025-02-25)
+
+- **Scope:** Documentation and release process. RELEASE.md updated with composer.lock sync step and checklist.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then commit, push, and tag v2.0.1.
+
+---
+
 ## v2.0.0 (2025-02-25)
 
 - **Scope:** Major release. Removed MigrationDefinitionRunner, SchemaSync, StandardColumns, MigrationDefinition, data steps, rowExists; API is now SchemaChecker + CreateTablesService (MDK) only. DBAL 2.x compatibility; getDropPrimaryKeySQL reflection fallback for protected method; quoted identifiers in SQL fallbacks; demo migrations 00011–00013 (DROP_PRIMARY_KEYS, PRIMARY_KEY); docs and Makefiles aligned; MIGRATIONS_VALIDATION.md and USAGE export-SQL section.
-- **Checklist:** CHANGELOG and UPGRADING updated. To release:
-  1. Commit all changes: `git add -A && git commit -m "Prepare v2.0.0 release"`
-  2. Push branch: `git push origin master`
-  3. Create and push tag: `git tag -a v2.0.0 -m "Release v2.0.0"` then `git push origin v2.0.0`
-  4. (Optional) Create GitHub Release from tag with notes from CHANGELOG [2.0.0].
+- **Checklist:** CHANGELOG and UPGRADING updated. Tag v2.0.0.
 
 ---
 
