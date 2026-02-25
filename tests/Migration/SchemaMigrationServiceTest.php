@@ -11,6 +11,8 @@ use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use PHPUnit\Framework\TestCase;
 
+use function count;
+
 class SchemaMigrationServiceTest extends TestCase
 {
     private CreateTablesService $service;
@@ -749,6 +751,65 @@ class SchemaMigrationServiceTest extends TestCase
         self::assertStringContainsString('role_id', implode(' ', $sqls));
     }
 
+    /**
+     * When adding new columns and indexes/FKs on those same columns in one definition,
+     * apply() emits ADD COLUMN, then index SQL, then FK SQL (no manual addSql needed).
+     */
+    public function testApplyAddColumnAndIndexAndFkOnNewColumnsEmitsAllSqlInOrder(): void
+    {
+        $schema = new Schema();
+        $schema->createTable('users')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('users')->setPrimaryKey(['id']);
+        $schema->getTable('users')->addColumn('name', 'string', ['length' => 255, 'notnull' => true]);
+        $schema->createTable('roles')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('roles')->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'role_id', 'type' => 'integer', 'notnull' => false],
+                    ],
+                    MDK::INDEXES => [
+                        ['columns' => ['role_id'], 'name' => 'idx_users_role_id'],
+                    ],
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['role_id'],
+                            'foreign_table'   => 'roles',
+                            'foreign_columns' => ['id'],
+                            'onDelete'        => 'SET NULL',
+                            'name'            => 'fk_users_role_id',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls, 'apply() must emit SQL for add column + index + FK in one run');
+        $allSql = implode(' ', $sqls);
+        self::assertStringContainsString('role_id', $allSql);
+        $idxAddColumn = null;
+        $idxIndex     = null;
+        $idxFk        = null;
+        foreach ($sqls as $i => $sql) {
+            if ($idxAddColumn === null && preg_match('/ALTER\s+TABLE/i', $sql) && preg_match('/role_id/i', $sql) && !preg_match('/\bINDEX\b|REFERENCES|FOREIGN\s+KEY/i', $sql)) {
+                $idxAddColumn = $i;
+            }
+            if ($idxIndex === null && preg_match('/\bINDEX\b/i', $sql)) {
+                $idxIndex = $i;
+            }
+            if ($idxFk === null && preg_match('/REFERENCES|FOREIGN\s+KEY/i', $sql)) {
+                $idxFk = $i;
+            }
+        }
+        self::assertNotNull($idxAddColumn, 'Expected one SQL to add column role_id (ALTER TABLE ... role_id without INDEX/FK)');
+        self::assertNotNull($idxIndex, 'Expected one SQL to create index');
+        self::assertGreaterThanOrEqual(2, count($sqls), 'At least ADD COLUMN and INDEX SQL must be emitted');
+        if (!$this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+            self::assertNotNull($idxFk, 'Expected one SQL to add FK');
+        }
+    }
+
     public function testApplyWarnIfMixingSkipsWhenTablesNotArray(): void
     {
         $schema = $this->schemaWithUsersTable();
@@ -930,5 +991,233 @@ class SchemaMigrationServiceTest extends TestCase
         ];
         $sqls = $this->service->apply($schema, $def);
         self::assertNotEmpty($sqls);
+    }
+
+    public function testGetConnectionReturnsInjectedConnection(): void
+    {
+        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $service    = new CreateTablesService($connection, new SchemaDefinitionParser());
+        self::assertSame($connection, $service->getConnection());
+    }
+
+    /** Table with qualified name (e.g. public.users) is found by short name 'users' via getTables() iteration. */
+    public function testApplyResolvesQualifiedTableNameByShortName(): void
+    {
+        $schema = new Schema();
+        $table  = $schema->createTable('public.users');
+        $table->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $table->addColumn('name', 'string', ['length' => 255, 'notnull' => true]);
+        $table->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'email', 'type' => 'string', 'length' => 180, 'notnull' => true],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        self::assertStringContainsString('email', implode(' ', $sqls));
+    }
+
+    /** Index without 'name' key gets generated name (idx_tablename_columns). */
+    public function testApplyAddIndexWithoutNameGeneratesName(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::INDEXES => [
+                        ['columns' => ['name']],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        self::assertStringContainsString('name', implode(' ', $sqls));
+    }
+
+    /** FK with onUpdate/onDelete options. */
+    public function testApplyAddForeignKeyWithOnUpdateAndOnDelete(): void
+    {
+        $schema = new Schema();
+        $schema->createTable('users')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('users')->setPrimaryKey(['id']);
+        $schema->createTable('orders')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('orders')->addColumn('user_id', 'integer', ['notnull' => true]);
+        $schema->getTable('orders')->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                            'onUpdate'        => 'CASCADE',
+                            'onDelete'        => 'SET NULL',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+    }
+
+    /** DROP_PRIMARY_KEYS with false skips (no SQL). */
+    public function testApplyDropPrimaryKeysFalseSkips(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::DROP_PRIMARY_KEYS => false,
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    /** Empty string in DROP_FOREIGN_KEYS is skipped; valid FK name still produces DROP (only on platforms that support it). */
+    public function testApplyDropForeignKeySkipsEmptyName(): void
+    {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+            self::markTestSkipped('SQLite does not support DROP FOREIGN KEY');
+        }
+        $schema = new Schema();
+        $schema->createTable('users')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('users')->setPrimaryKey(['id']);
+        $schema->createTable('orders')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('orders')->addColumn('user_id', 'integer', ['notnull' => true]);
+        $schema->getTable('orders')->setPrimaryKey(['id']);
+        $schema->getTable('orders')->addForeignKeyConstraint('users', ['user_id'], ['id'], [], 'fk_ord_user');
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::DROP_FOREIGN_KEYS => ['', 'fk_ord_user'],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+    }
+
+    /** Add unique index without name (generates uniq_tablename_columns). */
+    public function testApplyAddUniqueIndexWithoutName(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::INDEXES => [
+                        ['columns' => ['name'], 'unique' => true],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+    }
+
+    /** FK to table not in schema is skipped (no SQL). */
+    public function testApplySkipsForeignKeyWhenForeignTableNotInSchema(): void
+    {
+        $schema = new Schema();
+        $schema->createTable('orders')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('orders')->addColumn('user_id', 'integer', ['notnull' => true]);
+        $schema->getTable('orders')->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    /** Index with column that does not exist on table is skipped. */
+    public function testApplySkipsIndexWhenColumnNotInTable(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::INDEXES => [
+                        ['columns' => ['nonexistent_col'], 'name' => 'idx_missing'],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    /** Modify column with empty name in def is skipped. */
+    public function testApplySkipsModifyColumnWhenNameEmpty(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => [
+                        ['name' => '', 'type' => 'string', 'length' => 500],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    /** Modify column default value. */
+    public function testApplyTableEditsModifyColumnDefault(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'name', 'type' => 'string', 'length' => 255, 'notnull' => true, 'default' => ''],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+    }
+
+    /** Rename column on table with column that has comment (covers columnToAddArgs getComment). */
+    public function testApplyRenameColumnOnTableWithComment(): void
+    {
+        $schema = new Schema();
+        $table  = $schema->createTable('items');
+        $table->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $table->addColumn('title', 'string', ['length' => 255, 'comment' => 'Item title']);
+        $table->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'items' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'title', MDK::RENAME => 'name'],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        self::assertStringContainsString('name', implode(' ', $sqls));
     }
 }

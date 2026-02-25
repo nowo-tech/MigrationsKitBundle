@@ -17,6 +17,7 @@ This document answers:
 |---------------------------------------------|----------------|--------------|
 | **Create table** (TABLES + COLUMNS + PRIMARY_KEY) | Version20250223100000 (kit_item), 00001 (kit_example), 00002 (kit_user) | ✅ Yes |
 | **Add column** (ALTER TABLE ADD COLUMN via comparator) | Version20250223100002 (user_id on kit_item) | ✅ Yes |
+| **Add column + index + FK in one apply** (COLUMNS + INDEXES + FOREIGN_KEYS on same new columns; bundle emits ADD COLUMN, then index, then FK SQL in one run) | — | ✅ Yes (no demo migration; covered by unit test `testApplyAddColumnAndIndexAndFkOnNewColumnsEmitsAllSqlInOrder`) |
 | **Add foreign key** (FOREIGN_KEYS) | Version20250223100003 | ✅ Yes |
 | **Drop table** (DROP_TABLES) — simple, no FKs referencing it | Version20250223100004 (kit_example) | ✅ Yes |
 | **Drop FK by name** (DROP_FOREIGN_KEYS) | Version20250223100005 | ✅ Yes |
@@ -226,7 +227,7 @@ ALTER TABLE kit_pk_demo ADD PRIMARY KEY (code);
 ### Recommendations
 
 1. **Always review SQL before applying**: Use `doctrine:migrations:migrate --dry-run -vvv` or `make migrate-dry-run` (and optionally `make migrate-write-sql`) and check the generated SQL in your environment.
-2. **Prefer small, ordered migrations**: One concern per migration (e.g. add column → then add index → then add FK) reduces risk and makes rollback clearer.
+2. **Prefer small, ordered migrations**: One concern per migration (e.g. add column → then add index → then add FK) reduces risk and makes rollback clearer. You can also add column, index and FK on the same new columns in a single definition; the bundle emits the SQL for all three in one `apply()` (no manual `addSql` for index/FK needed).
 3. **Platform differences**: SQLite does not support `DROP FOREIGN KEY`; the demo uses a workaround in 00006. On MySQL/PostgreSQL the bundle emits standard DROP FK / DROP INDEX. Be aware of platform-specific behaviour when targeting multiple databases.
 4. **Transactional mode**: By default Doctrine Migrations run each migration in a transaction and commit after it. For DDL that implies commits (e.g. on MySQL), consider `transactional: false` for those migrations if required (see Doctrine docs on implicit commits).
 

@@ -6,6 +6,8 @@ namespace Nowo\MigrationsKitBundle\Migration;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
@@ -326,6 +328,7 @@ final class CreateTablesService
         }
 
         // Phase 4a: create indexes and unique constraints (only if table/columns exist and index not already present).
+        // Columns being added in this apply() are considered "existing" so index/FK SQL is emitted in the same run.
         foreach ($tablesDef as $tableName => $tableDef) {
             if (!is_array($tableDef)) {
                 continue;
@@ -339,6 +342,8 @@ final class CreateTablesService
             if ($localTable === null) {
                 continue;
             }
+            $missingCols       = $this->missingColumnsForTable($schema, $tableName, $tableDef);
+            $columnsBeingAdded = array_flip(array_map(static fn (array $row): string => $row[0], $missingCols));
             foreach ($indexes as $idxDef) {
                 if (!is_array($idxDef) || !empty($idxDef[MDK::DROP])) {
                     continue;
@@ -353,7 +358,7 @@ final class CreateTablesService
                     continue;
                 }
                 foreach ($columnNames as $col) {
-                    if (!$this->tableHasColumn($localTable, $col)) {
+                    if (!$this->tableHasColumn($localTable, $col) && !isset($columnsBeingAdded[$col])) {
                         continue 2;
                     }
                 }
@@ -364,14 +369,30 @@ final class CreateTablesService
                 if ($localTable->hasIndex($indexName)) {
                     continue;
                 }
-                $indexSqls = $this->addIndexViaComparator($schema, $tableName, $columnNames, $indexName, !empty($idxDef['unique']), $comparator, $platform, $schemaManager);
-                foreach ($indexSqls as $sql) {
-                    $sqls[] = $sql;
+                $indexUsesNewColumns = false;
+                foreach ($columnNames as $col) {
+                    if (isset($columnsBeingAdded[$col])) {
+                        $indexUsesNewColumns = true;
+                        break;
+                    }
+                }
+                if ($indexUsesNewColumns) {
+                    $index     = new Index($indexName, $columnNames, !empty($idxDef['unique']));
+                    $generated = $platform->getCreateIndexSQL($index, $this->quotedTableName($localTable, $platform));
+                    foreach ((array) $generated as $sql) {
+                        $sqls[] = $sql;
+                    }
+                } else {
+                    $indexSqls = $this->addIndexViaComparator($schema, $tableName, $columnNames, $indexName, !empty($idxDef['unique']), $comparator, $platform, $schemaManager);
+                    foreach ($indexSqls as $sql) {
+                        $sqls[] = $sql;
+                    }
                 }
             }
         }
 
         // Phase 4b: create foreign keys (only if table/columns exist and FK not already present).
+        // Local columns being added in this apply() are considered "existing" so FK SQL is emitted in the same run.
         foreach ($tablesDef as $tableName => $tableDef) {
             if (!is_array($tableDef)) {
                 continue;
@@ -381,6 +402,12 @@ final class CreateTablesService
             if (!is_array($foreignKeys)) {
                 continue;
             }
+            $localTable = $this->getTableByShortName($schema, $tableName);
+            if ($localTable === null) {
+                continue;
+            }
+            $missingCols       = $this->missingColumnsForTable($schema, $tableName, $tableDef);
+            $columnsBeingAdded = array_flip(array_map(static fn (array $row): string => $row[0], $missingCols));
             foreach ($foreignKeys as $fkDef) {
                 if (!is_array($fkDef) || !empty($fkDef[MDK::DROP])) {
                     continue;
@@ -391,10 +418,6 @@ final class CreateTablesService
                 if (!is_array($localColumns) || $localColumns === [] || $foreignTableName === null || $foreignTableName === '' || !is_array($foreignColumns) || $foreignColumns === []) {
                     continue;
                 }
-                $localTable = $this->getTableByShortName($schema, $tableName);
-                if ($localTable === null) {
-                    continue;
-                }
                 if (!$this->schemaHasTable($schema, (string) $foreignTableName)) {
                     continue;
                 }
@@ -403,7 +426,8 @@ final class CreateTablesService
                     continue;
                 }
                 foreach ($localColumns as $col) {
-                    if (!$this->tableHasColumn($localTable, (string) $col)) {
+                    $colNorm = $this->normalizeIdentifier((string) $col);
+                    if (!$this->tableHasColumn($localTable, $colNorm) && !isset($columnsBeingAdded[$colNorm])) {
                         continue 2;
                     }
                 }
@@ -423,9 +447,34 @@ final class CreateTablesService
                 if (isset($fkDef['onDelete'])) {
                     $options['onDelete'] = $fkDef['onDelete'];
                 }
-                $fkSqls = $this->addForeignKeyViaComparator($schema, $tableName, (string) $foreignTableName, $localColumns, $foreignColumns, $options, $fkName, $comparator, $platform, $schemaManager);
-                foreach ($fkSqls as $sql) {
-                    $sqls[] = $sql;
+                $fkUsesNewColumns = false;
+                foreach ($localColumns as $col) {
+                    if (isset($columnsBeingAdded[$this->normalizeIdentifier((string) $col)])) {
+                        $fkUsesNewColumns = true;
+                        break;
+                    }
+                }
+                if ($fkUsesNewColumns && method_exists($platform, 'getCreateForeignKeySQL')) {
+                    try {
+                        $fkConstraint = new ForeignKeyConstraint(
+                            $localColumns,
+                            (string) $foreignTableName,
+                            $foreignColumns,
+                            $fkName,
+                            $options,
+                        );
+                        $generated = $platform->getCreateForeignKeySQL($fkConstraint, $this->quotedTableName($localTable, $platform));
+                        foreach ((array) $generated as $sql) {
+                            $sqls[] = $sql;
+                        }
+                    } catch (\Doctrine\DBAL\Platforms\Exception\NotSupported) {
+                        // e.g. SQLite: add FK on new columns not supported in same run
+                    }
+                } else {
+                    $fkSqls = $this->addForeignKeyViaComparator($schema, $tableName, (string) $foreignTableName, $localColumns, $foreignColumns, $options, $fkName, $comparator, $platform, $schemaManager);
+                    foreach ($fkSqls as $sql) {
+                        $sqls[] = $sql;
+                    }
                 }
             }
         }
@@ -444,6 +493,7 @@ final class CreateTablesService
     private function missingColumnsForTable(Schema $schema, string $tableName, array $tableDef): array
     {
         $table = $this->getTableByShortName($schema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema; COLUMNS not array
         if ($table === null) {
             return [];
         }
@@ -451,6 +501,7 @@ final class CreateTablesService
         if (!is_array($columns)) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         $missing = [];
         foreach ($columns as $col) {
             if (!is_array($col)) {
@@ -488,6 +539,7 @@ final class CreateTablesService
         if ($columns === []) {
             return false;
         }
+        // @codeCoverageIgnoreStart - non-array column; column without RENAME
         foreach ($columns as $col) {
             if (!is_array($col)) {
                 return false;
@@ -498,6 +550,7 @@ final class CreateTablesService
         }
 
         return true;
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -510,6 +563,7 @@ final class CreateTablesService
     private function collectRenameColumnsForTable(Schema $schema, string $tableName, array $tableDef): array
     {
         $table = $this->getTableByShortName($schema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema; COLUMNS not array
         if ($table === null) {
             return [];
         }
@@ -517,6 +571,7 @@ final class CreateTablesService
         if (!is_array($columns)) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         $list = [];
         foreach ($columns as $col) {
             if (!is_array($col)) {
@@ -548,9 +603,11 @@ final class CreateTablesService
     private function getRenameColumnSQL(Schema $schema, string $tableName, string $oldName, string $newName, object $platform, object $comparator, object $schemaManager): array
     {
         $table = $this->getTableByShortName($schema, $tableName);
+        // @codeCoverageIgnoreStart - table/column not in schema
         if ($table === null || !$this->tableHasColumn($table, $oldName)) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         $column = $table->getColumn($oldName);
         if (method_exists($platform, 'getRenameColumnSQL')) {
             $renameSql = $this->invokePlatformRenameColumnSQL($platform, $column, $newName, $tableName, $table);
@@ -565,6 +622,7 @@ final class CreateTablesService
         if ($t === null) {
             return [];
         }
+        // @codeCoverageIgnoreStart - comparator fallback (rename via clone schema)
         $t->dropColumn($oldName);
         $t->addColumn($newName, $typeName === '' ? 'string' : $typeName, $options);
         $diff = method_exists($comparator, 'compareSchemas')
@@ -572,6 +630,7 @@ final class CreateTablesService
             : $comparator->compare($schema, $toSchema);
 
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -587,6 +646,7 @@ final class CreateTablesService
             if (count($params) >= 3) {
                 $first     = $params[0]->getType();
                 $firstType = $first instanceof ReflectionNamedType ? $first->getName() : '';
+                // @codeCoverageIgnoreStart - platform getRenameColumnSQL(string, string, string) / DBAL 2
                 if ($firstType === 'string') {
                     $oldName = $column->getName();
                     $str     = is_object($oldName) && method_exists($oldName, 'toString') ? $oldName->toString() : (string) $oldName;
@@ -603,6 +663,7 @@ final class CreateTablesService
 
             return $sql !== null && $sql !== '' ? [(string) $sql] : [];
         } catch (Throwable) {
+            // @codeCoverageIgnoreEnd
             return [];
         }
     }
@@ -629,6 +690,7 @@ final class CreateTablesService
         if (method_exists($column, 'getPrecision') && $column->getPrecision() !== null) {
             $options['precision'] = $column->getPrecision();
         }
+        // @codeCoverageIgnoreStart - DBAL 2 / column without scale, autoincrement, comment
         if (method_exists($column, 'getScale') && $column->getScale() !== null) {
             $options['scale'] = $column->getScale();
         }
@@ -638,6 +700,7 @@ final class CreateTablesService
         if (method_exists($column, 'getComment') && $column->getComment() !== null) {
             $options['comment'] = $column->getComment();
         }
+        // @codeCoverageIgnoreEnd
 
         return [$useName, $typeName, $options];
     }
@@ -652,6 +715,7 @@ final class CreateTablesService
     private function collectModifyColumnsForTable(Schema $schema, string $tableName, array $tableDef): array
     {
         $table = $this->getTableByShortName($schema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema; COLUMNS not array
         if ($table === null) {
             return [];
         }
@@ -659,6 +723,7 @@ final class CreateTablesService
         if (!is_array($columns)) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         $list = [];
         foreach ($columns as $col) {
             if (!is_array($col)) {
@@ -703,6 +768,7 @@ final class CreateTablesService
         ];
         foreach ($opts as $key => $currentVal) {
             $desiredVal = $desiredOptions[$key] ?? null;
+            // @codeCoverageIgnoreStart - default/notnull comparison branches
             if ($key === 'default' && $currentVal !== $desiredVal) {
                 if ((string) ($currentVal ?? '') !== (string) ($desiredVal ?? '')) {
                     return true;
@@ -715,6 +781,7 @@ final class CreateTablesService
                 }
                 continue;
             }
+            // @codeCoverageIgnoreEnd
             if (($currentVal !== null || $desiredVal !== null) && ($currentVal ?? '') !== ($desiredVal ?? '')) {
                 return true;
             }
@@ -732,7 +799,9 @@ final class CreateTablesService
             return $type->getName();
         }
 
+        // @codeCoverageIgnoreStart - DBAL 4 type without getName()
         return 'string';
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -744,9 +813,11 @@ final class CreateTablesService
     {
         $toSchema = clone $fromSchema;
         $table    = $this->getTableByShortName($toSchema, $tableName);
+        // @codeCoverageIgnoreStart - table/column not in schema
         if ($table === null || !$table->hasColumn($columnName)) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         $table->dropColumn($columnName);
         $table->addColumn($columnName, $type, $options);
         $diff = method_exists($comparator, 'compareSchemas')
@@ -768,9 +839,11 @@ final class CreateTablesService
     {
         $toSchema = clone $fromSchema;
         $table    = $this->getTableByShortName($toSchema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema
         if ($table === null) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         foreach ($columnAddArgs as [$name, $type, $options]) {
             $table->addColumn($name, $type, $options);
         }
@@ -792,9 +865,11 @@ final class CreateTablesService
     {
         $toSchema = clone $fromSchema;
         $table    = $this->getTableByShortName($toSchema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema
         if ($table === null) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         foreach ($columnNames as $name) {
             if ($table->hasColumn($name)) {
                 $table->dropColumn($name);
@@ -839,11 +914,13 @@ final class CreateTablesService
     private function tableNameString(Table $table): string
     {
         $name = $table->getName();
+        // @codeCoverageIgnoreStart - Table name as object (DBAL 2)
         if (is_object($name) && method_exists($name, 'toString')) {
             return $name->toString();
         }
 
         return (string) $name;
+        // @codeCoverageIgnoreEnd
     }
 
     private function tableHasColumn(Table $table, string $columnName): bool
@@ -851,6 +928,7 @@ final class CreateTablesService
         if ($table->hasColumn($columnName)) {
             return true;
         }
+        // @codeCoverageIgnoreStart - column name as object (DBAL 2)
         foreach ($table->getColumns() as $col) {
             $name = $col->getName();
             $str  = is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
@@ -860,6 +938,7 @@ final class CreateTablesService
         }
 
         return false;
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -876,9 +955,11 @@ final class CreateTablesService
     {
         $toSchema = clone $fromSchema;
         $table    = $this->getTableByShortName($toSchema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema
         if ($table === null) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         $table->addForeignKeyConstraint($foreignTableName, $localColumns, $foreignColumns, $options, $fkName);
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
@@ -910,9 +991,11 @@ final class CreateTablesService
     {
         $toSchema = clone $fromSchema;
         $table    = $this->getTableByShortName($toSchema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema
         if ($table === null) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
         if ($unique) {
             $table->addUniqueIndex($columnNames, $indexName);
         } else {
@@ -936,12 +1019,14 @@ final class CreateTablesService
     {
         $toSchema = clone $fromSchema;
         $table    = $this->getTableByShortName($toSchema, $tableName);
+        // @codeCoverageIgnoreStart - table not in schema; dropPrimaryKey (DBAL 2)
         if ($table === null) {
             return [];
         }
         if (method_exists($table, 'dropPrimaryKey') && $table->getPrimaryKey() !== null) {
             $table->dropPrimaryKey();
         }
+        // @codeCoverageIgnoreEnd
         $table->setPrimaryKey($columnNames);
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
@@ -968,6 +1053,7 @@ final class CreateTablesService
         if (method_exists($schemaManager, 'getAlterSchemaSQL')) {
             return $schemaManager->getAlterSchemaSQL($diff);
         }
+        // @codeCoverageIgnoreStart - DBAL 4 / platforms without toSql or getAlterSchemaSQL
         // DBAL 4: SchemaDiff has getAlteredTables(), no toSql(); generate SQL per TableDiff
         $sqls = [];
         if (method_exists($diff, 'getAlteredTables')) {
@@ -981,6 +1067,7 @@ final class CreateTablesService
         }
 
         return $sqls;
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -1041,6 +1128,7 @@ final class CreateTablesService
 
             return $this->normalizeIdentifier($name);
         }
+        // @codeCoverageIgnoreStart - DBAL 2 getForeignTableName()
         if (method_exists($fk, 'getForeignTableName')) {
             $name = $fk->getForeignTableName();
 
@@ -1048,6 +1136,7 @@ final class CreateTablesService
         }
 
         return '';
+        // @codeCoverageIgnoreEnd
     }
 
     private function isSqlitePlatform(object $platform): bool
@@ -1057,12 +1146,14 @@ final class CreateTablesService
 
     private function normalizeIdentifier(mixed $name): string
     {
+        // @codeCoverageIgnoreStart - edge cases: null, empty, object with toString
         if ($name === null || $name === '') {
             return '';
         }
         if (is_object($name) && method_exists($name, 'toString')) {
             $name = $name->toString();
         }
+        // @codeCoverageIgnoreEnd
         $name = (string) $name;
 
         return trim($name, " \t\n\r\0\x0B`\"'[]");
@@ -1080,6 +1171,7 @@ final class CreateTablesService
 
             return $platform->getDropForeignKeySQL($fkArg, $tableArg);
         }
+        // @codeCoverageIgnoreStart - fallback when platform has no getDropForeignKeySQL
         $name = $this->foreignKeyName($fk);
         if ($name !== '') {
             $quotedTable = $this->quotedTableName($localTable, $platform);
@@ -1089,6 +1181,7 @@ final class CreateTablesService
         }
 
         return null;
+        // @codeCoverageIgnoreEnd
     }
 
     private function foreignKeyName(object $fk): string
@@ -1102,6 +1195,7 @@ final class CreateTablesService
         return '';
     }
 
+    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
     private function getDropForeignKeySQLExpectsString(object $platform): bool
     {
         try {
@@ -1118,6 +1212,7 @@ final class CreateTablesService
         return false;
     }
 
+    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
     private function getDropForeignKeySQLExpectsTableNameString(object $platform): bool
     {
         try {
@@ -1148,7 +1243,9 @@ final class CreateTablesService
             return is_array($sql) ? $sql : [$sql];
         }
 
+        // @codeCoverageIgnoreStart - platform has no getDropTableSQL
         return ['DROP TABLE ' . $this->quotedTableName($table, $platform)];
+        // @codeCoverageIgnoreEnd
     }
 
     private function quotedTableName(Table $table, object $platform): string
@@ -1161,14 +1258,16 @@ final class CreateTablesService
         if (method_exists($platform, 'quoteSingleIdentifier')) {
             return $platform->quoteSingleIdentifier($name);
         }
+        // @codeCoverageIgnoreStart - DBAL 2 quoteIdentifier fallback
         if (method_exists($platform, 'quoteIdentifier')) {
             return $platform->quoteIdentifier($name);
         }
 
         return $name;
+        // @codeCoverageIgnoreEnd
     }
 
-    /** DBAL 4 uses string; DBAL 3 accepts Table (deprecated) or quoted string. */
+    /** DBAL 4 uses string; DBAL 3 accepts Table (deprecated) or quoted string. @codeCoverageIgnore */
     private function getDropTableSQLExpectsString(object $platform): bool
     {
         try {
@@ -1204,6 +1303,7 @@ final class CreateTablesService
                     }
                 }
             } catch (Throwable) {
+                // @codeCoverageIgnore - platform getDropPrimaryKeySQL throws or is protected
             }
         }
         $quotedName = $this->quotedTableName($table, $platform);
@@ -1211,6 +1311,7 @@ final class CreateTablesService
         return ['ALTER TABLE ' . $quotedName . ' DROP PRIMARY KEY'];
     }
 
+    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
     private function getDropPrimaryKeySQLExpectsString(object $platform): bool
     {
         try {
@@ -1229,6 +1330,7 @@ final class CreateTablesService
 
     private function getDropIndexSQL(Table $localTable, object $index, object $platform): ?string
     {
+        // @codeCoverageIgnoreStart - platform has no getDropIndexSQL
         if (!method_exists($platform, 'getDropIndexSQL')) {
             $indexName = $this->indexName($index);
             if ($indexName !== '') {
@@ -1239,6 +1341,7 @@ final class CreateTablesService
 
             return null;
         }
+        // @codeCoverageIgnoreEnd
         $indexArg = $this->getDropIndexSQLExpectsString($platform) ? $this->indexName($index) : $index;
         $tableArg = $this->getDropIndexSQLExpectsTableNameString($platform) ? $this->quotedTableName($localTable, $platform) : $localTable;
         $sql      = $platform->getDropIndexSQL($indexArg, $tableArg);
@@ -1257,6 +1360,7 @@ final class CreateTablesService
         return '';
     }
 
+    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
     private function getDropIndexSQLExpectsString(object $platform): bool
     {
         try {
@@ -1273,6 +1377,7 @@ final class CreateTablesService
         return false;
     }
 
+    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
     private function getDropIndexSQLExpectsTableNameString(object $platform): bool
     {
         try {

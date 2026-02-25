@@ -265,4 +265,87 @@ class SchemaDefinitionParserTest extends TestCase
         self::assertIsArray($args[2]);
         self::assertSame(180, $args[2]['length']);
     }
+
+    /** parseTable returns empty table when COLUMNS is not an array. */
+    public function testParseTableColumnsNotArrayReturnsEmptyTable(): void
+    {
+        $table = $this->parser->parseTable('t', [MDK::COLUMNS => 'not_an_array']);
+        self::assertSame('t', $table->getName());
+        self::assertCount(0, $table->getColumns());
+    }
+
+    /** Index without name uses addIndex(cols) / addUniqueIndex(cols). */
+    public function testParseTableIndexWithoutName(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'code', 'type' => 'string', 'length' => 32],
+            ],
+            MDK::INDEXES => [
+                ['columns' => ['code']],
+                ['columns' => ['code'], 'unique' => true],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertCount(2, $table->getIndexes());
+    }
+
+    /** Primary key item non-array or with DROP is skipped. */
+    public function testParseTablePrimaryKeySkipsNonArrayAndDrop(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'alt', 'type' => 'integer'],
+            ],
+            MDK::PRIMARY_KEY => [
+                'not_an_array',
+                ['columns' => ['id'], MDK::DROP => true],
+                ['columns' => ['alt']],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertNotNull($table->getPrimaryKey());
+        self::assertSame(['alt'], $table->getPrimaryKey()->getColumns());
+    }
+
+    /** getColumnOptions with precision, scale, autoincrement, comment. */
+    public function testGetColumnOptionsPrecisionScaleAutoincrementComment(): void
+    {
+        $col = [
+            'name'          => 'id',
+            'type'          => 'integer',
+            'precision'     => 10,
+            'scale'         => 2,
+            'autoincrement' => true,
+            'comment'       => 'PK',
+        ];
+        $opts = $this->parser->getColumnOptions($col);
+        self::assertSame(10, $opts['precision']);
+        self::assertSame(2, $opts['scale']);
+        self::assertTrue($opts['autoincrement']);
+        self::assertSame('PK', $opts['comment']);
+    }
+
+    /** parseTable FK without name uses addForeignKeyConstraint without name. */
+    public function testParseTableForeignKeyWithoutName(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                [
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
+                    'foreign_columns' => ['id'],
+                ],
+            ],
+        ];
+        $table = $this->parser->parseTable('orders', $tableDef);
+        self::assertCount(1, $table->getForeignKeys());
+    }
 }

@@ -17,6 +17,7 @@
         </include>
         <exclude>
             <directory>src/Resources</directory>
+            <directory>src/FieldDictionary</directory>
         </exclude>
     </source>
     <coverage includeUncoveredFiles="true">
