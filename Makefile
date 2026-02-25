@@ -82,8 +82,8 @@ release-check-demos:
 	@$(MAKE) -C demo release-verify
 
 composer-sync: ensure-up
-	$(RUN) composer validate --strict
 	$(RUN) composer update --no-install
+	$(RUN) composer validate --strict
 
 clean: ensure-up
 	$(RUN) sh -c 'rm -rf vendor .phpunit.cache coverage coverage.xml .php-cs-fixer.cache'
