@@ -41,9 +41,9 @@ final class Version20250223100006 extends AbstractMigration
             $this->addSql('DROP TABLE __temp_' . KitItem::TABLE_NAME);
         }
 
-        $service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+        $service      = new CreateTablesService($this->connection, new SchemaDefinitionParser());
         $introspected = $this->connection->createSchemaManager()->introspectSchema();
-        $definition = [
+        $definition   = [
             MDK::DROP_TABLES => [KitUser::TABLE_NAME],
         ];
         foreach ($service->apply($introspected, $definition) as $sql) {

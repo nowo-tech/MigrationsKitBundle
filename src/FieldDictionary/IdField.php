@@ -19,10 +19,10 @@ final class IdField
     public static function column(): array
     {
         return [
-            'name' => 'id',
-            'type' => 'integer',
+            'name'          => 'id',
+            'type'          => 'integer',
             'autoincrement' => true,
-            'notnull' => true,
+            'notnull'       => true,
         ];
     }
 

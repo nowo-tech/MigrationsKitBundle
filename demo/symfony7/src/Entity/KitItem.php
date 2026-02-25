@@ -35,6 +35,7 @@ class KitItem
     public function setUser(?KitUser $user): static
     {
         $this->user = $user;
+
         return $this;
     }
 }

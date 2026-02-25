@@ -7,6 +7,9 @@ namespace Nowo\MigrationsKitBundle\Schema\Definition;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 
+use function array_key_exists;
+use function is_array;
+
 /**
  * Builds a DBAL Table from an array definition (columns + primary key).
  *
@@ -22,13 +25,13 @@ final class SchemaDefinitionParser
      */
     public function parseTable(string $tableName, array $tableDef): Table
     {
-        $table = new Table($tableName);
+        $table   = new Table($tableName);
         $columns = $tableDef[MDK::COLUMNS] ?? [];
-        if (!\is_array($columns)) {
+        if (!is_array($columns)) {
             return $table;
         }
         foreach ($columns as $col) {
-            if (!\is_array($col)) {
+            if (!is_array($col)) {
                 continue;
             }
             if (!empty($col[MDK::DROP])) {
@@ -46,32 +49,32 @@ final class SchemaDefinitionParser
             $table->addColumn((string) $name, (string) $type, $options);
         }
         $pk = $tableDef[MDK::PRIMARY_KEY] ?? null;
-        if (\is_array($pk)) {
+        if (is_array($pk)) {
             foreach ($pk as $item) {
-                if (!\is_array($item) || !empty($item[MDK::DROP])) {
+                if (!is_array($item) || !empty($item[MDK::DROP])) {
                     continue;
                 }
                 $cols = $item['columns'] ?? [];
-                if (\is_array($cols) && $cols !== []) {
+                if (is_array($cols) && $cols !== []) {
                     $table->setPrimaryKey($cols);
                     break;
                 }
             }
         }
         $indexes = $tableDef[MDK::INDEXES] ?? [];
-        if (\is_array($indexes)) {
+        if (is_array($indexes)) {
             foreach ($indexes as $idx) {
-                if (!\is_array($idx)) {
+                if (!is_array($idx)) {
                     continue;
                 }
                 $cols = $idx['columns'] ?? [];
-                if (!\is_array($cols)) {
+                if (!is_array($cols)) {
                     $cols = $cols === '' ? [] : [$cols];
                 }
                 if ($cols === []) {
                     continue;
                 }
-                $name = $idx['name'] ?? null;
+                $name   = $idx['name'] ?? null;
                 $unique = !empty($idx['unique']);
                 if ($name !== null && $name !== '') {
                     if ($unique) {
@@ -89,17 +92,17 @@ final class SchemaDefinitionParser
             }
         }
         $fks = $tableDef[MDK::FOREIGN_KEYS] ?? $tableDef['foreign_keys'] ?? [];
-        if (!\is_array($fks)) {
+        if (!is_array($fks)) {
             $fks = [];
         }
         foreach ($fks as $fk) {
-            if (!\is_array($fk)) {
+            if (!is_array($fk)) {
                 continue;
             }
-            $localCols = $fk['columns'] ?? [];
+            $localCols    = $fk['columns'] ?? [];
             $foreignTable = $fk['foreign_table'] ?? null;
-            $foreignCols = $fk['foreign_columns'] ?? [];
-            if (!\is_array($localCols) || $localCols === [] || $foreignTable === null || $foreignTable === '' || !\is_array($foreignCols) || $foreignCols === []) {
+            $foreignCols  = $fk['foreign_columns'] ?? [];
+            if (!is_array($localCols) || $localCols === [] || $foreignTable === null || $foreignTable === '' || !is_array($foreignCols) || $foreignCols === []) {
                 continue;
             }
             $fkName = $fk['name'] ?? null;
@@ -109,6 +112,7 @@ final class SchemaDefinitionParser
                 $table->addForeignKeyConstraint($foreignTable, $localCols, $foreignCols);
             }
         }
+
         return $table;
     }
 
@@ -117,18 +121,21 @@ final class SchemaDefinitionParser
      * Use this when the table already exists and you need to add missing columns.
      *
      * @param array<string, mixed> $col Column definition (name, type, length, notnull, default, etc.)
+     *
      * @return array{0: string, 1: string, 2: array<string, mixed>} [name, type, options]
      */
     public function getColumnAddArgs(array $col): array
     {
-        $name = $col['name'] ?? '';
-        $type = $col['type'] ?? 'string';
+        $name    = $col['name'] ?? '';
+        $type    = $col['type'] ?? 'string';
         $options = $this->columnOptions($col);
+
         return [(string) $name, (string) $type, $options];
     }
 
     /**
      * @param array<string, mixed> $col Column definition
+     *
      * @return array<string, mixed> Options for Table::addColumn()
      */
     public function getColumnOptions(array $col): array
@@ -138,6 +145,7 @@ final class SchemaDefinitionParser
 
     /**
      * @param array<string, mixed> $col Column definition
+     *
      * @return array<string, mixed> Options for Table::addColumn()
      */
     private function columnOptions(array $col): array
@@ -164,6 +172,7 @@ final class SchemaDefinitionParser
         if (isset($col['comment'])) {
             $opts['comment'] = (string) $col['comment'];
         }
+
         return $opts;
     }
 }

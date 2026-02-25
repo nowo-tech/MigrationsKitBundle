@@ -10,6 +10,15 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
+use ReflectionException;
+use ReflectionMethod;
+use ReflectionNamedType;
+use Throwable;
+
+use function count;
+use function in_array;
+use function is_array;
+use function is_object;
 
 /**
  * Applies a definition to create tables and add missing columns using the migrations API.
@@ -62,14 +71,15 @@ final class CreateTablesService
      * Column definitions with "drop" => true are skipped (no add).
      *
      * @param array<string, mixed> $definition Must contain MDK::TABLES (table name => table def with COLUMNS and optionally PRIMARY_KEY)
+     *
      * @return list<string>
      */
     public function apply(Schema $schema, array $definition): array
     {
-        $sqls = [];
-        $platform = $this->connection->getDatabasePlatform();
+        $sqls          = [];
+        $platform      = $this->connection->getDatabasePlatform();
         $schemaManager = $this->connection->createSchemaManager();
-        $comparator = $schemaManager->createComparator();
+        $comparator    = $schemaManager->createComparator();
 
         // Phase 1: drop FKs that reference any table we are about to drop (so DROP TABLE can succeed).
         $dropTables = $this->normalizeDropTablesList($definition[MDK::DROP_TABLES] ?? null);
@@ -83,14 +93,14 @@ final class CreateTablesService
         }
 
         $tablesDef = $definition[MDK::TABLES] ?? [];
-        if (\is_array($tablesDef)) {
+        if (is_array($tablesDef)) {
             // Phase 1b: drop FKs by name (DROP_FOREIGN_KEYS per table).
             foreach ($tablesDef as $tableName => $tableDef) {
-                if (!\is_array($tableDef)) {
+                if (!is_array($tableDef)) {
                     continue;
                 }
                 $dropFks = $tableDef[MDK::DROP_FOREIGN_KEYS] ?? null;
-                if (!\is_array($dropFks)) {
+                if (!is_array($dropFks)) {
                     continue;
                 }
                 $localTable = $this->getTableByShortName($schema, (string) $tableName);
@@ -105,7 +115,7 @@ final class CreateTablesService
                     if (!$localTable->hasForeignKey($fkName)) {
                         continue;
                     }
-                    $fk = $localTable->getForeignKey($fkName);
+                    $fk        = $localTable->getForeignKey($fkName);
                     $dropFkSql = $this->getDropForeignKeySQL($localTable, $fk, $platform);
                     if ($dropFkSql !== null) {
                         $sqls[] = $dropFkSql;
@@ -114,11 +124,11 @@ final class CreateTablesService
             }
             // Phase 1c: drop indexes (DROP_INDEXES per table).
             foreach ($tablesDef as $tableName => $tableDef) {
-                if (!\is_array($tableDef)) {
+                if (!is_array($tableDef)) {
                     continue;
                 }
                 $dropIndexes = $tableDef[MDK::DROP_INDEXES] ?? null;
-                if (!\is_array($dropIndexes)) {
+                if (!is_array($dropIndexes)) {
                     continue;
                 }
                 $localTable = $this->getTableByShortName($schema, (string) $tableName);
@@ -133,7 +143,7 @@ final class CreateTablesService
                     if (!$localTable->hasIndex($indexName)) {
                         continue;
                     }
-                    $index = $localTable->getIndex($indexName);
+                    $index        = $localTable->getIndex($indexName);
                     $dropIndexSql = $this->getDropIndexSQL($localTable, $index, $platform);
                     if ($dropIndexSql !== null) {
                         $sqls[] = $dropIndexSql;
@@ -143,13 +153,13 @@ final class CreateTablesService
         }
 
         // Phase 2a: drop columns (DROP_COLUMNS per table).
-        if (\is_array($tablesDef)) {
+        if (is_array($tablesDef)) {
             foreach ($tablesDef as $tableName => $tableDef) {
-                if (!\is_array($tableDef)) {
+                if (!is_array($tableDef)) {
                     continue;
                 }
                 $dropColumns = $tableDef[MDK::DROP_COLUMNS] ?? null;
-                if (!\is_array($dropColumns)) {
+                if (!is_array($dropColumns)) {
                     continue;
                 }
                 $localTable = $this->getTableByShortName($schema, (string) $tableName);
@@ -172,7 +182,7 @@ final class CreateTablesService
             }
             // Phase 2b: drop primary key (DROP_PRIMARY_KEYS per table).
             foreach ($tablesDef as $tableName => $tableDef) {
-                if (!\is_array($tableDef)) {
+                if (!is_array($tableDef)) {
                     continue;
                 }
                 $dropPk = $tableDef[MDK::DROP_PRIMARY_KEYS] ?? null;
@@ -182,9 +192,9 @@ final class CreateTablesService
                 if ($dropPk === false) {
                     continue;
                 }
-                if (\is_array($dropPk) && $dropPk === []) {
+                if (is_array($dropPk) && $dropPk === []) {
                     // empty array means "drop the primary key"
-                } elseif (!\is_array($dropPk) && !$dropPk) {
+                } elseif (!is_array($dropPk) && !$dropPk) {
                     continue;
                 }
                 $localTable = $this->getTableByShortName($schema, (string) $tableName);
@@ -217,20 +227,20 @@ final class CreateTablesService
         }
 
         $tablesDef = $definition[MDK::TABLES] ?? [];
-        if (!\is_array($tablesDef)) {
+        if (!is_array($tablesDef)) {
             return $sqls;
         }
 
         // Phase 3: create or edit columns and tables.
         foreach ($tablesDef as $tableName => $tableDef) {
-            if (!\is_array($tableDef)) {
+            if (!is_array($tableDef)) {
                 continue;
             }
             $tableName = (string) $tableName;
 
             if (!$this->schemaHasTable($schema, $tableName)) {
                 $columns = $tableDef[MDK::COLUMNS] ?? [];
-                if (\is_array($columns) && $this->tableDefHasOnlyRenameColumns($columns)) {
+                if (is_array($columns) && $this->tableDefHasOnlyRenameColumns($columns)) {
                     // Table does not exist and definition only has renames — nothing to create or rename.
                     continue;
                 }
@@ -258,7 +268,7 @@ final class CreateTablesService
                     continue;
                 }
                 [, $type, $options] = $this->parser->getColumnAddArgs($colDef);
-                $alterSqls = $this->modifyColumnViaComparator($schema, $tableName, (string) $name, $type, $options, $comparator, $platform, $schemaManager);
+                $alterSqls          = $this->modifyColumnViaComparator($schema, $tableName, (string) $name, $type, $options, $comparator, $platform, $schemaManager);
                 foreach ($alterSqls as $sql) {
                     $sqls[] = $sql;
                 }
@@ -277,25 +287,25 @@ final class CreateTablesService
             // Add or change primary key when table exists and definition has PRIMARY_KEY (no PK → add; different PK → drop + add).
             $localTable = $this->getTableByShortName($schema, $tableName);
             if ($localTable !== null) {
-                $pkDef = $tableDef[MDK::PRIMARY_KEY] ?? null;
+                $pkDef         = $tableDef[MDK::PRIMARY_KEY] ?? null;
                 $desiredPkCols = null;
-                if (\is_array($pkDef)) {
+                if (is_array($pkDef)) {
                     foreach ($pkDef as $item) {
-                        if (!\is_array($item) || !empty($item[MDK::DROP])) {
+                        if (!is_array($item) || !empty($item[MDK::DROP])) {
                             continue;
                         }
                         $cols = $item['columns'] ?? [];
-                        if (\is_array($cols) && $cols !== []) {
+                        if (is_array($cols) && $cols !== []) {
                             $desiredPkCols = $cols;
                             break;
                         }
                     }
                 }
                 if ($desiredPkCols !== null) {
-                    $currentPk = $localTable->getPrimaryKey();
-                    $currentPkCols = $currentPk !== null ? $currentPk->getColumns() : [];
+                    $currentPk         = $localTable->getPrimaryKey();
+                    $currentPkCols     = $currentPk !== null ? $currentPk->getColumns() : [];
                     $desiredNormalized = array_map(fn ($c) => $this->normalizeIdentifier((string) $c), $desiredPkCols);
-                    $allExist = true;
+                    $allExist          = true;
                     foreach ($desiredNormalized as $c) {
                         if (!$this->tableHasColumn($localTable, $c)) {
                             $allExist = false;
@@ -303,7 +313,7 @@ final class CreateTablesService
                         }
                     }
                     $currentNormalized = array_map(fn ($c) => $this->normalizeIdentifier((string) $c), $currentPkCols);
-                    $pkChanged = $currentNormalized !== $desiredNormalized;
+                    $pkChanged         = $currentNormalized !== $desiredNormalized;
                     if ($allExist && ($currentPk === null || $pkChanged)) {
                         $addPkSqls = $this->addPrimaryKeyViaComparator($schema, $tableName, $desiredNormalized, $comparator, $platform, $schemaManager);
                         foreach ($addPkSqls as $sql) {
@@ -317,12 +327,12 @@ final class CreateTablesService
 
         // Phase 4a: create indexes and unique constraints (only if table/columns exist and index not already present).
         foreach ($tablesDef as $tableName => $tableDef) {
-            if (!\is_array($tableDef)) {
+            if (!is_array($tableDef)) {
                 continue;
             }
             $tableName = (string) $tableName;
-            $indexes = $tableDef[MDK::INDEXES] ?? [];
-            if (!\is_array($indexes)) {
+            $indexes   = $tableDef[MDK::INDEXES] ?? [];
+            if (!is_array($indexes)) {
                 continue;
             }
             $localTable = $this->getTableByShortName($schema, $tableName);
@@ -330,15 +340,15 @@ final class CreateTablesService
                 continue;
             }
             foreach ($indexes as $idxDef) {
-                if (!\is_array($idxDef) || !empty($idxDef[MDK::DROP])) {
+                if (!is_array($idxDef) || !empty($idxDef[MDK::DROP])) {
                     continue;
                 }
                 $columns = $idxDef['columns'] ?? null;
-                if (!\is_array($columns) || $columns === []) {
+                if (!is_array($columns) || $columns === []) {
                     continue;
                 }
                 $columnNames = array_map(fn ($c) => $this->normalizeIdentifier($c), $columns);
-                $columnNames = array_values(array_filter($columnNames, fn ($c) => $c !== ''));
+                $columnNames = array_values(array_filter($columnNames, static fn ($c) => $c !== ''));
                 if ($columnNames === []) {
                     continue;
                 }
@@ -363,22 +373,22 @@ final class CreateTablesService
 
         // Phase 4b: create foreign keys (only if table/columns exist and FK not already present).
         foreach ($tablesDef as $tableName => $tableDef) {
-            if (!\is_array($tableDef)) {
+            if (!is_array($tableDef)) {
                 continue;
             }
-            $tableName = (string) $tableName;
+            $tableName   = (string) $tableName;
             $foreignKeys = $tableDef[MDK::FOREIGN_KEYS] ?? [];
-            if (!\is_array($foreignKeys)) {
+            if (!is_array($foreignKeys)) {
                 continue;
             }
             foreach ($foreignKeys as $fkDef) {
-                if (!\is_array($fkDef) || !empty($fkDef[MDK::DROP])) {
+                if (!is_array($fkDef) || !empty($fkDef[MDK::DROP])) {
                     continue;
                 }
-                $localColumns = $fkDef['columns'] ?? null;
+                $localColumns     = $fkDef['columns'] ?? null;
                 $foreignTableName = $fkDef['foreign_table'] ?? null;
-                $foreignColumns = $fkDef['foreign_columns'] ?? null;
-                if (!\is_array($localColumns) || $localColumns === [] || $foreignTableName === null || $foreignTableName === '' || !\is_array($foreignColumns) || $foreignColumns === []) {
+                $foreignColumns   = $fkDef['foreign_columns'] ?? null;
+                if (!is_array($localColumns) || $localColumns === [] || $foreignTableName === null || $foreignTableName === '' || !is_array($foreignColumns) || $foreignColumns === []) {
                     continue;
                 }
                 $localTable = $this->getTableByShortName($schema, $tableName);
@@ -428,6 +438,7 @@ final class CreateTablesService
      * Skips column defs with "drop" => true or without name/type.
      *
      * @param array<string, mixed> $tableDef
+     *
      * @return list<array{0: string, 1: string, 2: array<string, mixed>}>
      */
     private function missingColumnsForTable(Schema $schema, string $tableName, array $tableDef): array
@@ -437,12 +448,12 @@ final class CreateTablesService
             return [];
         }
         $columns = $tableDef[MDK::COLUMNS] ?? [];
-        if (!\is_array($columns)) {
+        if (!is_array($columns)) {
             return [];
         }
         $missing = [];
         foreach ($columns as $col) {
-            if (!\is_array($col)) {
+            if (!is_array($col)) {
                 continue;
             }
             if (!empty($col[MDK::DROP])) {
@@ -462,6 +473,7 @@ final class CreateTablesService
                 $missing[] = $this->parser->getColumnAddArgs($col);
             }
         }
+
         return $missing;
     }
 
@@ -477,13 +489,14 @@ final class CreateTablesService
             return false;
         }
         foreach ($columns as $col) {
-            if (!\is_array($col)) {
+            if (!is_array($col)) {
                 return false;
             }
             if (empty($col[MDK::RENAME])) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -491,6 +504,7 @@ final class CreateTablesService
      * Column defs with 'name' and RENAME that exist in the table → list of [oldName, newName].
      *
      * @param array<string, mixed> $tableDef
+     *
      * @return list<array{0: string, 1: string}>
      */
     private function collectRenameColumnsForTable(Schema $schema, string $tableName, array $tableDef): array
@@ -500,12 +514,12 @@ final class CreateTablesService
             return [];
         }
         $columns = $tableDef[MDK::COLUMNS] ?? [];
-        if (!\is_array($columns)) {
+        if (!is_array($columns)) {
             return [];
         }
         $list = [];
         foreach ($columns as $col) {
-            if (!\is_array($col)) {
+            if (!is_array($col)) {
                 continue;
             }
             if (!empty($col[MDK::DROP])) {
@@ -522,6 +536,7 @@ final class CreateTablesService
                 $list[] = [$oldName, $newName];
             }
         }
+
         return $list;
     }
 
@@ -545,8 +560,8 @@ final class CreateTablesService
         }
         // Fallback: comparator (clone, drop old, add new with same type/options).
         [, $typeName, $options] = $this->columnToAddArgs($column, $newName);
-        $toSchema = clone $schema;
-        $t = $this->getTableByShortName($toSchema, $tableName);
+        $toSchema               = clone $schema;
+        $t                      = $this->getTableByShortName($toSchema, $tableName);
         if ($t === null) {
             return [];
         }
@@ -555,6 +570,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($schema, $toSchema)
             : $comparator->compare($schema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -566,26 +582,27 @@ final class CreateTablesService
     private function invokePlatformRenameColumnSQL(object $platform, Column $column, string $newName, string $tableName, Table $table): array
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getRenameColumnSQL');
+            $method = new ReflectionMethod($platform, 'getRenameColumnSQL');
             $params = $method->getParameters();
-            if (\count($params) >= 3) {
-                $first = $params[0]->getType();
-                $firstType = $first instanceof \ReflectionNamedType ? $first->getName() : '';
+            if (count($params) >= 3) {
+                $first     = $params[0]->getType();
+                $firstType = $first instanceof ReflectionNamedType ? $first->getName() : '';
                 if ($firstType === 'string') {
                     $oldName = $column->getName();
-                    $str = \is_object($oldName) && method_exists($oldName, 'toString') ? $oldName->toString() : (string) $oldName;
-                    $sql = $platform->getRenameColumnSQL($str, $newName, $tableName);
+                    $str     = is_object($oldName) && method_exists($oldName, 'toString') ? $oldName->toString() : (string) $oldName;
+                    $sql     = $platform->getRenameColumnSQL($str, $newName, $tableName);
                 } else {
                     $sql = $platform->getRenameColumnSQL($column, $newName, $tableName);
                 }
             } else {
                 $sql = $platform->getRenameColumnSQL($column, $newName, $tableName);
             }
-            if (\is_array($sql)) {
+            if (is_array($sql)) {
                 return $sql;
             }
+
             return $sql !== null && $sql !== '' ? [(string) $sql] : [];
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return [];
         }
     }
@@ -597,9 +614,9 @@ final class CreateTablesService
      */
     private function columnToAddArgs(Column $column, string $useName): array
     {
-        $type = $column->getType();
+        $type     = $column->getType();
         $typeName = $this->getTypeName($type);
-        $options = [];
+        $options  = [];
         if (method_exists($column, 'getNotnull')) {
             $options['notnull'] = $column->getNotnull();
         }
@@ -621,6 +638,7 @@ final class CreateTablesService
         if (method_exists($column, 'getComment') && $column->getComment() !== null) {
             $options['comment'] = $column->getComment();
         }
+
         return [$useName, $typeName, $options];
     }
 
@@ -628,6 +646,7 @@ final class CreateTablesService
      * Column defs that exist in the table but differ in type/options (no RENAME, no DROP).
      *
      * @param array<string, mixed> $tableDef
+     *
      * @return list<array<string, mixed>>
      */
     private function collectModifyColumnsForTable(Schema $schema, string $tableName, array $tableDef): array
@@ -637,12 +656,12 @@ final class CreateTablesService
             return [];
         }
         $columns = $tableDef[MDK::COLUMNS] ?? [];
-        if (!\is_array($columns)) {
+        if (!is_array($columns)) {
             return [];
         }
         $list = [];
         foreach ($columns as $col) {
-            if (!\is_array($col)) {
+            if (!is_array($col)) {
                 continue;
             }
             if (!empty($col[MDK::DROP]) || !empty($col[MDK::RENAME])) {
@@ -656,30 +675,31 @@ final class CreateTablesService
             if (!$this->tableHasColumn($table, $name)) {
                 continue;
             }
-            $current = $table->getColumn($name);
-            $desiredType = $col['type'] ?? 'string';
+            $current        = $table->getColumn($name);
+            $desiredType    = $col['type'] ?? 'string';
             $desiredOptions = $this->parser->getColumnOptions($col);
             if ($this->columnDefDiffers($current, (string) $desiredType, $desiredOptions)) {
                 $list[] = $col;
             }
         }
+
         return $list;
     }
 
     private function columnDefDiffers(Column $current, string $desiredType, array $desiredOptions): bool
     {
-        $currentType = $current->getType();
+        $currentType     = $current->getType();
         $currentTypeName = $this->getTypeName($currentType);
         if (strtolower($currentTypeName) !== strtolower($desiredType)) {
             return true;
         }
         $opts = [
-            'notnull' => method_exists($current, 'getNotnull') ? $current->getNotnull() : true,
-            'default' => method_exists($current, 'getDefault') ? $current->getDefault() : null,
-            'length' => method_exists($current, 'getLength') ? $current->getLength() : null,
+            'notnull'   => method_exists($current, 'getNotnull') ? $current->getNotnull() : true,
+            'default'   => method_exists($current, 'getDefault') ? $current->getDefault() : null,
+            'length'    => method_exists($current, 'getLength') ? $current->getLength() : null,
             'precision' => method_exists($current, 'getPrecision') ? $current->getPrecision() : null,
-            'scale' => method_exists($current, 'getScale') ? $current->getScale() : null,
-            'comment' => method_exists($current, 'getComment') ? $current->getComment() : null,
+            'scale'     => method_exists($current, 'getScale') ? $current->getScale() : null,
+            'comment'   => method_exists($current, 'getComment') ? $current->getComment() : null,
         ];
         foreach ($opts as $key => $currentVal) {
             $desiredVal = $desiredOptions[$key] ?? null;
@@ -699,6 +719,7 @@ final class CreateTablesService
                 return true;
             }
         }
+
         return false;
     }
 
@@ -710,6 +731,7 @@ final class CreateTablesService
         if ($type instanceof \Doctrine\DBAL\Types\Type && method_exists($type, 'getName')) {
             return $type->getName();
         }
+
         return 'string';
     }
 
@@ -721,7 +743,7 @@ final class CreateTablesService
     private function modifyColumnViaComparator(Schema $fromSchema, string $tableName, string $columnName, string $type, array $options, object $comparator, object $platform, object $schemaManager): array
     {
         $toSchema = clone $fromSchema;
-        $table = $this->getTableByShortName($toSchema, $tableName);
+        $table    = $this->getTableByShortName($toSchema, $tableName);
         if ($table === null || !$table->hasColumn($columnName)) {
             return [];
         }
@@ -730,6 +752,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -738,12 +761,13 @@ final class CreateTablesService
      * Compatible with DBAL 3 (SchemaDiff::toSql) and DBAL 4 (Platform::getAlterSchemaSQL or SchemaManager).
      *
      * @param list<array{0: string, 1: string, 2: array<string, mixed>}> $columnAddArgs
+     *
      * @return list<string>
      */
     private function addColumnsToTableViaComparator(Schema $fromSchema, string $tableName, array $columnAddArgs, object $comparator, object $platform, object $schemaManager): array
     {
         $toSchema = clone $fromSchema;
-        $table = $this->getTableByShortName($toSchema, $tableName);
+        $table    = $this->getTableByShortName($toSchema, $tableName);
         if ($table === null) {
             return [];
         }
@@ -753,6 +777,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -760,12 +785,13 @@ final class CreateTablesService
      * Clone schema, drop the given columns from the table, compare and return ALTER SQL.
      *
      * @param list<string> $columnNames
+     *
      * @return list<string>
      */
     private function dropColumnsViaComparator(Schema $fromSchema, string $tableName, array $columnNames, object $comparator, object $platform, object $schemaManager): array
     {
         $toSchema = clone $fromSchema;
-        $table = $this->getTableByShortName($toSchema, $tableName);
+        $table    = $this->getTableByShortName($toSchema, $tableName);
         if ($table === null) {
             return [];
         }
@@ -777,6 +803,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -790,6 +817,7 @@ final class CreateTablesService
                 return true;
             }
         }
+
         return false;
     }
 
@@ -804,15 +832,17 @@ final class CreateTablesService
                 return $table;
             }
         }
+
         return null;
     }
 
     private function tableNameString(Table $table): string
     {
         $name = $table->getName();
-        if (\is_object($name) && method_exists($name, 'toString')) {
+        if (is_object($name) && method_exists($name, 'toString')) {
             return $name->toString();
         }
+
         return (string) $name;
     }
 
@@ -823,11 +853,12 @@ final class CreateTablesService
         }
         foreach ($table->getColumns() as $col) {
             $name = $col->getName();
-            $str = \is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
+            $str  = is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
             if ($str === $columnName) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -838,12 +869,13 @@ final class CreateTablesService
      * @param list<string> $localColumns
      * @param list<string> $foreignColumns
      * @param array<string, string> $options e.g. onUpdate, onDelete
+     *
      * @return list<string>
      */
     private function addForeignKeyViaComparator(Schema $fromSchema, string $tableName, string $foreignTableName, array $localColumns, array $foreignColumns, array $options, string $fkName, object $comparator, object $platform, object $schemaManager): array
     {
         $toSchema = clone $fromSchema;
-        $table = $this->getTableByShortName($toSchema, $tableName);
+        $table    = $this->getTableByShortName($toSchema, $tableName);
         if ($table === null) {
             return [];
         }
@@ -851,6 +883,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -862,6 +895,7 @@ final class CreateTablesService
     {
         $prefix = $unique ? 'uniq_' : 'idx_';
         $suffix = implode('_', $columnNames);
+
         return $prefix . $tableName . '_' . $suffix;
     }
 
@@ -869,12 +903,13 @@ final class CreateTablesService
      * Add one index (or unique constraint) to the table via comparator.
      *
      * @param list<string> $columnNames
+     *
      * @return list<string>
      */
     private function addIndexViaComparator(Schema $fromSchema, string $tableName, array $columnNames, string $indexName, bool $unique, object $comparator, object $platform, object $schemaManager): array
     {
         $toSchema = clone $fromSchema;
-        $table = $this->getTableByShortName($toSchema, $tableName);
+        $table    = $this->getTableByShortName($toSchema, $tableName);
         if ($table === null) {
             return [];
         }
@@ -886,6 +921,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -893,12 +929,13 @@ final class CreateTablesService
      * Add primary key to an existing table via comparator.
      *
      * @param list<string> $columnNames
+     *
      * @return list<string>
      */
     private function addPrimaryKeyViaComparator(Schema $fromSchema, string $tableName, array $columnNames, object $comparator, object $platform, object $schemaManager): array
     {
         $toSchema = clone $fromSchema;
-        $table = $this->getTableByShortName($toSchema, $tableName);
+        $table    = $this->getTableByShortName($toSchema, $tableName);
         if ($table === null) {
             return [];
         }
@@ -909,6 +946,7 @@ final class CreateTablesService
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
+
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
     }
 
@@ -941,6 +979,7 @@ final class CreateTablesService
                 }
             }
         }
+
         return $sqls;
     }
 
@@ -948,20 +987,22 @@ final class CreateTablesService
      * Returns a normalized list of table names to drop (non-empty strings, unique).
      *
      * @param mixed $dropTables definition[MDK::DROP_TABLES]
+     *
      * @return list<string>
      */
     private function normalizeDropTablesList(mixed $dropTables): array
     {
-        if (!\is_array($dropTables)) {
+        if (!is_array($dropTables)) {
             return [];
         }
         $out = [];
         foreach ($dropTables as $name) {
             $name = $this->normalizeIdentifier($name);
-            if ($name !== '' && !\in_array($name, $out, true)) {
+            if ($name !== '' && !in_array($name, $out, true)) {
                 $out[] = $name;
             }
         }
+
         return $out;
     }
 
@@ -970,12 +1011,13 @@ final class CreateTablesService
      * Used to drop those FKs before dropping the referenced tables.
      *
      * @param list<string> $referencedTableNames
+     *
      * @return list<array{0: Table, 1: object}> [local Table, ForeignKeyConstraint]
      */
     private function collectForeignKeysReferencingTables(Schema $schema, array $referencedTableNames): array
     {
         $referencedSet = array_flip(array_map([$this, 'normalizeIdentifier'], $referencedTableNames));
-        $pairs = [];
+        $pairs         = [];
         foreach ($schema->getTables() as $table) {
             $localName = $this->tableNameString($table);
             if (isset($referencedSet[$this->normalizeIdentifier($localName)])) {
@@ -988,6 +1030,7 @@ final class CreateTablesService
                 }
             }
         }
+
         return $pairs;
     }
 
@@ -995,12 +1038,15 @@ final class CreateTablesService
     {
         if (method_exists($fk, 'getReferencedTableName')) {
             $name = $fk->getReferencedTableName();
+
             return $this->normalizeIdentifier($name);
         }
         if (method_exists($fk, 'getForeignTableName')) {
             $name = $fk->getForeignTableName();
+
             return $this->normalizeIdentifier($name);
         }
+
         return '';
     }
 
@@ -1014,10 +1060,11 @@ final class CreateTablesService
         if ($name === null || $name === '') {
             return '';
         }
-        if (\is_object($name) && method_exists($name, 'toString')) {
+        if (is_object($name) && method_exists($name, 'toString')) {
             $name = $name->toString();
         }
         $name = (string) $name;
+
         return trim($name, " \t\n\r\0\x0B`\"'[]");
     }
 
@@ -1028,16 +1075,19 @@ final class CreateTablesService
             return null;
         }
         if (method_exists($platform, 'getDropForeignKeySQL')) {
-            $fkArg = $this->getDropForeignKeySQLExpectsString($platform) ? $this->foreignKeyName($fk) : $fk;
+            $fkArg    = $this->getDropForeignKeySQLExpectsString($platform) ? $this->foreignKeyName($fk) : $fk;
             $tableArg = $this->getDropForeignKeySQLExpectsTableNameString($platform) ? $this->quotedTableName($localTable, $platform) : $localTable;
+
             return $platform->getDropForeignKeySQL($fkArg, $tableArg);
         }
         $name = $this->foreignKeyName($fk);
         if ($name !== '') {
             $quotedTable = $this->quotedTableName($localTable, $platform);
-            $quotedFk = $this->quoteSingleIdentifier($name, $platform);
+            $quotedFk    = $this->quoteSingleIdentifier($name, $platform);
+
             return 'ALTER TABLE ' . $quotedTable . ' DROP FOREIGN KEY ' . $quotedFk;
         }
+
         return null;
     }
 
@@ -1045,36 +1095,42 @@ final class CreateTablesService
     {
         if (method_exists($fk, 'getName')) {
             $name = $fk->getName();
+
             return $this->normalizeIdentifier($name);
         }
+
         return '';
     }
 
     private function getDropForeignKeySQLExpectsString(object $platform): bool
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getDropForeignKeySQL');
+            $method = new ReflectionMethod($platform, 'getDropForeignKeySQL');
             $params = $method->getParameters();
             if ($params !== []) {
                 $type = $params[0]->getType();
-                return $type instanceof \ReflectionNamedType && $type->getName() === 'string';
+
+                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
             }
-        } catch (\ReflectionException) {
+        } catch (ReflectionException) {
         }
+
         return false;
     }
 
     private function getDropForeignKeySQLExpectsTableNameString(object $platform): bool
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getDropForeignKeySQL');
+            $method = new ReflectionMethod($platform, 'getDropForeignKeySQL');
             $params = $method->getParameters();
             if (isset($params[1])) {
                 $type = $params[1]->getType();
-                return $type instanceof \ReflectionNamedType && $type->getName() === 'string';
+
+                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
             }
-        } catch (\ReflectionException) {
+        } catch (ReflectionException) {
         }
+
         return false;
     }
 
@@ -1086,10 +1142,12 @@ final class CreateTablesService
         if (method_exists($platform, 'getDropTableSQL')) {
             // DBAL 4 requires string; DBAL 3 deprecates Table and expects quoted name. We always pass the quoted name.
             $quotedName = $this->quotedTableName($table, $platform);
-            $tableArg = $this->getDropTableSQLExpectsString($platform) ? $quotedName : $table;
-            $sql = $platform->getDropTableSQL($tableArg);
-            return \is_array($sql) ? $sql : [$sql];
+            $tableArg   = $this->getDropTableSQLExpectsString($platform) ? $quotedName : $table;
+            $sql        = $platform->getDropTableSQL($tableArg);
+
+            return is_array($sql) ? $sql : [$sql];
         }
+
         return ['DROP TABLE ' . $this->quotedTableName($table, $platform)];
     }
 
@@ -1106,6 +1164,7 @@ final class CreateTablesService
         if (method_exists($platform, 'quoteIdentifier')) {
             return $platform->quoteIdentifier($name);
         }
+
         return $name;
     }
 
@@ -1113,14 +1172,16 @@ final class CreateTablesService
     private function getDropTableSQLExpectsString(object $platform): bool
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getDropTableSQL');
+            $method = new ReflectionMethod($platform, 'getDropTableSQL');
             $params = $method->getParameters();
             if ($params !== []) {
                 $type = $params[0]->getType();
-                return $type instanceof \ReflectionNamedType && $type->getName() === 'string';
+
+                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
             }
-        } catch (\ReflectionException) {
+        } catch (ReflectionException) {
         }
+
         return false;
     }
 
@@ -1134,32 +1195,35 @@ final class CreateTablesService
         }
         if (method_exists($platform, 'getDropPrimaryKeySQL')) {
             try {
-                $ref = new \ReflectionMethod($platform, 'getDropPrimaryKeySQL');
+                $ref = new ReflectionMethod($platform, 'getDropPrimaryKeySQL');
                 if ($ref->isPublic()) {
                     $tableArg = $this->getDropPrimaryKeySQLExpectsString($platform) ? $this->quotedTableName($table, $platform) : $table;
-                    $sql = $platform->getDropPrimaryKeySQL($tableArg);
+                    $sql      = $platform->getDropPrimaryKeySQL($tableArg);
                     if ($sql !== null) {
-                        return \is_array($sql) ? $sql : [$sql];
+                        return is_array($sql) ? $sql : [$sql];
                     }
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
             }
         }
         $quotedName = $this->quotedTableName($table, $platform);
+
         return ['ALTER TABLE ' . $quotedName . ' DROP PRIMARY KEY'];
     }
 
     private function getDropPrimaryKeySQLExpectsString(object $platform): bool
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getDropPrimaryKeySQL');
+            $method = new ReflectionMethod($platform, 'getDropPrimaryKeySQL');
             $params = $method->getParameters();
             if ($params !== []) {
                 $type = $params[0]->getType();
-                return $type instanceof \ReflectionNamedType && $type->getName() === 'string';
+
+                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
             }
-        } catch (\ReflectionException) {
+        } catch (ReflectionException) {
         }
+
         return false;
     }
 
@@ -1169,50 +1233,59 @@ final class CreateTablesService
             $indexName = $this->indexName($index);
             if ($indexName !== '') {
                 $tableName = $this->tableNameString($localTable);
+
                 return 'DROP INDEX ' . $indexName . ' ON ' . $tableName;
             }
+
             return null;
         }
         $indexArg = $this->getDropIndexSQLExpectsString($platform) ? $this->indexName($index) : $index;
         $tableArg = $this->getDropIndexSQLExpectsTableNameString($platform) ? $this->quotedTableName($localTable, $platform) : $localTable;
-        $sql = $platform->getDropIndexSQL($indexArg, $tableArg);
-        return \is_array($sql) ? $sql[0] ?? null : $sql;
+        $sql      = $platform->getDropIndexSQL($indexArg, $tableArg);
+
+        return is_array($sql) ? $sql[0] ?? null : $sql;
     }
 
     private function indexName(object $index): string
     {
         if (method_exists($index, 'getName')) {
             $name = $index->getName();
+
             return $this->normalizeIdentifier($name);
         }
+
         return '';
     }
 
     private function getDropIndexSQLExpectsString(object $platform): bool
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getDropIndexSQL');
+            $method = new ReflectionMethod($platform, 'getDropIndexSQL');
             $params = $method->getParameters();
             if ($params !== []) {
                 $type = $params[0]->getType();
-                return $type instanceof \ReflectionNamedType && $type->getName() === 'string';
+
+                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
             }
-        } catch (\ReflectionException) {
+        } catch (ReflectionException) {
         }
+
         return false;
     }
 
     private function getDropIndexSQLExpectsTableNameString(object $platform): bool
     {
         try {
-            $method = new \ReflectionMethod($platform, 'getDropIndexSQL');
+            $method = new ReflectionMethod($platform, 'getDropIndexSQL');
             $params = $method->getParameters();
             if (isset($params[1])) {
                 $type = $params[1]->getType();
-                return $type instanceof \ReflectionNamedType && $type->getName() === 'string';
+
+                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
             }
-        } catch (\ReflectionException) {
+        } catch (ReflectionException) {
         }
+
         return false;
     }
 }

@@ -21,23 +21,24 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
 {
     private function createServiceWithMySQLPlatform(): CreateTablesService
     {
-        $platform = new MySQLPlatform();
+        $platform      = new MySQLPlatform();
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
         $schemaManager->method('createComparator')->willReturn(
-            new \Doctrine\DBAL\Schema\Comparator($platform)
+            new \Doctrine\DBAL\Schema\Comparator($platform),
         );
         $connection = $this->createMock(Connection::class);
         $connection->method('getDatabasePlatform')->willReturn($platform);
         $connection->method('createSchemaManager')->willReturn($schemaManager);
         $parser = new SchemaDefinitionParser();
+
         return new CreateTablesService($connection, $parser);
     }
 
     public function testApplyDropPrimaryKeyEmitsSqlWithMySQLPlatform(): void
     {
         $service = $this->createServiceWithMySQLPlatform();
-        $schema = new Schema();
-        $table = $schema->createTable('users');
+        $schema  = new Schema();
+        $table   = $schema->createTable('users');
         $table->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
         $table->addColumn('name', 'string', ['length' => 255, 'notnull' => true]);
         $table->setPrimaryKey(['id']);
@@ -55,8 +56,8 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
     public function testApplyDropForeignKeyEmitsSqlWithMySQLPlatform(): void
     {
         $service = $this->createServiceWithMySQLPlatform();
-        $schema = new Schema();
-        $users = $schema->createTable('users');
+        $schema  = new Schema();
+        $users   = $schema->createTable('users');
         $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
         $users->setPrimaryKey(['id']);
         $orders = $schema->createTable('orders');
@@ -78,8 +79,8 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
     public function testApplyChangePrimaryKeyEmitsSqlWithMySQLPlatform(): void
     {
         $service = $this->createServiceWithMySQLPlatform();
-        $schema = new Schema();
-        $table = $schema->createTable('change_pk');
+        $schema  = new Schema();
+        $table   = $schema->createTable('change_pk');
         $table->addColumn('id', 'integer', ['notnull' => true]);
         $table->addColumn('code', 'string', ['length' => 32, 'notnull' => true]);
         $table->setPrimaryKey(['id']);

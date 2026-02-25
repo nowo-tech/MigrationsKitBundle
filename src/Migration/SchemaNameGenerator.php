@@ -12,9 +12,9 @@ namespace Nowo\MigrationsKitBundle\Migration;
  */
 final class SchemaNameGenerator
 {
-    private const PK_PREFIX = 'PK_';
-    private const IDX_PREFIX = 'IDX_';
-    private const FK_PREFIX = 'FK_';
+    private const PK_PREFIX   = 'PK_';
+    private const IDX_PREFIX  = 'IDX_';
+    private const FK_PREFIX   = 'FK_';
     private const HASH_LENGTH = 16;
 
     public static function generatePKName(string $tableName, array $columns): string
@@ -35,6 +35,7 @@ final class SchemaNameGenerator
     private static function hashSuffix(string $tableName, array $columns): string
     {
         $key = $tableName . "\0" . implode("\0", $columns);
+
         return substr(md5($key), 0, self::HASH_LENGTH);
     }
 }

@@ -7,6 +7,8 @@ namespace Nowo\MigrationsKitBundle\Tests\Migration;
 use Nowo\MigrationsKitBundle\Migration\SchemaNameGenerator;
 use PHPUnit\Framework\TestCase;
 
+use function strlen;
+
 class SchemaNameGeneratorTest extends TestCase
 {
     public function testGeneratePKNameReturnsDeterministicNameWithPrefix(): void

@@ -26,9 +26,9 @@ final class Version20250223100008 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+        $service      = new CreateTablesService($this->connection, new SchemaDefinitionParser());
         $introspected = $this->connection->createSchemaManager()->introspectSchema();
-        $definition = [
+        $definition   = [
             MDK::TABLES => [
                 KitExample::TABLE_NAME => [
                     MDK::COLUMNS => [
