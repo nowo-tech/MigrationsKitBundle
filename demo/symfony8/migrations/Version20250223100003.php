@@ -30,17 +30,17 @@ final class Version20250223100003 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+        $service      = new CreateTablesService($this->connection, new SchemaDefinitionParser());
         $introspected = $this->connection->createSchemaManager()->introspectSchema();
-        $definition = [
+        $definition   = [
             MDK::TABLES => [
                 KitItem::TABLE_NAME => [
                     MDK::FOREIGN_KEYS => [
                         [
-                            'columns' => ['user_id'],
-                            'foreign_table' => KitUser::TABLE_NAME,
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => KitUser::TABLE_NAME,
                             'foreign_columns' => ['id'],
-                            'onDelete' => 'SET NULL',
+                            'onDelete'        => 'SET NULL',
                         ],
                     ],
                 ],

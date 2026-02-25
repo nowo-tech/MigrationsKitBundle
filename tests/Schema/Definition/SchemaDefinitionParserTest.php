@@ -32,7 +32,7 @@ class SchemaDefinitionParserTest extends TestCase
                 ['name' => 'email', 'type' => 'string', 'length' => 180, 'notnull' => true],
             ],
             MDK::PRIMARY_KEY => [['columns' => ['id']]],
-            MDK::INDEXES => [
+            MDK::INDEXES     => [
                 ['columns' => ['email'], 'unique' => true, 'name' => 'uniq_email'],
             ],
         ];
@@ -129,11 +129,11 @@ class SchemaDefinitionParserTest extends TestCase
                 ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
                 ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
             ],
-            MDK::PRIMARY_KEY => [['columns' => ['id']]],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
             MDK::FOREIGN_KEYS => [
                 [
-                    'columns' => ['user_id'],
-                    'foreign_table' => 'users',
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
                     'foreign_columns' => ['id'],
                 ],
             ],
@@ -148,17 +148,17 @@ class SchemaDefinitionParserTest extends TestCase
         $tableDef = [
             MDK::COLUMNS => [
                 [
-                    'name' => 'id',
-                    'type' => 'integer',
-                    'length' => 11,
-                    'precision' => 10,
-                    'scale' => 2,
-                    'notnull' => true,
-                    'default' => 0,
+                    'name'          => 'id',
+                    'type'          => 'integer',
+                    'length'        => 11,
+                    'precision'     => 10,
+                    'scale'         => 2,
+                    'notnull'       => true,
+                    'default'       => 0,
                     'autoincrement' => true,
-                    'comment' => 'ID',
-                    'unsigned' => true,
-                    'fixed' => false,
+                    'comment'       => 'ID',
+                    'unsigned'      => true,
+                    'fixed'         => false,
                 ],
             ],
         ];
@@ -191,13 +191,13 @@ class SchemaDefinitionParserTest extends TestCase
                 ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
                 ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
             ],
-            MDK::PRIMARY_KEY => [['columns' => ['id']]],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
             MDK::FOREIGN_KEYS => [
                 [
-                    'columns' => ['user_id'],
-                    'foreign_table' => 'users',
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
                     'foreign_columns' => ['id'],
-                    'name' => 'fk_custom_name',
+                    'name'            => 'fk_custom_name',
                 ],
             ],
         ];
@@ -232,10 +232,10 @@ class SchemaDefinitionParserTest extends TestCase
                 ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
             ],
             MDK::PRIMARY_KEY => [['columns' => ['id']]],
-            'foreign_keys' => [
+            'foreign_keys'   => [
                 [
-                    'columns' => ['user_id'],
-                    'foreign_table' => 'users',
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
                     'foreign_columns' => ['id'],
                 ],
             ],
@@ -247,7 +247,7 @@ class SchemaDefinitionParserTest extends TestCase
 
     public function testGetColumnOptionsReturnsOptionsFromColumnDef(): void
     {
-        $col = ['name' => 'id', 'type' => 'integer', 'notnull' => true, 'default' => 1, 'length' => 11, 'comment' => 'Primary key'];
+        $col  = ['name' => 'id', 'type' => 'integer', 'notnull' => true, 'default' => 1, 'length' => 11, 'comment' => 'Primary key'];
         $opts = $this->parser->getColumnOptions($col);
         self::assertArrayHasKey('notnull', $opts);
         self::assertTrue($opts['notnull']);
@@ -258,7 +258,7 @@ class SchemaDefinitionParserTest extends TestCase
 
     public function testGetColumnAddArgsReturnsNameTypeAndOptions(): void
     {
-        $col = ['name' => 'email', 'type' => 'string', 'length' => 180];
+        $col  = ['name' => 'email', 'type' => 'string', 'length' => 180];
         $args = $this->parser->getColumnAddArgs($col);
         self::assertSame('email', $args[0]);
         self::assertSame('string', $args[1]);

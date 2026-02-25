@@ -6,6 +6,10 @@ namespace Nowo\MigrationsKitBundle\Migration;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Throwable;
+
+use function is_object;
+use function strlen;
 
 /**
  * Helper to check if tables, columns, indexes, primary keys or foreign keys exist.
@@ -34,8 +38,9 @@ final class SchemaChecker
     {
         try {
             $normalized = $this->normalizeIdentifier($tableName);
+
             return $this->getSchemaManager()->tablesExist([$normalized]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -47,9 +52,10 @@ final class SchemaChecker
                 return false;
             }
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
-            $col = $this->normalizeIdentifier($columnName);
+            $col   = $this->normalizeIdentifier($columnName);
+
             return $table->hasColumn($col);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -61,8 +67,9 @@ final class SchemaChecker
                 return false;
             }
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
+
             return $table->hasIndex($this->normalizeIdentifier($indexName));
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -74,8 +81,9 @@ final class SchemaChecker
                 return false;
             }
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
+
             return $table->getPrimaryKey() !== null;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -87,8 +95,9 @@ final class SchemaChecker
                 return false;
             }
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
+
             return $table->hasForeignKey($this->normalizeIdentifier($foreignKeyName));
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -105,11 +114,12 @@ final class SchemaChecker
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
             $names = [];
             foreach ($table->getColumns() as $column) {
-                $name = $column->getName();
-                $names[] = \is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
+                $name    = $column->getName();
+                $names[] = is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
             }
+
             return $names;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return [];
         }
     }
@@ -119,11 +129,12 @@ final class SchemaChecker
         $trimmed = trim($name);
         if (strlen($trimmed) >= 2) {
             $first = $trimmed[0];
-            $last = $trimmed[strlen($trimmed) - 1];
+            $last  = $trimmed[strlen($trimmed) - 1];
             if (($first === '`' && $last === '`') || ($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
                 return substr($trimmed, 1, -1);
             }
         }
+
         return $trimmed;
     }
 }

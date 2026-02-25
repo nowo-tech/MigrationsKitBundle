@@ -33,12 +33,12 @@ final class Version20250223100005 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+        $service      = new CreateTablesService($this->connection, new SchemaDefinitionParser());
         $introspected = $this->connection->createSchemaManager()->introspectSchema();
-        $definition = [
+        $definition   = [
             MDK::TABLES => [
                 KitItem::TABLE_NAME => [
-                    MDK::DROP_INDEXES => [self::IDX_KIT_ITEM_USER_ID],
+                    MDK::DROP_INDEXES      => [self::IDX_KIT_ITEM_USER_ID],
                     MDK::DROP_FOREIGN_KEYS => [self::FK_KIT_ITEM_USER_ID],
                 ],
             ],

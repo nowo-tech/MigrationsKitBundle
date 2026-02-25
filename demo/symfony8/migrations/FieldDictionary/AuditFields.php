@@ -26,8 +26,8 @@ final class AuditFields
     public static function createdAt(): array
     {
         return [
-            'name' => 'created_at',
-            'type' => 'datetime_immutable',
+            'name'    => 'created_at',
+            'type'    => 'datetime_immutable',
             'notnull' => false,
         ];
     }
@@ -40,8 +40,8 @@ final class AuditFields
     public static function updatedAt(): array
     {
         return [
-            'name' => 'updated_at',
-            'type' => 'datetime_immutable',
+            'name'    => 'updated_at',
+            'type'    => 'datetime_immutable',
             'notnull' => false,
         ];
     }
@@ -66,8 +66,8 @@ final class AuditFields
     public static function createdBy(): array
     {
         return [
-            'name' => 'created_by',
-            'type' => 'integer',
+            'name'    => 'created_by',
+            'type'    => 'integer',
             'notnull' => false,
         ];
     }
@@ -80,8 +80,8 @@ final class AuditFields
     public static function updatedBy(): array
     {
         return [
-            'name' => 'updated_by',
-            'type' => 'integer',
+            'name'    => 'updated_by',
+            'type'    => 'integer',
             'notnull' => false,
         ];
     }
@@ -106,8 +106,8 @@ final class AuditFields
     public static function createdByForeignKey(string $userTableName, string $localColumn = 'created_by'): array
     {
         return [
-            'columns' => [$localColumn],
-            'foreign_table' => $userTableName,
+            'columns'         => [$localColumn],
+            'foreign_table'   => $userTableName,
             'foreign_columns' => ['id'],
         ];
     }
@@ -120,8 +120,8 @@ final class AuditFields
     public static function updatedByForeignKey(string $userTableName, string $localColumn = 'updated_by'): array
     {
         return [
-            'columns' => [$localColumn],
-            'foreign_table' => $userTableName,
+            'columns'         => [$localColumn],
+            'foreign_table'   => $userTableName,
             'foreign_columns' => ['id'],
         ];
     }

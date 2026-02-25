@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use DateTime;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -49,16 +52,16 @@ class KitExample
     private ?string $colAscii = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    private ?\DateTime $colDatetime = null;
+    private ?DateTime $colDatetime = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    private ?\DateTimeImmutable $colDatetimeImmutable = null;
+    private ?DateTimeImmutable $colDatetimeImmutable = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $colDate = null;
+    private ?DateTimeInterface $colDate = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $colTime = null;
+    private ?DateTimeInterface $colTime = null;
 
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $colJson = null;
@@ -85,6 +88,7 @@ class KitExample
     public function setColSmallint(int $colSmallint): static
     {
         $this->colSmallint = $colSmallint;
+
         return $this;
     }
 
@@ -96,6 +100,7 @@ class KitExample
     public function setColBigint(?string $colBigint): static
     {
         $this->colBigint = $colBigint;
+
         return $this;
     }
 
@@ -107,6 +112,7 @@ class KitExample
     public function setColBoolean(bool $colBoolean): static
     {
         $this->colBoolean = $colBoolean;
+
         return $this;
     }
 
@@ -118,6 +124,7 @@ class KitExample
     public function setColDecimal(string $colDecimal): static
     {
         $this->colDecimal = $colDecimal;
+
         return $this;
     }
 
@@ -129,6 +136,7 @@ class KitExample
     public function setColFloat(?float $colFloat): static
     {
         $this->colFloat = $colFloat;
+
         return $this;
     }
 
@@ -140,6 +148,7 @@ class KitExample
     public function setColString(string $colString): static
     {
         $this->colString = $colString;
+
         return $this;
     }
 
@@ -151,6 +160,7 @@ class KitExample
     public function setColStringNullable(?string $colStringNullable): static
     {
         $this->colStringNullable = $colStringNullable;
+
         return $this;
     }
 
@@ -162,6 +172,7 @@ class KitExample
     public function setColText(?string $colText): static
     {
         $this->colText = $colText;
+
         return $this;
     }
 
@@ -173,50 +184,55 @@ class KitExample
     public function setColAscii(?string $colAscii): static
     {
         $this->colAscii = $colAscii;
+
         return $this;
     }
 
-    public function getColDatetime(): ?\DateTime
+    public function getColDatetime(): ?DateTime
     {
         return $this->colDatetime;
     }
 
-    public function setColDatetime(?\DateTime $colDatetime): static
+    public function setColDatetime(?DateTime $colDatetime): static
     {
         $this->colDatetime = $colDatetime;
+
         return $this;
     }
 
-    public function getColDatetimeImmutable(): ?\DateTimeImmutable
+    public function getColDatetimeImmutable(): ?DateTimeImmutable
     {
         return $this->colDatetimeImmutable;
     }
 
-    public function setColDatetimeImmutable(?\DateTimeImmutable $colDatetimeImmutable): static
+    public function setColDatetimeImmutable(?DateTimeImmutable $colDatetimeImmutable): static
     {
         $this->colDatetimeImmutable = $colDatetimeImmutable;
+
         return $this;
     }
 
-    public function getColDate(): ?\DateTimeInterface
+    public function getColDate(): ?DateTimeInterface
     {
         return $this->colDate;
     }
 
-    public function setColDate(?\DateTimeInterface $colDate): static
+    public function setColDate(?DateTimeInterface $colDate): static
     {
         $this->colDate = $colDate;
+
         return $this;
     }
 
-    public function getColTime(): ?\DateTimeInterface
+    public function getColTime(): ?DateTimeInterface
     {
         return $this->colTime;
     }
 
-    public function setColTime(?\DateTimeInterface $colTime): static
+    public function setColTime(?DateTimeInterface $colTime): static
     {
         $this->colTime = $colTime;
+
         return $this;
     }
 
@@ -228,6 +244,7 @@ class KitExample
     public function setColJson(?array $colJson): static
     {
         $this->colJson = $colJson;
+
         return $this;
     }
 
@@ -239,6 +256,7 @@ class KitExample
     public function setColBlob(?string $colBlob): static
     {
         $this->colBlob = $colBlob;
+
         return $this;
     }
 
@@ -250,6 +268,7 @@ class KitExample
     public function setColGuid(?string $colGuid): static
     {
         $this->colGuid = $colGuid;
+
         return $this;
     }
 
@@ -261,6 +280,7 @@ class KitExample
     public function setColComment(?string $colComment): static
     {
         $this->colComment = $colComment;
+
         return $this;
     }
 }

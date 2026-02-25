@@ -21,7 +21,7 @@ class SchemaMigrationServiceTest extends TestCase
             'driver' => 'pdo_sqlite',
             'memory' => true,
         ]);
-        $parser = new SchemaDefinitionParser();
+        $parser        = new SchemaDefinitionParser();
         $this->service = new CreateTablesService($connection, $parser);
     }
 
@@ -32,6 +32,7 @@ class SchemaMigrationServiceTest extends TestCase
         $table->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
         $table->addColumn('name', 'string', ['length' => 255, 'notnull' => true]);
         $table->setPrimaryKey(['id']);
+
         return $schema;
     }
 
@@ -283,8 +284,8 @@ class SchemaMigrationServiceTest extends TestCase
                 'orders' => [
                     MDK::FOREIGN_KEYS => [
                         [
-                            'columns' => ['user_id'],
-                            'foreign_table' => 'users',
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
                             'foreign_columns' => ['id'],
                         ],
                     ],
@@ -380,12 +381,13 @@ class SchemaMigrationServiceTest extends TestCase
         $orders->addColumn('user_id', 'integer', ['notnull' => true]);
         $orders->setPrimaryKey(['id']);
         $orders->addForeignKeyConstraint('users', ['user_id'], ['id'], [], 'fk_orders_user');
-        $def = [MDK::DROP_TABLES => ['users']];
+        $def  = [MDK::DROP_TABLES => ['users']];
         $sqls = $this->service->apply($schema, $def);
         self::assertNotEmpty($sqls);
         $sql = implode(' ', $sqls);
         self::assertStringContainsString('users', $sql);
     }
+
     public function testApplyTableEditsDropIndexViaItemWithDropTrue(): void
     {
         $schema = $this->schemaWithUsersTable();
@@ -608,8 +610,8 @@ class SchemaMigrationServiceTest extends TestCase
                 'orders' => [
                     MDK::FOREIGN_KEYS => [
                         [
-                            'columns' => ['user_id'],
-                            'foreign_table' => 'users',
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
                             'foreign_columns' => ['id'],
                         ],
                     ],
@@ -707,8 +709,8 @@ class SchemaMigrationServiceTest extends TestCase
                 'orders' => [
                     MDK::FOREIGN_KEYS => [
                         [
-                            'columns' => [],
-                            'foreign_table' => 'users',
+                            'columns'         => [],
+                            'foreign_table'   => 'users',
                             'foreign_columns' => ['id'],
                         ],
                     ],
@@ -733,8 +735,8 @@ class SchemaMigrationServiceTest extends TestCase
                     ],
                     MDK::FOREIGN_KEYS => [
                         [
-                            'columns' => ['role_id'],
-                            'foreign_table' => 'roles',
+                            'columns'         => ['role_id'],
+                            'foreign_table'   => 'roles',
                             'foreign_columns' => ['id'],
                         ],
                     ],
@@ -825,6 +827,7 @@ class SchemaMigrationServiceTest extends TestCase
         $table->addColumn('amount', 'decimal', ['precision' => 10, 'scale' => 2, 'notnull' => true]);
         $table->addColumn('note', 'string', ['length' => 255, 'comment' => 'Internal note']);
         $table->setPrimaryKey(['id']);
+
         return $schema;
     }
 
