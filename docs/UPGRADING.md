@@ -33,8 +33,9 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ## Upgrading to 2.0.4
 
-- **No breaking changes.** This release fixes foreign key options (onDelete/onUpdate) in generated SQL and improves compatibility with Doctrine deprecations.
+- **No breaking changes.** This release fixes foreign key options (onDelete/onUpdate) in generated SQL, avoids duplicate DROP FOREIGN KEY statements, and improves compatibility with Doctrine deprecations.
 - **CreateTablesService:** FKs defined with `onDelete` and/or `onUpdate` in `MDK::FOREIGN_KEYS` now produce SQL that includes `ON DELETE` and `ON UPDATE` on MySQL/MariaDB and other supporting platforms. If you relied on default (e.g. RESTRICT) and did not specify these keys, behaviour is unchanged.
+- **CreateTablesService:** When a table has both `DROP_FOREIGN_KEYS` and `DROP_COLUMNS` (the column being dropped is referenced by that FK), the generated SQL now contains a single `DROP FOREIGN KEY` for that constraint instead of two identical statements (the second would fail on MySQL).
 - **Deprecations:** SchemaAssetName now uses reflection to read the asset name where possible, reducing the "AbstractAsset::getName is deprecated" notice. Drop-column logic normalizes column names so "Dropping columns referenced by constraints is deprecated" is avoided when dropping columns that have FKs.
 - Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 

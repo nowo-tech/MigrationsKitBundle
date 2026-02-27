@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **CreateTablesService (FK options)** — **onDelete** and **onUpdate** in `MDK::FOREIGN_KEYS` are now correctly applied: the generated `ALTER TABLE ... ADD CONSTRAINT` SQL includes `ON DELETE` and `ON UPDATE` clauses on MySQL/MariaDB (and other platforms that support them). The bundle detects DBAL 3 vs 4 parameter order for `Table::addForeignKeyConstraint` (name vs options as 4th/5th argument) and calls it accordingly. See [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md#foreign-keys).
-- **Tests** — **CreateTablesServiceMySQLPlatformTest**: `testApplyAddForeignKeyWithOnDeleteAndOnUpdateEmitsCorrectSqlOnMySQL` and `testApplyAddForeignKeyWithOnDeleteSetNullEmitsCorrectSqlOnMySQL` assert that generated SQL contains `ON DELETE CASCADE`, `ON DELETE SET NULL`, and `ON UPDATE CASCADE`. **SchemaMigrationServiceTest::testApplyAddForeignKeyWithOnUpdateAndOnDelete** now asserts that the SQL contains `ON DELETE` and `ON UPDATE`.
+- **Tests** — **CreateTablesServiceMySQLPlatformTest**: `testApplyAddForeignKeyWithOnDeleteAndOnUpdateEmitsCorrectSqlOnMySQL` and `testApplyAddForeignKeyWithOnDeleteSetNullEmitsCorrectSqlOnMySQL` assert that generated SQL contains `ON DELETE CASCADE`, `ON DELETE SET NULL`, and `ON UPDATE CASCADE`; `testApplyDropForeignKeyAndDropColumnSameTableNoDuplicateDropFk` asserts that when a table has both `DROP_FOREIGN_KEYS` and `DROP_COLUMNS` (column referenced by that FK), only one `DROP FOREIGN KEY` is emitted. **SchemaMigrationServiceTest::testApplyAddForeignKeyWithOnUpdateAndOnDelete** now asserts that the SQL contains `ON DELETE` and `ON UPDATE`.
 - **Demo validation** — **Version20250223100003_validation** (symfony7 and symfony8): when the FK `fk_kit_item_user_id` exists, validates that it has `onDelete` = `SET NULL` (from the MDK definition). **DECLARATIVE_SCHEMA.md**: note and example for `onDelete` / `onUpdate` in foreign keys.
 
 ### Changed
@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **CreateTablesService** — Foreign keys defined with `onDelete` (e.g. `CASCADE`, `SET NULL`) and/or `onUpdate` in the MDK definition now produce SQL that includes those clauses. Previously the comparator path used a parameter order that did not pass options in DBAL 3.
+- **CreateTablesService** — When the same table has both `DROP_FOREIGN_KEYS` and `DROP_COLUMNS` (where the column is referenced by that FK), the bundle no longer emits two identical `ALTER TABLE ... DROP FOREIGN KEY` statements. Phase 1b drops the FK by name; Phase 2a (`dropColumnsViaComparator`) would also generate the same DROP; FKs already dropped in Phase 1b are now tracked and the duplicate SQL is skipped. See `CreateTablesServiceMySQLPlatformTest::testApplyDropForeignKeyAndDropColumnSameTableNoDuplicateDropFk`.
 
 ---
 

@@ -63,7 +63,7 @@ Documentation and changelog are prepared for **v2.0.4**. Before tagging, ensure 
 
 ## v2.0.4 (2025-02-27)
 
-- **Scope:** FK options (onDelete/onUpdate) fixed in generated SQL (DBAL 3 vs 4 parameter order); SchemaAssetName reflection to avoid getName() deprecation; drop-column FK normalization to avoid "columns referenced by constraints" deprecation; tests and demo validation for FK options; DECLARATIVE_SCHEMA updated.
+- **Scope:** FK options (onDelete/onUpdate) fixed in generated SQL (DBAL 3 vs 4 parameter order); duplicate DROP FOREIGN KEY avoided when same table has DROP_FOREIGN_KEYS + DROP_COLUMNS; SchemaAssetName reflection to avoid getName() deprecation; drop-column FK normalization to avoid "columns referenced by constraints" deprecation; tests and demo validation for FK options; DECLARATIVE_SCHEMA updated.
 - **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.4.
 
 ---
