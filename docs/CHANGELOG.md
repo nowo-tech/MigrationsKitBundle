@@ -21,6 +21,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.6] - 2025-02-27
+
+### Added
+
+- **Tests** — **CreateTablesServiceMySQLPlatformTest::testApplyCreateTableWithForeignKeyOnDeleteEmitsOnDeleteInSqlOnMySQL**: asserts that when creating a **new table** (table does not exist) with `FOREIGN_KEYS` that have `onDelete` (CASCADE, SET NULL), the generated CREATE TABLE SQL includes `ON DELETE CASCADE` and `ON DELETE SET NULL`.
+
+### Changed
+
+- **SchemaDefinitionParser** — When building a table from the definition, foreign keys with a `name` now receive `onDelete` and `onUpdate` from the FK definition. The parser uses the same parameter-order detection as CreateTablesService (reflection on `Table::addForeignKeyConstraint`) so options are passed correctly on DBAL 3 and 4. Previously, the parser always passed an empty options array, so **new tables** created via `parseTable` + `getCreateTableSQL` did not get `ON DELETE` / `ON UPDATE` in the generated SQL.
+
+### Fixed
+
+- **CreateTablesService** — When the same table has `DROP_COLUMNS`, the SQL returned by `dropColumnsViaComparator` is now deduplicated by exact string before adding to the output. Some platforms or comparator versions can return the same statement twice (e.g. `ALTER TABLE tablename DROP columnname`); the bundle now emits each statement at most once per Phase 2a run.
+
+---
+
 ## [2.0.5] - 2025-02-27
 
 ### Added

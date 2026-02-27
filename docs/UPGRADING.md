@@ -31,6 +31,15 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.6
+
+- **No breaking changes.** This release fixes ON DELETE/ON UPDATE for **new tables** (CREATE TABLE with FKs) and avoids duplicate DROP COLUMN in generated SQL.
+- **SchemaDefinitionParser:** When you define a table that **does not exist yet** with `MDK::FOREIGN_KEYS` and `onDelete`/`onUpdate`, the generated CREATE TABLE SQL now includes `ON DELETE` and `ON UPDATE` (previously only FKs added to existing tables via Phase 4 had options applied).
+- **CreateTablesService:** If the platform/comparator returned the same DROP COLUMN (or other alter) statement twice in Phase 2a, the bundle now emits it only once.
+- Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
+
+---
+
 ## Upgrading to 2.0.5
 
 - **No breaking changes.** This release standardises DROP FOREIGN KEY output and adds a demo target for generating MySQL SQL without executing.
