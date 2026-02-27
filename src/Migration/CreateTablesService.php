@@ -189,7 +189,7 @@ final class CreateTablesService
                     $tableNameStr   = (string) $tableName;
                     $alterSqls      = $this->dropColumnsViaComparator($schema, $tableNameStr, $toDrop, $comparator, $platform, $schemaManager);
                     $alreadyDropped = $alreadyDroppedFkByTable[$tableNameStr] ?? [];
-                    $seenInPhase2a   = []; // Deduplicate: platform/comparator may return the same SQL twice (e.g. DROP COLUMN).
+                    $seenInPhase2a  = []; // Deduplicate: platform/comparator may return the same SQL twice (e.g. DROP COLUMN).
                     foreach ($alterSqls as $sql) {
                         if ($this->isDropForeignKeySqlForTableAndFk($sql, $tableNameStr, $alreadyDropped)) {
                             continue;

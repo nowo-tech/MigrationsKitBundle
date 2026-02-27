@@ -220,7 +220,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
                         ['name' => 'customer_id', 'type' => 'integer', 'notnull' => true],
                         ['name' => 'created_by_operator_id', 'type' => 'integer', 'notnull' => false],
                     ],
-                    MDK::PRIMARY_KEY => [['columns' => ['id']]],
+                    MDK::PRIMARY_KEY  => [['columns' => ['id']]],
                     MDK::FOREIGN_KEYS => [
                         [
                             'columns'         => ['customer_id'],
