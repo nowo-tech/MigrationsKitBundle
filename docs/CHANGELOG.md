@@ -21,6 +21,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.4] - 2025-02-27
+
+### Added
+
+- **CreateTablesService (FK options)** — **onDelete** and **onUpdate** in `MDK::FOREIGN_KEYS` are now correctly applied: the generated `ALTER TABLE ... ADD CONSTRAINT` SQL includes `ON DELETE` and `ON UPDATE` clauses on MySQL/MariaDB (and other platforms that support them). The bundle detects DBAL 3 vs 4 parameter order for `Table::addForeignKeyConstraint` (name vs options as 4th/5th argument) and calls it accordingly. See [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md#foreign-keys).
+- **Tests** — **CreateTablesServiceMySQLPlatformTest**: `testApplyAddForeignKeyWithOnDeleteAndOnUpdateEmitsCorrectSqlOnMySQL` and `testApplyAddForeignKeyWithOnDeleteSetNullEmitsCorrectSqlOnMySQL` assert that generated SQL contains `ON DELETE CASCADE`, `ON DELETE SET NULL`, and `ON UPDATE CASCADE`. **SchemaMigrationServiceTest::testApplyAddForeignKeyWithOnUpdateAndOnDelete** now asserts that the SQL contains `ON DELETE` and `ON UPDATE`.
+- **Demo validation** — **Version20250223100003_validation** (symfony7 and symfony8): when the FK `fk_kit_item_user_id` exists, validates that it has `onDelete` = `SET NULL` (from the MDK definition). **DECLARATIVE_SCHEMA.md**: note and example for `onDelete` / `onUpdate` in foreign keys.
+
+### Changed
+
+- **SchemaAssetName** — Name is now read via reflection over the class hierarchy (`getNameViaReflection`) so that the deprecated `getName()` is not called when the `name` property can be read from a parent class (e.g. `AbstractAsset`). Reduces or eliminates the "AbstractAsset::getName is deprecated" notice in DBAL 4.
+- **CreateTablesService::dropColumnsViaComparator** — Column names in the "columns to drop" set and FK local column names are normalized before comparison, so FKs that reference columns being dropped are correctly detected and dropped first. Fixes the "Dropping columns referenced by constraints is deprecated" warning when the platform returns column names in a different form (e.g. `Identifier`).
+
+### Fixed
+
+- **CreateTablesService** — Foreign keys defined with `onDelete` (e.g. `CASCADE`, `SET NULL`) and/or `onUpdate` in the MDK definition now produce SQL that includes those clauses. Previously the comparator path used a parameter order that did not pass options in DBAL 3.
+
+---
+
 ## [2.0.3] - 2025-02-27
 
 ### Added

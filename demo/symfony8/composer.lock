@@ -1126,7 +1126,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/migrations-kit-bundle",
-                "reference": "1aa49ce1facc293f77739cf825cb0f4db16f3c8a"
+                "reference": "30b4aacf621063b43f55034fd502267a0332d379"
             },
             "require": {
                 "doctrine/dbal": "^2.13 || ^3.0 || ^4.0",
