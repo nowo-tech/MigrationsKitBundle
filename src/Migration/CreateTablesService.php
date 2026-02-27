@@ -128,7 +128,7 @@ final class CreateTablesService
                     $fk        = $localTable->getForeignKey($fkName);
                     $dropFkSql = $this->getDropForeignKeySQL($localTable, $fk, $platform);
                     if ($dropFkSql !== null) {
-                        $sqls[] = $dropFkSql;
+                        $sqls[]                                          = $dropFkSql;
                         $alreadyDroppedFkByTable[$tableNameStr][$fkName] = true;
                     }
                 }

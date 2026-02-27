@@ -184,8 +184,8 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
             MDK::TABLES => [
                 'customers' => [
                     MDK::DROP_FOREIGN_KEYS => ['fk_customers_partner_intervener'],
-                    MDK::DROP_INDEXES     => ['idx_customers_partner_intervener'],
-                    MDK::DROP_COLUMNS     => ['partner_intervener_id'],
+                    MDK::DROP_INDEXES      => ['idx_customers_partner_intervener'],
+                    MDK::DROP_COLUMNS      => ['partner_intervener_id'],
                 ],
             ],
         ];
