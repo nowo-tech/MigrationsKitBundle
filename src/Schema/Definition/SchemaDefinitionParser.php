@@ -7,6 +7,7 @@ namespace Nowo\MigrationsKitBundle\Schema\Definition;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use Throwable;
 
 use function array_key_exists;
 use function is_array;
@@ -129,7 +130,7 @@ final class SchemaDefinitionParser
             try {
                 $constraint = new PrimaryKeyConstraint($columnNames);
                 $table->addPrimaryKeyConstraint($constraint);
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 $table->setPrimaryKey($columnNames);
             }
         } else {

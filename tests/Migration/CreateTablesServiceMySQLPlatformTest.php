@@ -113,12 +113,12 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
                 'orders' => [
                     MDK::FOREIGN_KEYS => [
                         [
-                            'columns'          => ['customer_id'],
-                            'foreign_table'    => 'customers',
-                            'foreign_columns'  => ['id'],
-                            'onDelete'         => 'CASCADE',
-                            'onUpdate'         => 'CASCADE',
-                            'name'             => 'fk_orders_customer',
+                            'columns'         => ['customer_id'],
+                            'foreign_table'   => 'customers',
+                            'foreign_columns' => ['id'],
+                            'onDelete'        => 'CASCADE',
+                            'onUpdate'        => 'CASCADE',
+                            'name'            => 'fk_orders_customer',
                         ],
                     ],
                 ],

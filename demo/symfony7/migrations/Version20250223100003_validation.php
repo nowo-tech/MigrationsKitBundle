@@ -8,6 +8,7 @@ use App\Entity\KitItem;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100003 — FK fk_kit_item_user_id on kit_item (skip if dropped in 00005).
@@ -32,7 +33,7 @@ final class Version20250223100003_validation extends AbstractMigration
         if (method_exists($fk, 'getOptions')) {
             $opts = $fk->getOptions();
             if (($opts['onDelete'] ?? '') !== 'SET NULL') {
-                throw new \RuntimeException('Validation failed: FK fk_kit_item_user_id on ' . KitItem::TABLE_NAME . ' must have onDelete SET NULL (from MDK definition).');
+                throw new RuntimeException('Validation failed: FK fk_kit_item_user_id on ' . KitItem::TABLE_NAME . ' must have onDelete SET NULL (from MDK definition).');
             }
         }
     }

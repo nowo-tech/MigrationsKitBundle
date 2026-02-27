@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Migration;
 
 use ReflectionObject;
+use Throwable;
 
 use function is_object;
 use function method_exists;
@@ -68,7 +69,7 @@ final class SchemaAssetName
                 }
                 $ref = $ref->getParentClass();
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // ignore
         }
 
