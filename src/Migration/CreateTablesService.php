@@ -1093,7 +1093,7 @@ final class CreateTablesService
         if (method_exists($table, 'addPrimaryKeyConstraint')) {
             try {
                 $table->addPrimaryKeyConstraint(new PrimaryKeyConstraint($columnNames));
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 $table->setPrimaryKey($columnNames);
             }
         } else {
