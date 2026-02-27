@@ -57,4 +57,28 @@ final class MigrationDefinitionKeys
 
     /** Table definition: array of index definitions. e.g. [['columns'=>['c1'], 'name'=>'idx_c1'], ['columns'=>['email'], 'unique'=>true]]. */
     public const INDEXES = 'indexes';
+
+    // --- Foreign key referential actions (use as values for 'onDelete' / 'onUpdate' in FOREIGN_KEYS items) ---
+
+    /** Value for onDelete/onUpdate: delete/update child rows when parent row is deleted/updated. */
+    public const ON_DELETE_CASCADE = 'CASCADE';
+    /** Value for onDelete: set referencing column to NULL when parent row is deleted (column must be nullable). */
+    public const ON_DELETE_SET_NULL = 'SET NULL';
+    /** Value for onDelete/onUpdate: prevent delete/update if rows reference the parent (default on many platforms). */
+    public const ON_DELETE_RESTRICT = 'RESTRICT';
+    /** Value for onDelete/onUpdate: no action (database-dependent; often same as RESTRICT). */
+    public const ON_DELETE_NO_ACTION = 'NO ACTION';
+    /** Value for onDelete/onUpdate: set referencing column to its default when parent is deleted/updated. */
+    public const ON_DELETE_SET_DEFAULT = 'SET DEFAULT';
+
+    /** Value for onUpdate: when parent key is updated, update the referencing column to match. */
+    public const ON_UPDATE_CASCADE = 'CASCADE';
+    /** Value for onUpdate: set referencing column to NULL when parent key is updated. */
+    public const ON_UPDATE_SET_NULL = 'SET NULL';
+    /** Value for onUpdate: prevent update of parent key if rows reference it. */
+    public const ON_UPDATE_RESTRICT = 'RESTRICT';
+    /** Value for onUpdate: no action. */
+    public const ON_UPDATE_NO_ACTION = 'NO ACTION';
+    /** Value for onUpdate: set referencing column to its default when parent key is updated. */
+    public const ON_UPDATE_SET_DEFAULT = 'SET DEFAULT';
 }
