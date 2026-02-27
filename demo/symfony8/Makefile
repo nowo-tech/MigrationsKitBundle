@@ -7,7 +7,7 @@ SERVICE_PHP := php
 
 DATABASE_URL_MYSQL := mysql://app:app@mysql:3306/demo
 
-.PHONY: help up down build install lock shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql write-sql-reference-mysql db-reset cache-clear update-bundle ensure-up test test-coverage check-pdo-mysql up-mysql db-reset-mysql migrate-mysql test-mysql
+.PHONY: help up down build install lock shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql write-sql-reference-mysql db-reset cache-clear update-bundle ensure-up test test-coverage check-pdo-mysql up-mysql db-reset-mysql migrate-mysql test-mysql list-migrations
 
 help:
 	@echo "Migrations Kit Bundle Demo - Symfony 8"
@@ -34,7 +34,11 @@ help:
 	@echo "  make update-bundle     Update bundle from path repo"
 	@echo "  make test              Run tests"
 	@echo "  make test-coverage     Run tests with coverage (console output)"
+	@echo "  make list-migrations   Print migration execution order and what each step does/validates"
 	@echo ""
+
+list-migrations: ensure-up
+	$(COMPOSE) exec -T $(SERVICE_PHP) php scripts/list-migrations-order.php
 
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || (echo "APP_ENV=dev" > .env; echo "APP_SECRET=change-me" >> .env; echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env); fi

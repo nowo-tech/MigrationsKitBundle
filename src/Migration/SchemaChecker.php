@@ -114,8 +114,7 @@ final class SchemaChecker
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
             $names = [];
             foreach ($table->getColumns() as $column) {
-                $name    = $column->getName();
-                $names[] = is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
+                $names[] = SchemaAssetName::get($column);
             }
 
             return $names;

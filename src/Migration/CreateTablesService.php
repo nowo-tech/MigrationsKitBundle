@@ -648,9 +648,8 @@ final class CreateTablesService
                 $firstType = $first instanceof ReflectionNamedType ? $first->getName() : '';
                 // @codeCoverageIgnoreStart - platform getRenameColumnSQL(string, string, string) / DBAL 2
                 if ($firstType === 'string') {
-                    $oldName = $column->getName();
-                    $str     = is_object($oldName) && method_exists($oldName, 'toString') ? $oldName->toString() : (string) $oldName;
-                    $sql     = $platform->getRenameColumnSQL($str, $newName, $tableName);
+                    $str = SchemaAssetName::get($column);
+                    $sql = $platform->getRenameColumnSQL($str, $newName, $tableName);
                 } else {
                     $sql = $platform->getRenameColumnSQL($column, $newName, $tableName);
                 }
@@ -913,14 +912,7 @@ final class CreateTablesService
 
     private function tableNameString(Table $table): string
     {
-        $name = $table->getName();
-        // @codeCoverageIgnoreStart - Table name as object (DBAL 2)
-        if (is_object($name) && method_exists($name, 'toString')) {
-            return $name->toString();
-        }
-
-        return (string) $name;
-        // @codeCoverageIgnoreEnd
+        return SchemaAssetName::get($table);
     }
 
     private function tableHasColumn(Table $table, string $columnName): bool
@@ -930,9 +922,7 @@ final class CreateTablesService
         }
         // @codeCoverageIgnoreStart - column name as object (DBAL 2)
         foreach ($table->getColumns() as $col) {
-            $name = $col->getName();
-            $str  = is_object($name) && method_exists($name, 'toString') ? $name->toString() : (string) $name;
-            if ($str === $columnName) {
+            if (SchemaAssetName::get($col) === $columnName) {
                 return true;
             }
         }
@@ -1186,13 +1176,9 @@ final class CreateTablesService
 
     private function foreignKeyName(object $fk): string
     {
-        if (method_exists($fk, 'getName')) {
-            $name = $fk->getName();
+        $name = SchemaAssetName::get($fk);
 
-            return $this->normalizeIdentifier($name);
-        }
-
-        return '';
+        return $name !== '' ? $this->normalizeIdentifier($name) : '';
     }
 
     /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
@@ -1351,13 +1337,9 @@ final class CreateTablesService
 
     private function indexName(object $index): string
     {
-        if (method_exists($index, 'getName')) {
-            $name = $index->getName();
+        $name = SchemaAssetName::get($index);
 
-            return $this->normalizeIdentifier($name);
-        }
-
-        return '';
+        return $name !== '' ? $this->normalizeIdentifier($name) : '';
     }
 
     /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */

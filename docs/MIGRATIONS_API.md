@@ -50,7 +50,7 @@ In DBAL 4.x names may be `Identifier`; you may need to normalize when comparing 
 | `getForeignKeyConstraints()` | Foreign keys on the table. | ✓ | ✓ |
 | `getPrimaryKey()` / `hasPrimaryKey()` | Primary key. | ✓ | ✓ |
 
-In 4.x, `getName()` on Table/Column/Index may return an `Identifier`; use `->getQuotedName()` or compare against the expected name for the platform.
+In 4.x, `getName()` on Table/Column/Index may return an `Identifier`; use `->getQuotedName()` or compare against the expected name for the platform. **DBAL 4 deprecates `AbstractAsset::getName()`; it is removed in DBAL 5.** This bundle uses the internal `SchemaAssetName::get($asset)` helper so that schema asset names are read in a way compatible with DBAL 3, 4 and 5 (see [USAGE.md — AbstractAsset::getName() deprecated](USAGE.md#abstractassetgetname-deprecated-dbal-5)).
 
 ### 2.3 SchemaManager (introspection)
 

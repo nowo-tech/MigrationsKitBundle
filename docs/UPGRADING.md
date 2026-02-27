@@ -31,6 +31,15 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.3
+
+- **No breaking changes.** This release adds documentation for Doctrine deprecations and prepares the bundle for DBAL 5.
+- **Documentation:** USAGE.md now explains (1) the *"transaction already committed"* deprecation when running DDL on MySQL and how to fix it (`transactional: false` or `isTransactional() => false`), and (2) the `AbstractAsset::getName()` deprecation in DBAL 4/5 and that the bundle uses **SchemaAssetName::get()** for compatibility. DEMO_MIGRATIONS_REFERENCE and MIGRATIONS_API reference these sections.
+- **Internal:** SchemaAssetName helper and tests were adjusted so the bundle is ready for DBAL 5 when `getName()` is removed.
+- Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
+
+---
+
 ## Upgrading to 2.0.2
 
 - **No breaking changes.** New behaviour: when you add new columns and define indexes and/or foreign keys on those columns in the same MDK definition, **CreateTablesService::apply()** now emits ADD COLUMN, index and FK SQL in one run (no manual `addSql` for index/FK needed). See [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) and [CHANGELOG.md](CHANGELOG.md#202---2025-02-25).

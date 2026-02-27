@@ -21,6 +21,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.3] - 2025-02-27
+
+### Added
+
+- **Documentation (Doctrine deprecations)** — **USAGE.md**: New section *"Transaction already committed (deprecation) when using DDL on MySQL"* explaining the Doctrine Migrations warning when DDL causes implicit commits; recommends `transactional: false` or overriding `isTransactional()` to return `false`. New section *"AbstractAsset::getName() deprecated (DBAL 5)"* explaining that the bundle uses **SchemaAssetName::get($asset)** for schema asset names so code is compatible with DBAL 3, 4 and 5.
+- **Documentation** — **DEMO_MIGRATIONS_REFERENCE.md**: Recommendation #4 expanded to mention the transactional/DDL deprecation warning and link to USAGE.md and Doctrine’s implicit-commits docs. **MIGRATIONS_API.md**: Note that `AbstractAsset::getName()` is deprecated in DBAL 4 and removed in DBAL 5; bundle uses `SchemaAssetName::get()` for compatibility, with link to USAGE.md.
+
+### Changed
+
+- **SchemaAssetName** — Order of name resolution: use `getName()` first when the method exists (DBAL 3/4), then fall back to the `name` property (DBAL 5 when `getName()` is removed). Ensures correct behaviour when the property is protected in older DBAL.
+- **Tests** — **SchemaDefinitionParserTest**: Table name assertions now use `SchemaAssetName::get($table)` instead of `$table->getName()`, so tests remain valid when DBAL 5 removes `getName()`.
+
+### Fixed
+
+- (No changes.)
+
+---
+
 ## [2.0.2] - 2025-02-25
 
 ### Added

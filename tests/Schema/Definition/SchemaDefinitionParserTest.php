@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Schema\Definition;
 
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use Nowo\MigrationsKitBundle\Migration\SchemaAssetName;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use PHPUnit\Framework\TestCase;
 
@@ -20,7 +21,7 @@ class SchemaDefinitionParserTest extends TestCase
     public function testParseTableEmptyDefinition(): void
     {
         $table = $this->parser->parseTable('empty', []);
-        self::assertSame('empty', $table->getName());
+        self::assertSame('empty', SchemaAssetName::get($table));
         self::assertCount(0, $table->getColumns());
     }
 
@@ -38,7 +39,7 @@ class SchemaDefinitionParserTest extends TestCase
         ];
 
         $table = $this->parser->parseTable('users', $tableDef);
-        self::assertSame('users', $table->getName());
+        self::assertSame('users', SchemaAssetName::get($table));
         self::assertTrue($table->hasColumn('id'));
         self::assertTrue($table->hasColumn('email'));
         self::assertNotNull($table->getPrimaryKey());
@@ -270,7 +271,7 @@ class SchemaDefinitionParserTest extends TestCase
     public function testParseTableColumnsNotArrayReturnsEmptyTable(): void
     {
         $table = $this->parser->parseTable('t', [MDK::COLUMNS => 'not_an_array']);
-        self::assertSame('t', $table->getName());
+        self::assertSame('t', SchemaAssetName::get($table));
         self::assertCount(0, $table->getColumns());
     }
 

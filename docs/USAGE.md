@@ -411,6 +411,46 @@ So to ensure **SQL is executed and committed after each migration**:
 
 Each migration is still wrapped in a transaction by default (`transactional: true`). So for each migration: run its SQL → commit. With `all_or_nothing` off, those transactions are separate per migration.
 
+### Transaction already committed (deprecation) when using DDL on MySQL
+
+If you run migrations that perform **DDL on MySQL** (CREATE TABLE, ALTER TABLE, DROP TABLE, etc.), you may see this deprecation notice:
+
+```text
+User Deprecated: Context: trying to commit a transaction
+Problem: the transaction is already committed, relying on silencing is deprecated.
+Solution: override `AbstractMigration::isTransactional()` so that it returns false.
+Automate that by setting `transactional` to false in the configuration.
+```
+
+**What it means:** Doctrine Migrations runs each migration inside a transaction. On MySQL, many DDL operations cause an **implicit commit**. By the time Migrations tries to commit at the end, the transaction is already closed, and the library currently “silences” that case. That behaviour is deprecated.
+
+**What to do:** For migrations that run DDL on MySQL, disable the transaction so the warning goes away and behaviour matches Doctrine’s recommendation:
+
+1. **Global config** — In `config/packages/doctrine_migrations.yaml`, set `transactional: false` so all migrations run without a wrapping transaction, or
+2. **Per migration** — Override `isTransactional()` in the migration class so it returns `false` for those migrations that touch the schema:
+
+   ```php
+   public function isTransactional(): bool
+   {
+       return false;
+   }
+   ```
+
+See [Doctrine’s explanation on implicit commits](https://www.doctrine-project.org/projects/doctrine-migrations/en/stable/explanation/implicit-commits.html) for details.
+
+### AbstractAsset::getName() deprecated (DBAL 5)
+
+Doctrine DBAL 4 deprecates `AbstractAsset::getName()` on schema objects (Table, Column, Index, ForeignKeyConstraint); it will be removed in DBAL 5.
+
+**What it means:** If you call `$table->getName()`, `$column->getName()`, etc. in your migrations or helpers, you may see a deprecation notice. In DBAL 5 that method will no longer exist.
+
+**What this bundle does:** The bundle does not call `getName()` directly on schema assets. It uses the internal helper `SchemaAssetName::get($asset)`, which:
+
+- On **DBAL 3 and 4**: uses `getName()` when present (you may still see the deprecation from DBAL’s own code when it walks the schema to generate SQL).
+- On **DBAL 5**: uses the new API (e.g. public property or replacement method) when `getName()` has been removed.
+
+So the bundle is prepared for DBAL 5. If you write custom code that introspects the schema (e.g. looping over `$table->getColumns()` and reading the column name), prefer a DBAL-agnostic approach or the same pattern: try the new API first, fall back to `getName()` only when the method exists.
+
 ---
 
 ## See also
