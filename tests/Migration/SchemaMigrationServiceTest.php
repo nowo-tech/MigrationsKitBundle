@@ -1066,6 +1066,10 @@ class SchemaMigrationServiceTest extends TestCase
         ];
         $sqls = $this->service->apply($schema, $def);
         self::assertNotEmpty($sqls);
+        $sql = implode(' ', $sqls);
+        // Options must appear in generated SQL (platform-dependent; SQLite and MySQL both support ON DELETE/ON UPDATE)
+        self::assertStringContainsString('ON DELETE', $sql, 'FK with onDelete must produce SQL containing ON DELETE');
+        self::assertStringContainsString('ON UPDATE', $sql, 'FK with onUpdate must produce SQL containing ON UPDATE');
     }
 
     /** DROP_PRIMARY_KEYS with false skips (no SQL). */

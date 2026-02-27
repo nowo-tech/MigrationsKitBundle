@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Schema\Definition;
 
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 
@@ -56,7 +57,7 @@ final class SchemaDefinitionParser
                 }
                 $cols = $item['columns'] ?? [];
                 if (is_array($cols) && $cols !== []) {
-                    $table->setPrimaryKey($cols);
+                    $this->setTablePrimaryKey($table, $cols);
                     break;
                 }
             }
@@ -114,6 +115,26 @@ final class SchemaDefinitionParser
         }
 
         return $table;
+    }
+
+    /**
+     * Set the primary key on the table in a way compatible with DBAL 3, 4 and 5.
+     * Uses addPrimaryKeyConstraint() when available (DBAL 4+), else setPrimaryKey() (DBAL 3).
+     *
+     * @param list<string> $columnNames
+     */
+    private function setTablePrimaryKey(Table $table, array $columnNames): void
+    {
+        if (method_exists($table, 'addPrimaryKeyConstraint')) {
+            try {
+                $constraint = new PrimaryKeyConstraint($columnNames);
+                $table->addPrimaryKeyConstraint($constraint);
+            } catch (\Throwable) {
+                $table->setPrimaryKey($columnNames);
+            }
+        } else {
+            $table->setPrimaryKey($columnNames);
+        }
     }
 
     /**

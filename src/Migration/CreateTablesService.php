@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
@@ -869,6 +870,28 @@ final class CreateTablesService
             return [];
         }
         // @codeCoverageIgnoreEnd
+
+        // Drop FKs that reference any of the columns we are about to drop first (avoids DBAL deprecation
+        // "Dropping columns referenced by constraints is deprecated")
+        $columnNamesSet = array_flip(array_map([$this, 'normalizeIdentifier'], $columnNames));
+        foreach ($table->getForeignKeys() as $fk) {
+            $localCols = method_exists($fk, 'getLocalColumns') ? $fk->getLocalColumns() : (method_exists($fk, 'getColumns') ? $fk->getColumns() : []);
+            foreach ($localCols as $col) {
+                $colStr = $this->normalizeIdentifier(is_object($col) ? (string) $col : $col);
+                if ($colStr !== '' && isset($columnNamesSet[$colStr])) {
+                    $fkName = SchemaAssetName::get($fk);
+                    if ($fkName !== '' && $table->hasForeignKey($fkName)) {
+                        if (method_exists($table, 'dropForeignKeyConstraint')) {
+                            $table->dropForeignKeyConstraint($fkName);
+                        } elseif (method_exists($table, 'removeForeignKey')) {
+                            $table->removeForeignKey($fkName);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         foreach ($columnNames as $name) {
             if ($table->hasColumn($name)) {
                 $table->dropColumn($name);
@@ -932,6 +955,45 @@ final class CreateTablesService
     }
 
     /**
+     * Call Table::addForeignKeyConstraint with correct parameter order for DBAL 3 vs 4.
+     * DBAL 3: (foreignTable, localColumns, foreignColumns, name, options)
+     * DBAL 4: (foreignTable, localColumns, foreignColumns, options, name)
+     * So onDelete/onUpdate in $options are only applied when the 4th and 5th args are passed in the order the platform expects.
+     *
+     * @param array<string, string> $options e.g. onUpdate, onDelete
+     */
+    private function addForeignKeyConstraintToTable(Table $table, string $foreignTableName, array $localColumns, array $foreignColumns, array $options, string $fkName): void
+    {
+        $nameFirst = $this->tableAddForeignKeyConstraintExpectsNameAsFourthParam($table);
+        if ($nameFirst) {
+            $table->addForeignKeyConstraint($foreignTableName, $localColumns, $foreignColumns, $fkName, $options);
+        } else {
+            $table->addForeignKeyConstraint($foreignTableName, $localColumns, $foreignColumns, $options, $fkName);
+        }
+    }
+
+    /**
+     * True if Table::addForeignKeyConstraint(..., 4th, 5th) expects (name, options); false if (options, name).
+     *
+     * @codeCoverageIgnore - reflection for DBAL 3/4 compatibility
+     */
+    private function tableAddForeignKeyConstraintExpectsNameAsFourthParam(Table $table): bool
+    {
+        try {
+            $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
+            $params = $method->getParameters();
+            if (isset($params[3])) {
+                $fourth = $params[3]->getName();
+
+                return $fourth === 'name' || $fourth === 'constraintName';
+            }
+        } catch (ReflectionException) {
+        }
+
+        return false;
+    }
+
+    /**
      * Clone schema, add one foreign key to the table, compare and return ALTER SQL.
      * Compatible with DBAL 3 and DBAL 4 (see schemaDiffToSql).
      *
@@ -950,7 +1012,7 @@ final class CreateTablesService
             return [];
         }
         // @codeCoverageIgnoreEnd
-        $table->addForeignKeyConstraint($foreignTableName, $localColumns, $foreignColumns, $options, $fkName);
+        $this->addForeignKeyConstraintToTable($table, $foreignTableName, $localColumns, $foreignColumns, $options, $fkName);
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);
@@ -1017,7 +1079,15 @@ final class CreateTablesService
             $table->dropPrimaryKey();
         }
         // @codeCoverageIgnoreEnd
-        $table->setPrimaryKey($columnNames);
+        if (method_exists($table, 'addPrimaryKeyConstraint')) {
+            try {
+                $table->addPrimaryKeyConstraint(new PrimaryKeyConstraint($columnNames));
+            } catch (\Throwable) {
+                $table->setPrimaryKey($columnNames);
+            }
+        } else {
+            $table->setPrimaryKey($columnNames);
+        }
         $diff = method_exists($comparator, 'compareSchemas')
             ? $comparator->compareSchemas($fromSchema, $toSchema)
             : $comparator->compare($fromSchema, $toSchema);

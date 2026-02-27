@@ -97,4 +97,68 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         self::assertStringContainsString('change_pk', $sql);
         self::assertStringContainsStringIgnoringCase('PRIMARY', $sql);
     }
+
+    /** FK with onDelete CASCADE and onUpdate CASCADE must produce MySQL SQL with ON DELETE CASCADE and ON UPDATE CASCADE. */
+    public function testApplyAddForeignKeyWithOnDeleteAndOnUpdateEmitsCorrectSqlOnMySQL(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform();
+        $schema  = new Schema();
+        $schema->createTable('customers')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('customers')->setPrimaryKey(['id']);
+        $schema->createTable('orders')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('orders')->addColumn('customer_id', 'integer', ['notnull' => true]);
+        $schema->getTable('orders')->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'          => ['customer_id'],
+                            'foreign_table'    => 'customers',
+                            'foreign_columns'  => ['id'],
+                            'onDelete'         => 'CASCADE',
+                            'onUpdate'         => 'CASCADE',
+                            'name'             => 'fk_orders_customer',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        $sql = implode(' ', $sqls);
+        self::assertStringContainsString('ON DELETE CASCADE', $sql, 'FK with onDelete CASCADE must produce ON DELETE CASCADE in SQL');
+        self::assertStringContainsString('ON UPDATE CASCADE', $sql, 'FK with onUpdate CASCADE must produce ON UPDATE CASCADE in SQL');
+    }
+
+    /** FK with onDelete SET NULL must produce MySQL SQL with ON DELETE SET NULL. */
+    public function testApplyAddForeignKeyWithOnDeleteSetNullEmitsCorrectSqlOnMySQL(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform();
+        $schema  = new Schema();
+        $schema->createTable('users')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('users')->setPrimaryKey(['id']);
+        $schema->createTable('orders')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('orders')->addColumn('created_by_id', 'integer', ['notnull' => false]);
+        $schema->getTable('orders')->setPrimaryKey(['id']);
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['created_by_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                            'onDelete'        => 'SET NULL',
+                            'name'            => 'fk_orders_created_by',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        $sql = implode(' ', $sqls);
+        self::assertStringContainsString('ON DELETE SET NULL', $sql, 'FK with onDelete SET NULL must produce ON DELETE SET NULL in SQL');
+    }
 }

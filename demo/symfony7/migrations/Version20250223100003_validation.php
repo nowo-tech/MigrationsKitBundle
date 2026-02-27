@@ -26,6 +26,15 @@ final class Version20250223100003_validation extends AbstractMigration
             return;
         }
         // FK exists — migration 00003 result still present (00005 not run or SQLite)
+        // Validate that onDelete SET NULL was applied (MDK foreign_keys options must appear in DB)
+        $table = $this->connection->createSchemaManager()->introspectTable(KitItem::TABLE_NAME);
+        $fk    = $table->getForeignKey('fk_kit_item_user_id');
+        if (method_exists($fk, 'getOptions')) {
+            $opts = $fk->getOptions();
+            if (($opts['onDelete'] ?? '') !== 'SET NULL') {
+                throw new \RuntimeException('Validation failed: FK fk_kit_item_user_id on ' . KitItem::TABLE_NAME . ' must have onDelete SET NULL (from MDK definition).');
+            }
+        }
     }
 
     public function down(Schema $schema): void

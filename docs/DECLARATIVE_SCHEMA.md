@@ -140,12 +140,16 @@ MDK::INDEXES => [
 
 Array of associative arrays. Keys: **columns** (local columns), **foreign_table**, **foreign_columns**, optional **name**, **onUpdate**, **onDelete**. Use **drop: true** to remove.
 
+**onDelete** and **onUpdate** (e.g. `'CASCADE'`, `'SET NULL'`, `'RESTRICT'`) are passed through to the platform; the generated `ALTER TABLE ... ADD CONSTRAINT` SQL will include `ON DELETE` and `ON UPDATE` clauses on MySQL/MariaDB and other platforms that support them. Example: `'onDelete' => 'SET NULL'` produces `... REFERENCES parent (id) ON DELETE SET NULL`. Demo migration Version20250223100003 and its validation (Version20250223100003_validation) demonstrate and verify this.
+
 ```php
 MDK::FOREIGN_KEYS => [
     [
-        'columns' => ['user_id'],
-        'foreign_table' => 'users',
+        'columns'         => ['user_id'],
+        'foreign_table'   => 'users',
         'foreign_columns' => ['id'],
+        'onDelete'        => 'SET NULL',
+        'name'            => 'fk_my_table_user',
     ],
 ]
 ```
