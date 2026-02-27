@@ -163,7 +163,8 @@ final class CreateTablesService
             }
         }
 
-        // Phase 2a: drop columns (DROP_COLUMNS per table).
+        // Phase 2a: drop columns (DROP_COLUMNS per table). Deduplicate alterSqls so the same statement
+        // (e.g. DROP COLUMN) is not emitted twice when the platform/comparator returns duplicates.
         if (is_array($tablesDef)) {
             foreach ($tablesDef as $tableName => $tableDef) {
                 if (!is_array($tableDef)) {
@@ -188,12 +189,16 @@ final class CreateTablesService
                     $tableNameStr   = (string) $tableName;
                     $alterSqls      = $this->dropColumnsViaComparator($schema, $tableNameStr, $toDrop, $comparator, $platform, $schemaManager);
                     $alreadyDropped = $alreadyDroppedFkByTable[$tableNameStr] ?? [];
-                    // Skip duplicate DROP FOREIGN KEY statements (already emitted in Phase 1b).
+                    $seenInPhase2a   = []; // Deduplicate: platform/comparator may return the same SQL twice (e.g. DROP COLUMN).
                     foreach ($alterSqls as $sql) {
                         if ($this->isDropForeignKeySqlForTableAndFk($sql, $tableNameStr, $alreadyDropped)) {
                             continue;
                         }
-                        $sqls[] = $sql;
+                        if (isset($seenInPhase2a[$sql])) {
+                            continue;
+                        }
+                        $seenInPhase2a[$sql] = true;
+                        $sqls[]              = $sql;
                     }
                 }
             }

@@ -198,4 +198,52 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         });
         self::assertCount(1, $dropFkForThisTable, 'Must emit exactly one DROP FOREIGN KEY for fk_customers_partner_intervener, not duplicate');
     }
+
+    /**
+     * When creating a new table (table does not exist) with FOREIGN_KEYS that have onDelete,
+     * the CREATE TABLE SQL must include ON DELETE (parser now passes options to addForeignKeyConstraint).
+     */
+    public function testApplyCreateTableWithForeignKeyOnDeleteEmitsOnDeleteInSqlOnMySQL(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform();
+        $schema  = new Schema();
+        $schema->createTable('customers')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('customers')->setPrimaryKey(['id']);
+        $schema->createTable('users_operators')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('users_operators')->setPrimaryKey(['id']);
+        // Table partners_interveners_customers does NOT exist -> CREATE TABLE path (parser builds table with FKs)
+        $def = [
+            MDK::TABLES => [
+                'partners_interveners_customers' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                        ['name' => 'customer_id', 'type' => 'integer', 'notnull' => true],
+                        ['name' => 'created_by_operator_id', 'type' => 'integer', 'notnull' => false],
+                    ],
+                    MDK::PRIMARY_KEY => [['columns' => ['id']]],
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['customer_id'],
+                            'foreign_table'   => 'customers',
+                            'foreign_columns' => ['id'],
+                            'onDelete'        => 'CASCADE',
+                            'name'            => 'fk_pic_customer',
+                        ],
+                        [
+                            'columns'         => ['created_by_operator_id'],
+                            'foreign_table'   => 'users_operators',
+                            'foreign_columns' => ['id'],
+                            'onDelete'        => 'SET NULL',
+                            'name'            => 'fk_pic_operator',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        $sql = implode(' ', $sqls);
+        self::assertStringContainsString('ON DELETE CASCADE', $sql, 'New table FK with onDelete CASCADE must produce ON DELETE CASCADE in SQL');
+        self::assertStringContainsString('ON DELETE SET NULL', $sql, 'New table FK with onDelete SET NULL must produce ON DELETE SET NULL in SQL');
+    }
 }

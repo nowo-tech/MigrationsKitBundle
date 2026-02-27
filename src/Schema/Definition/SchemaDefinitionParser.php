@@ -7,6 +7,7 @@ namespace Nowo\MigrationsKitBundle\Schema\Definition;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use ReflectionMethod;
 use Throwable;
 
 use function array_key_exists;
@@ -107,15 +108,58 @@ final class SchemaDefinitionParser
             if (!is_array($localCols) || $localCols === [] || $foreignTable === null || $foreignTable === '' || !is_array($foreignCols) || $foreignCols === []) {
                 continue;
             }
+            $options = [];
+            if (isset($fk['onDelete'])) {
+                $options['onDelete'] = $fk['onDelete'];
+            }
+            if (isset($fk['onUpdate'])) {
+                $options['onUpdate'] = $fk['onUpdate'];
+            }
             $fkName = $fk['name'] ?? null;
             if ($fkName !== null && $fkName !== '') {
-                $table->addForeignKeyConstraint($foreignTable, $localCols, $foreignCols, [], (string) $fkName);
+                $this->addForeignKeyConstraintToTable($table, (string) $foreignTable, $localCols, $foreignCols, $options, (string) $fkName);
             } else {
                 $table->addForeignKeyConstraint($foreignTable, $localCols, $foreignCols);
             }
         }
 
         return $table;
+    }
+
+    /**
+     * Add a foreign key to the table with options (onDelete, onUpdate) and correct parameter order for DBAL 3 vs 4.
+     *
+     * @param list<string> $localColumns
+     * @param list<string> $foreignColumns
+     * @param array<string, string> $options e.g. onDelete, onUpdate
+     */
+    private function addForeignKeyConstraintToTable(Table $table, string $foreignTable, array $localColumns, array $foreignColumns, array $options, string $fkName): void
+    {
+        $nameFirst = $this->tableAddForeignKeyConstraintExpectsNameAsFourthParam($table);
+        if ($nameFirst) {
+            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, $fkName, $options);
+        } else {
+            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, $options, $fkName);
+        }
+    }
+
+    /**
+     * True if Table::addForeignKeyConstraint 4th parameter is the constraint name (DBAL 3); false if options (DBAL 4).
+     */
+    private function tableAddForeignKeyConstraintExpectsNameAsFourthParam(Table $table): bool
+    {
+        try {
+            $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
+            $params = $method->getParameters();
+            if (isset($params[3])) {
+                $fourth = $params[3]->getName();
+
+                return $fourth === 'name' || $fourth === 'constraintName';
+            }
+        } catch (Throwable) {
+        }
+
+        return false;
     }
 
     /**
