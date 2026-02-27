@@ -28,6 +28,8 @@ use function is_object;
  *
  * Order of operations (apply execution order; phases not implemented are TODO):
  *   1. DONE: Drop FKs that reference tables in DROP_TABLES; drop FKs by name (DROP_FOREIGN_KEYS); drop indexes (DROP_INDEXES).
+ *      FKs dropped in Phase 1b are tracked so Phase 2a does not emit a duplicate DROP FOREIGN KEY when the same table
+ *      also has DROP_COLUMNS for a column referenced by that FK.
  *   2. DONE: Drop columns (DROP_COLUMNS); drop primary keys (DROP_PRIMARY_KEYS); drop tables (DROP_TABLES).
  *   3. DONE: Create or edit columns and tables (CREATE TABLE; Phase 3a rename columns RENAME; Phase 3b modify column type/options; ALTER TABLE ADD COLUMN).
  *   4. DONE: Create indexes and unique (Phase 4a, INDEXES); create foreign keys (Phase 4b, ADD CONSTRAINT when table and columns exist; FK not already present).
@@ -96,6 +98,8 @@ final class CreateTablesService
         }
 
         $tablesDef = $definition[MDK::TABLES] ?? [];
+        /** @var array<string, array<string, true>> tableName => fkName => true (FKs already emitted in Phase 1b to avoid duplicate in Phase 2a) */
+        $alreadyDroppedFkByTable = [];
         if (is_array($tablesDef)) {
             // Phase 1b: drop FKs by name (DROP_FOREIGN_KEYS per table).
             foreach ($tablesDef as $tableName => $tableDef) {
@@ -110,6 +114,7 @@ final class CreateTablesService
                 if ($localTable === null) {
                     continue;
                 }
+                $tableNameStr = (string) $tableName;
                 foreach ($dropFks as $fkName) {
                     $fkName = $this->normalizeIdentifier($fkName);
                     if ($fkName === '') {
@@ -122,6 +127,7 @@ final class CreateTablesService
                     $dropFkSql = $this->getDropForeignKeySQL($localTable, $fk, $platform);
                     if ($dropFkSql !== null) {
                         $sqls[] = $dropFkSql;
+                        $alreadyDroppedFkByTable[$tableNameStr][$fkName] = true;
                     }
                 }
             }
@@ -177,8 +183,13 @@ final class CreateTablesService
                     }
                 }
                 if ($toDrop !== []) {
-                    $alterSqls = $this->dropColumnsViaComparator($schema, (string) $tableName, $toDrop, $comparator, $platform, $schemaManager);
+                    $tableNameStr = (string) $tableName;
+                    $alterSqls    = $this->dropColumnsViaComparator($schema, $tableNameStr, $toDrop, $comparator, $platform, $schemaManager);
+                    $alreadyDropped = $alreadyDroppedFkByTable[$tableNameStr] ?? [];
                     foreach ($alterSqls as $sql) {
+                        if ($this->isDropForeignKeySqlForTableAndFk($sql, $tableNameStr, $alreadyDropped)) {
+                            continue;
+                        }
                         $sqls[] = $sql;
                     }
                 }
@@ -1242,6 +1253,32 @@ final class CreateTablesService
 
         return null;
         // @codeCoverageIgnoreEnd
+    }
+
+    /**
+     * Returns true if the SQL is a DROP FOREIGN KEY for the given table and one of the given FK names
+     * (used to skip duplicate DROP FOREIGN KEY when the FK was already emitted in Phase 1b).
+     *
+     * @param array<string, true> $alreadyDroppedFkNames map fkName => true
+     */
+    private function isDropForeignKeySqlForTableAndFk(string $sql, string $tableName, array $alreadyDroppedFkNames): bool
+    {
+        if ($alreadyDroppedFkNames === []) {
+            return false;
+        }
+        if (stripos($sql, 'DROP FOREIGN KEY') === false) {
+            return false;
+        }
+        if (stripos($sql, $tableName) === false) {
+            return false;
+        }
+        foreach (array_keys($alreadyDroppedFkNames) as $fkName) {
+            if (stripos($sql, $fkName) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function foreignKeyName(object $fk): string

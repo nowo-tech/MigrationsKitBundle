@@ -142,13 +142,18 @@ Array of associative arrays. Keys: **columns** (local columns), **foreign_table*
 
 **onDelete** and **onUpdate** (e.g. `'CASCADE'`, `'SET NULL'`, `'RESTRICT'`) are passed through to the platform; the generated `ALTER TABLE ... ADD CONSTRAINT` SQL will include `ON DELETE` and `ON UPDATE` clauses on MySQL/MariaDB and other platforms that support them. Example: `'onDelete' => 'SET NULL'` produces `... REFERENCES parent (id) ON DELETE SET NULL`. Demo migration Version20250223100003 and its validation (Version20250223100003_validation) demonstrate and verify this.
 
+**Constants:** Use **MigrationDefinitionKeys::ON_DELETE_*** and **ON_UPDATE_*** (e.g. `MDK::ON_DELETE_CASCADE`, `MDK::ON_DELETE_SET_NULL`, `MDK::ON_UPDATE_CASCADE`) instead of string literals for type safety and consistency. **MySQL (InnoDB):** CASCADE, SET NULL, RESTRICT and NO ACTION are supported and useful; SET DEFAULT is **not** supported by InnoDB—use SET NULL or RESTRICT instead.
+
 ```php
+use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+
 MDK::FOREIGN_KEYS => [
     [
         'columns'         => ['user_id'],
         'foreign_table'   => 'users',
         'foreign_columns' => ['id'],
-        'onDelete'        => 'SET NULL',
+        'onDelete'        => MDK::ON_DELETE_SET_NULL,
+        'onUpdate'        => MDK::ON_UPDATE_CASCADE,
         'name'            => 'fk_my_table_user',
     ],
 ]

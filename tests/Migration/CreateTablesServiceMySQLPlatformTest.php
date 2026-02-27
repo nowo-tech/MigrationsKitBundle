@@ -161,4 +161,41 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         $sql = implode(' ', $sqls);
         self::assertStringContainsString('ON DELETE SET NULL', $sql, 'FK with onDelete SET NULL must produce ON DELETE SET NULL in SQL');
     }
+
+    /**
+     * When the same table has DROP_FOREIGN_KEYS and DROP_COLUMNS (column referenced by that FK),
+     * the bundle must emit a single DROP FOREIGN KEY, not two (Phase 1b drops by name, Phase 2a
+     * would also drop it when preparing to drop the column; we skip the duplicate).
+     */
+    public function testApplyDropForeignKeyAndDropColumnSameTableNoDuplicateDropFk(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform();
+        $schema  = new Schema();
+        $schema->createTable('partners')->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $schema->getTable('partners')->setPrimaryKey(['id']);
+        $customers = $schema->createTable('customers');
+        $customers->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $customers->addColumn('partner_intervener_id', 'integer', ['notnull' => true]);
+        $customers->setPrimaryKey(['id']);
+        $customers->addForeignKeyConstraint('partners', ['partner_intervener_id'], ['id'], [], 'fk_customers_partner_intervener');
+        $customers->addIndex(['partner_intervener_id'], 'idx_customers_partner_intervener');
+
+        $def = [
+            MDK::TABLES => [
+                'customers' => [
+                    MDK::DROP_FOREIGN_KEYS => ['fk_customers_partner_intervener'],
+                    MDK::DROP_INDEXES     => ['idx_customers_partner_intervener'],
+                    MDK::DROP_COLUMNS     => ['partner_intervener_id'],
+                ],
+            ],
+        ];
+        $sqls = $service->apply($schema, $def);
+
+        $dropFkForThisTable = array_filter($sqls, static function (string $sql): bool {
+            return stripos($sql, 'DROP FOREIGN KEY') !== false
+                && stripos($sql, 'customers') !== false
+                && stripos($sql, 'fk_customers_partner_intervener') !== false;
+        });
+        self::assertCount(1, $dropFkForThisTable, 'Must emit exactly one DROP FOREIGN KEY for fk_customers_partner_intervener, not duplicate');
+    }
 }

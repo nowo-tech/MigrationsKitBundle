@@ -40,7 +40,7 @@ final class Version20250223100003 extends AbstractMigration
                             'columns'         => ['user_id'],
                             'foreign_table'   => KitUser::TABLE_NAME,
                             'foreign_columns' => ['id'],
-                            'onDelete'        => 'SET NULL',
+                            'onDelete'        => MDK::ON_DELETE_SET_NULL,
                         ],
                     ],
                 ],

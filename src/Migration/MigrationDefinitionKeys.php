@@ -58,27 +58,39 @@ final class MigrationDefinitionKeys
     /** Table definition: array of index definitions. e.g. [['columns'=>['c1'], 'name'=>'idx_c1'], ['columns'=>['email'], 'unique'=>true]]. */
     public const INDEXES = 'indexes';
 
-    // --- Foreign key referential actions (use as values for 'onDelete' / 'onUpdate' in FOREIGN_KEYS items) ---
+    /**
+     * Referential actions for foreign keys.
+     *
+     * Use these constants as values for 'onDelete' and 'onUpdate' in MDK::FOREIGN_KEYS items so the
+     * generated SQL includes ON DELETE / ON UPDATE clauses. Avoids typos and keeps values consistent.
+     *
+     * MySQL (InnoDB):
+     *   - CASCADE, SET NULL, RESTRICT, NO ACTION: supported and useful.
+     *   - SET DEFAULT: not supported by InnoDB; avoid on MySQL (use SET NULL or RESTRICT instead).
+     *
+     * @see FOREIGN_KEYS
+     * @see https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html
+     */
 
-    /** Value for onDelete/onUpdate: delete/update child rows when parent row is deleted/updated. */
+    /** Value for onDelete/onUpdate: delete/update child rows when parent row is deleted/updated. MySQL: supported. */
     public const ON_DELETE_CASCADE = 'CASCADE';
-    /** Value for onDelete: set referencing column to NULL when parent row is deleted (column must be nullable). */
+    /** Value for onDelete: set referencing column to NULL when parent row is deleted (column must be nullable). MySQL: supported. */
     public const ON_DELETE_SET_NULL = 'SET NULL';
-    /** Value for onDelete/onUpdate: prevent delete/update if rows reference the parent (default on many platforms). */
+    /** Value for onDelete/onUpdate: prevent delete/update if rows reference the parent (default on many platforms). MySQL: supported. */
     public const ON_DELETE_RESTRICT = 'RESTRICT';
-    /** Value for onDelete/onUpdate: no action (database-dependent; often same as RESTRICT). */
+    /** Value for onDelete/onUpdate: no action (in MySQL InnoDB same as RESTRICT). MySQL: supported. */
     public const ON_DELETE_NO_ACTION = 'NO ACTION';
-    /** Value for onDelete/onUpdate: set referencing column to its default when parent is deleted/updated. */
+    /** Value for onDelete/onUpdate: set referencing column to its default. MySQL InnoDB: not supported. */
     public const ON_DELETE_SET_DEFAULT = 'SET DEFAULT';
 
-    /** Value for onUpdate: when parent key is updated, update the referencing column to match. */
+    /** Value for onUpdate: when parent key is updated, update the referencing column to match. MySQL: supported. */
     public const ON_UPDATE_CASCADE = 'CASCADE';
-    /** Value for onUpdate: set referencing column to NULL when parent key is updated. */
+    /** Value for onUpdate: set referencing column to NULL when parent key is updated. MySQL: supported. */
     public const ON_UPDATE_SET_NULL = 'SET NULL';
-    /** Value for onUpdate: prevent update of parent key if rows reference it. */
+    /** Value for onUpdate: prevent update of parent key if rows reference it. MySQL: supported. */
     public const ON_UPDATE_RESTRICT = 'RESTRICT';
-    /** Value for onUpdate: no action. */
+    /** Value for onUpdate: no action (in MySQL InnoDB same as RESTRICT). MySQL: supported. */
     public const ON_UPDATE_NO_ACTION = 'NO ACTION';
-    /** Value for onUpdate: set referencing column to its default when parent key is updated. */
+    /** Value for onUpdate: set referencing column to its default. MySQL InnoDB: not supported. */
     public const ON_UPDATE_SET_DEFAULT = 'SET DEFAULT';
 }
