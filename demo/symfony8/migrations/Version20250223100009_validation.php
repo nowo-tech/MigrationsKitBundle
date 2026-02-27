@@ -8,6 +8,7 @@ use App\Entity\KitExample;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100009 — col_string_nullable modified (skip if kit_example dropped in 00004).
@@ -26,7 +27,7 @@ final class Version20250223100009_validation extends AbstractMigration
             return;
         }
         if (!$checker->columnExists(KitExample::TABLE_NAME, 'col_string_nullable')) {
-            throw new \RuntimeException('Validation failed: column col_string_nullable should exist on ' . KitExample::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: column col_string_nullable should exist on ' . KitExample::TABLE_NAME . '.');
         }
     }
 

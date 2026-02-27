@@ -1,14 +1,15 @@
 #!/usr/bin/env php
 <?php
 
+declare(strict_types=1);
+
 /**
  * Print demo migrations execution order and what each migration/validation does.
  * Run from project root: php scripts/list-migrations-order.php
- * Or: make list-migrations (from demo/symfony8 or demo/symfony7)
+ * Or: make list-migrations (from demo/symfony8 or demo/symfony7).
  *
  * @see docs/DEMO_MIGRATIONS_ORDER.md
  */
-
 $rows = [
     ['#', 'Version', 'Tipo', 'Acción / Validación'],
     ['1', '00000', 'Migración', 'Crear tabla kit_item (id, PK)'],
@@ -48,7 +49,7 @@ foreach ($rows[0] as $i => $_) {
     }, $rows));
 }
 
-$sep = '+' . implode('+', array_map(static fn ($w) => str_repeat('-', $w + 2), $widths)) . '+';
+$sep  = '+' . implode('+', array_map(static fn ($w) => str_repeat('-', $w + 2), $widths)) . '+';
 $line = static function (array $row) use ($widths) {
     return '| ' . implode(' | ', array_map(static function ($cell, $i) use ($widths) {
         return str_pad($cell, $widths[$i]);

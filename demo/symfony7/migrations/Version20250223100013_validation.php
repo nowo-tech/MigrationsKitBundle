@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100013 — kit_pk_demo has primary key on code (skip on SQLite).
@@ -28,7 +29,7 @@ final class Version20250223100013_validation extends AbstractMigration
         }
         $checker = new SchemaChecker($this->connection);
         if (!$checker->hasPrimaryKey(self::TABLE_NAME)) {
-            throw new \RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' should have a primary key on code.');
+            throw new RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' should have a primary key on code.');
         }
     }
 

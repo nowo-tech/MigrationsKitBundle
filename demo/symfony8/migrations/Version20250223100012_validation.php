@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100012 — primary key dropped on kit_pk_demo (skip on SQLite).
@@ -28,7 +29,7 @@ final class Version20250223100012_validation extends AbstractMigration
         }
         $checker = new SchemaChecker($this->connection);
         if ($checker->hasPrimaryKey(self::TABLE_NAME)) {
-            throw new \RuntimeException('Validation failed: primary key on ' . self::TABLE_NAME . ' should have been dropped.');
+            throw new RuntimeException('Validation failed: primary key on ' . self::TABLE_NAME . ' should have been dropped.');
         }
     }
 

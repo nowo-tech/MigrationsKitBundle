@@ -7,6 +7,7 @@ namespace DoctrineMigrations;
 use App\Entity\KitExample;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100010 — index on col_title and unique on col_guid in kit_example.
@@ -28,8 +29,8 @@ final class Version20250223100010_validation extends AbstractMigration
         if (!$checker->columnExists(KitExample::TABLE_NAME, 'col_title') || !$checker->columnExists(KitExample::TABLE_NAME, 'col_guid')) {
             return;
         }
-        $table   = $this->connection->createSchemaManager()->introspectTable(KitExample::TABLE_NAME);
-        $indexes = $table->getIndexes();
+        $table         = $this->connection->createSchemaManager()->introspectTable(KitExample::TABLE_NAME);
+        $indexes       = $table->getIndexes();
         $hasTitleIndex = false;
         $hasGuidUnique = false;
         foreach ($indexes as $index) {
@@ -42,10 +43,10 @@ final class Version20250223100010_validation extends AbstractMigration
             }
         }
         if (!$hasTitleIndex) {
-            throw new \RuntimeException('Validation failed: no index on col_title was found on ' . KitExample::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: no index on col_title was found on ' . KitExample::TABLE_NAME . '.');
         }
         if (!$hasGuidUnique) {
-            throw new \RuntimeException('Validation failed: no unique index on col_guid was found on ' . KitExample::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: no unique index on col_guid was found on ' . KitExample::TABLE_NAME . '.');
         }
     }
 

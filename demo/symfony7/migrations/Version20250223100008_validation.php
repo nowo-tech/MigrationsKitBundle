@@ -8,6 +8,7 @@ use App\Entity\KitExample;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100008 — col_string renamed to col_title in kit_example (skip if table dropped in 00004).
@@ -26,10 +27,10 @@ final class Version20250223100008_validation extends AbstractMigration
             return;
         }
         if (!$checker->columnExists(KitExample::TABLE_NAME, 'col_title')) {
-            throw new \RuntimeException('Validation failed: column col_title was not created on ' . KitExample::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: column col_title was not created on ' . KitExample::TABLE_NAME . '.');
         }
         if ($checker->columnExists(KitExample::TABLE_NAME, 'col_string')) {
-            throw new \RuntimeException('Validation failed: column col_string should have been renamed to col_title on ' . KitExample::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: column col_string should have been renamed to col_title on ' . KitExample::TABLE_NAME . '.');
         }
     }
 

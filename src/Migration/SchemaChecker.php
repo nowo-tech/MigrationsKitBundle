@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Throwable;
 
-use function is_object;
 use function strlen;
 
 /**

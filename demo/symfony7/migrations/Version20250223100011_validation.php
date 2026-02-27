@@ -7,6 +7,7 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100011 — kit_pk_demo created with id, code and PK.
@@ -24,13 +25,13 @@ final class Version20250223100011_validation extends AbstractMigration
     {
         $checker = new SchemaChecker($this->connection);
         if (!$checker->tableExists(self::TABLE_NAME)) {
-            throw new \RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' was not created.');
+            throw new RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' was not created.');
         }
         if (!$checker->columnExists(self::TABLE_NAME, 'id') || !$checker->columnExists(self::TABLE_NAME, 'code')) {
-            throw new \RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' must have columns id and code.');
+            throw new RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' must have columns id and code.');
         }
         if (!$checker->hasPrimaryKey(self::TABLE_NAME)) {
-            throw new \RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' has no primary key.');
+            throw new RuntimeException('Validation failed: table ' . self::TABLE_NAME . ' has no primary key.');
         }
     }
 

@@ -8,6 +8,7 @@ use App\Entity\KitItem;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100007 — user_id column dropped from kit_item.
@@ -23,7 +24,7 @@ final class Version20250223100007_validation extends AbstractMigration
     {
         $checker = new SchemaChecker($this->connection);
         if ($checker->columnExists(KitItem::TABLE_NAME, 'user_id')) {
-            throw new \RuntimeException('Validation failed: column user_id should have been dropped from ' . KitItem::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: column user_id should have been dropped from ' . KitItem::TABLE_NAME . '.');
         }
     }
 

@@ -9,6 +9,7 @@ use App\Entity\KitUser;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100002 — kit_user exists and kit_item has user_id (skip if dropped later).
@@ -27,7 +28,7 @@ final class Version20250223100002_validation extends AbstractMigration
             return;
         }
         if (!$checker->columnExists(KitItem::TABLE_NAME, 'user_id')) {
-            throw new \RuntimeException('Validation failed: column user_id was not added to ' . KitItem::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: column user_id was not added to ' . KitItem::TABLE_NAME . '.');
         }
     }
 

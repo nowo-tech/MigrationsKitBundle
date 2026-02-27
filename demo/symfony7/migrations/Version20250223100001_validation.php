@@ -8,6 +8,7 @@ use App\Entity\KitExample;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use RuntimeException;
 
 /**
  * Validation: Version20250223100001 — kit_example exists with id and PK (skip if dropped later in 00004).
@@ -26,10 +27,10 @@ final class Version20250223100001_validation extends AbstractMigration
             return;
         }
         if (!$checker->columnExists(KitExample::TABLE_NAME, 'id')) {
-            throw new \RuntimeException('Validation failed: column id does not exist on ' . KitExample::TABLE_NAME . '.');
+            throw new RuntimeException('Validation failed: column id does not exist on ' . KitExample::TABLE_NAME . '.');
         }
         if (!$checker->hasPrimaryKey(KitExample::TABLE_NAME)) {
-            throw new \RuntimeException('Validation failed: ' . KitExample::TABLE_NAME . ' has no primary key.');
+            throw new RuntimeException('Validation failed: ' . KitExample::TABLE_NAME . ' has no primary key.');
         }
     }
 
