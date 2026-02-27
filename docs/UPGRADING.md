@@ -31,6 +31,15 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.5
+
+- **No breaking changes.** This release standardises DROP FOREIGN KEY output and adds a demo target for generating MySQL SQL without executing.
+- **CreateTablesService:** DROP FOREIGN KEY statements are now always generated in canonical form (no backticks), e.g. `ALTER TABLE customers DROP FOREIGN KEY FK_xxx`. If you compared or parsed generated SQL by string, the format is now consistent.
+- **Demos:** New Make target `test-mysql-write-sql` writes migration SQL to `var/migration_mysql.sql` without running it (useful to inspect MySQL output). Run from `demo/symfony7` or `demo/symfony8`.
+- Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
+
+---
+
 ## Upgrading to 2.0.4
 
 - **No breaking changes.** This release fixes foreign key options (onDelete/onUpdate) in generated SQL, avoids duplicate DROP FOREIGN KEY statements, and improves compatibility with Doctrine deprecations.

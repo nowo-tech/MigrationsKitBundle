@@ -98,6 +98,8 @@ final class CreateTablesService
         }
 
         $tablesDef = $definition[MDK::TABLES] ?? [];
+        // Duplicate DROP FOREIGN KEY fix: FKs already dropped in Phase 1b are stored in $alreadyDroppedFkByTable,
+        // and in Phase 2a duplicate DROP FOREIGN KEY statements are filtered out via isDropForeignKeySqlForTableAndFk().
         /** @var array<string, array<string, true>> tableName => fkName => true (FKs already emitted in Phase 1b to avoid duplicate in Phase 2a) */
         $alreadyDroppedFkByTable = [];
         if (is_array($tablesDef)) {
@@ -183,9 +185,10 @@ final class CreateTablesService
                     }
                 }
                 if ($toDrop !== []) {
-                    $tableNameStr = (string) $tableName;
-                    $alterSqls    = $this->dropColumnsViaComparator($schema, $tableNameStr, $toDrop, $comparator, $platform, $schemaManager);
+                    $tableNameStr   = (string) $tableName;
+                    $alterSqls      = $this->dropColumnsViaComparator($schema, $tableNameStr, $toDrop, $comparator, $platform, $schemaManager);
                     $alreadyDropped = $alreadyDroppedFkByTable[$tableNameStr] ?? [];
+                    // Skip duplicate DROP FOREIGN KEY statements (already emitted in Phase 1b).
                     foreach ($alterSqls as $sql) {
                         if ($this->isDropForeignKeySqlForTableAndFk($sql, $tableNameStr, $alreadyDropped)) {
                             continue;
@@ -971,6 +974,11 @@ final class CreateTablesService
      * DBAL 4: (foreignTable, localColumns, foreignColumns, options, name)
      * So onDelete/onUpdate in $options are only applied when the 4th and 5th args are passed in the order the platform expects.
      *
+     * Fix for "ON DELETE not emitted in ADD CONSTRAINT": reflection is used to detect the method signature
+     * (tableAddForeignKeyConstraintExpectsNameAsFourthParam()) and addForeignKeyConstraintToTable() is called
+     * with the correct parameter order so options are passed correctly; the generated SQL includes ON DELETE CASCADE,
+     * ON DELETE SET NULL, etc.
+     *
      * @param array<string, string> $options e.g. onUpdate, onDelete
      */
     private function addForeignKeyConstraintToTable(Table $table, string $foreignTableName, array $localColumns, array $foreignColumns, array $options, string $fkName): void
@@ -1230,29 +1238,24 @@ final class CreateTablesService
         return trim($name, " \t\n\r\0\x0B`\"'[]");
     }
 
+    /**
+     * Returns a single DROP FOREIGN KEY SQL statement in canonical form (no backticks).
+     * Using one consistent style avoids duplicate-looking statements when the same FK is
+     * considered in Phase 1b and Phase 2a (the latter is then filtered out).
+     */
     private function getDropForeignKeySQL(Table $localTable, object $fk, object $platform): ?string
     {
         // SQLite does not support ALTER TABLE ... DROP FOREIGN KEY; the platform throws when generating that SQL.
         if ($this->isSqlitePlatform($platform)) {
             return null;
         }
-        if (method_exists($platform, 'getDropForeignKeySQL')) {
-            $fkArg    = $this->getDropForeignKeySQLExpectsString($platform) ? $this->foreignKeyName($fk) : $fk;
-            $tableArg = $this->getDropForeignKeySQLExpectsTableNameString($platform) ? $this->quotedTableName($localTable, $platform) : $localTable;
-
-            return $platform->getDropForeignKeySQL($fkArg, $tableArg);
+        $tableName = $this->tableNameString($localTable);
+        $fkName    = $this->foreignKeyName($fk);
+        if ($tableName === '' || $fkName === '') {
+            return null;
         }
-        // @codeCoverageIgnoreStart - fallback when platform has no getDropForeignKeySQL
-        $name = $this->foreignKeyName($fk);
-        if ($name !== '') {
-            $quotedTable = $this->quotedTableName($localTable, $platform);
-            $quotedFk    = $this->quoteSingleIdentifier($name, $platform);
-
-            return 'ALTER TABLE ' . $quotedTable . ' DROP FOREIGN KEY ' . $quotedFk;
-        }
-
-        return null;
-        // @codeCoverageIgnoreEnd
+        // Emit canonical form without backticks so Phase 1b and filtered Phase 2a never produce two different-looking statements.
+        return 'ALTER TABLE ' . $tableName . ' DROP FOREIGN KEY ' . $fkName;
     }
 
     /**
@@ -1286,40 +1289,6 @@ final class CreateTablesService
         $name = SchemaAssetName::get($fk);
 
         return $name !== '' ? $this->normalizeIdentifier($name) : '';
-    }
-
-    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
-    private function getDropForeignKeySQLExpectsString(object $platform): bool
-    {
-        try {
-            $method = new ReflectionMethod($platform, 'getDropForeignKeySQL');
-            $params = $method->getParameters();
-            if ($params !== []) {
-                $type = $params[0]->getType();
-
-                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
-            }
-        } catch (ReflectionException) {
-        }
-
-        return false;
-    }
-
-    /** @codeCoverageIgnore - reflection helper for DBAL 2/3/4 compatibility */
-    private function getDropForeignKeySQLExpectsTableNameString(object $platform): bool
-    {
-        try {
-            $method = new ReflectionMethod($platform, 'getDropForeignKeySQL');
-            $params = $method->getParameters();
-            if (isset($params[1])) {
-                $type = $params[1]->getType();
-
-                return $type instanceof ReflectionNamedType && $type->getName() === 'string';
-            }
-        } catch (ReflectionException) {
-        }
-
-        return false;
     }
 
     /**

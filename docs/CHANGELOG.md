@@ -21,6 +21,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.5] - 2025-02-27
+
+### Added
+
+- **Demo Makefiles** — New target `test-mysql-write-sql`: same flow as `test-mysql` (update-bundle + db-reset-mysql) but runs `doctrine:migrations:migrate --write-sql=var/migration_mysql.sql` so the generated MySQL SQL is written to a file without executing. Available in `demo/symfony7` and `demo/symfony8`.
+- **Documentation** — [BUGREPORT_DUPLICATE_DROP_FK_AND_ON_DELETE.md](BUGREPORT_DUPLICATE_DROP_FK_AND_ON_DELETE.md): resolution of the duplicate DROP FOREIGN KEY and missing ON DELETE issues (fixed in 2.0.4), with code and test references. Linked from README documentation table.
+
+### Changed
+
+- **CreateTablesService::getDropForeignKeySQL()** — DROP FOREIGN KEY SQL is now always emitted in **canonical form (no backticks)**: `ALTER TABLE tablename DROP FOREIGN KEY fkname`. The bundle no longer calls the platform’s `getDropForeignKeySQL()`, so the same style is used everywhere and duplicate-looking statements (e.g. one line with backticks on the table, another with backticks on the FK) are avoided when Phase 2a output is filtered.
+
+### Removed
+
+- **CreateTablesService** — Removed unused reflection helpers `getDropForeignKeySQLExpectsString()` and `getDropForeignKeySQLExpectsTableNameString()` (no longer needed after generating DROP FOREIGN KEY in canonical form).
+
+---
+
 ## [2.0.4] - 2025-02-27
 
 ### Added

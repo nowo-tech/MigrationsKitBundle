@@ -1,8 +1,8 @@
 # Release process
 
-## Release v2.0.4 (ready)
+## Release v2.0.5 (ready)
 
-Documentation and changelog are prepared for **v2.0.4**. Before tagging, ensure the lock file is valid:
+Documentation and changelog are prepared for **v2.0.5**. Before tagging, ensure the lock file is valid:
 
 1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
    ```bash
@@ -18,13 +18,13 @@ Documentation and changelog are prepared for **v2.0.4**. Before tagging, ensure 
 3. **Commit, push, and tag**:
    ```bash
    git add -A
-   git commit -m "Prepare v2.0.4 release"
+   git commit -m "Prepare v2.0.5 release"
    git push origin master
-   git tag -a v2.0.4 -m "Release v2.0.4"
-   git push origin v2.0.4
+   git tag -a v2.0.5 -m "Release v2.0.5"
+   git push origin v2.0.5
    ```
 
-4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.4` and paste the [2.0.4] section from [CHANGELOG.md](CHANGELOG.md).
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.5` and paste the [2.0.5] section from [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -58,6 +58,13 @@ Documentation and changelog are prepared for **v2.0.4**. Before tagging, ensure 
 
 - Keep `## [Unreleased]` at the top of [CHANGELOG.md](CHANGELOG.md) for the next version; add new changes there.
 - Optionally bump a dev version in `composer.json` for development.
+
+---
+
+## v2.0.5 (2025-02-27)
+
+- **Scope:** DROP FOREIGN KEY in canonical form (no backticks); demo target `test-mysql-write-sql`; BUGREPORT_DUPLICATE_DROP_FK_AND_ON_DELETE.md; removed unused reflection helpers for getDropForeignKeySQL.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.5.
 
 ---
 

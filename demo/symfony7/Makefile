@@ -7,7 +7,7 @@ SERVICE_PHP := php
 
 DATABASE_URL_MYSQL := mysql://app:app@mysql:3306/demo
 
-.PHONY: help up down build install lock shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql write-sql-reference-mysql db-reset cache-clear update-bundle ensure-up test test-coverage check-pdo-mysql up-mysql db-reset-mysql migrate-mysql test-mysql list-migrations
+.PHONY: help up down build install lock shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql write-sql-reference-mysql db-reset cache-clear update-bundle ensure-up test test-coverage check-pdo-mysql up-mysql db-reset-mysql migrate-mysql test-mysql test-mysql-write-sql list-migrations
 
 help:
 	@echo "Migrations Kit Bundle Demo - Symfony 7"
@@ -27,6 +27,7 @@ help:
 	@echo "  make db-reset-mysql    Drop and recreate MySQL database (fresh for migrate-mysql)"
 	@echo "  make migrate-mysql     Run migrations against MySQL 8"
 	@echo "  make test-mysql        update-bundle + db-reset-mysql + migrate-mysql (one command)"
+	@echo "  make test-mysql-write-sql  Same as test-mysql but with --write-sql (generates var/migration_mysql.sql, does not execute)"
 	@echo "  make setup             install + migrate"
 	@echo "  make shell             Open shell in PHP container"
 	@echo "  make logs              Show container logs"
@@ -160,6 +161,17 @@ migrate-mysql: ensure-up check-pdo-mysql
 
 test-mysql: update-bundle db-reset-mysql migrate-mysql
 	@echo "MySQL test run complete."
+
+test-mysql-write-sql: update-bundle db-reset-mysql
+	$(COMPOSE) up -d mysql
+	@echo "Waiting for MySQL 8..."
+	@for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do \
+		if $(COMPOSE) exec -T mysql mysqladmin ping -h localhost -u root -proot 2>/dev/null; then break; fi; \
+		if [ $$i -eq 20 ]; then echo "MySQL not ready."; exit 1; fi; \
+		sleep 3; \
+	done
+	$(COMPOSE) exec -T -e DATABASE_URL="$(DATABASE_URL_MYSQL)" $(SERVICE_PHP) sh -c 'mkdir -p var && php -d memory_limit=256M scripts/ensure-database.php 2>/dev/null; php -d memory_limit=256M bin/console doctrine:migrations:migrate --no-interaction --write-sql'
+	@echo "MySQL migration SQL written to var/migration_mysql.sql (not executed)."
 
 setup: install migrate
 	@echo "Demo ready. Tables created in var/data.db"
