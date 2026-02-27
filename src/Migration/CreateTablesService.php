@@ -1254,6 +1254,7 @@ final class CreateTablesService
         if ($tableName === '' || $fkName === '') {
             return null;
         }
+
         // Emit canonical form without backticks so Phase 1b and filtered Phase 2a never produce two different-looking statements.
         return 'ALTER TABLE ' . $tableName . ' DROP FOREIGN KEY ' . $fkName;
     }
