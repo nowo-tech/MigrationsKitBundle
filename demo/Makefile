@@ -52,6 +52,12 @@ migrate-all:
 clean-all:
 	@for d in $(DEMOS); do rm -rf $$d/vendor $$d/var; echo "Cleaned $$d"; done
 
+test-coverage-all:
+	@for d in $(DEMOS); do $(MAKE) -C $$d test-coverage || exit 1; done
+	@echo "test-coverage-all done."
+release-check: test-coverage-all release-verify
+	@echo "All demos passed release-check."
+
 release-verify:
 	@for d in $(DEMOS); do \
 		port=$$(grep '^PORT=' $$d/.env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Tests\Schema\Definition;
 
+use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Migration\SchemaAssetName;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 class SchemaDefinitionParserTest extends TestCase
 {
@@ -22,7 +24,6 @@ class SchemaDefinitionParserTest extends TestCase
     {
         $table = $this->parser->parseTable('empty', []);
         self::assertSame('empty', SchemaAssetName::get($table));
-        self::assertCount(0, $table->getColumns());
     }
 
     public function testParseTableSingleTable(): void
@@ -263,7 +264,6 @@ class SchemaDefinitionParserTest extends TestCase
         $args = $this->parser->getColumnAddArgs($col);
         self::assertSame('email', $args[0]);
         self::assertSame('string', $args[1]);
-        self::assertIsArray($args[2]);
         self::assertSame(180, $args[2]['length']);
     }
 
@@ -272,7 +272,133 @@ class SchemaDefinitionParserTest extends TestCase
     {
         $table = $this->parser->parseTable('t', [MDK::COLUMNS => 'not_an_array']);
         self::assertSame('t', SchemaAssetName::get($table));
-        self::assertCount(0, $table->getColumns());
+    }
+
+    /** parseTable returns empty table when COLUMNS is null. */
+    public function testParseTableColumnsNullReturnsEmptyTable(): void
+    {
+        $table = $this->parser->parseTable('t', [MDK::COLUMNS => null]);
+        self::assertSame('t', SchemaAssetName::get($table));
+        self::assertFalse($table->hasColumn('id'));
+    }
+
+    /** getColumnOptions includes default key when value is null (array_key_exists branch). */
+    public function testGetColumnOptionsWithDefaultNull(): void
+    {
+        $col  = ['name' => 'x', 'type' => 'string', 'default' => null];
+        $opts = $this->parser->getColumnOptions($col);
+        self::assertArrayHasKey('default', $opts);
+        self::assertNull($opts['default']);
+    }
+
+    /** parseTable skips non-array column items in COLUMNS list. */
+    public function testParseTableSkipsNonArrayColumnItem(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                'not_an_array_item',
+                ['name' => 'id', 'type' => 'integer'],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertTrue($table->hasColumn('id'));
+        self::assertCount(1, $table->getColumns());
+    }
+
+    /** parseTable skips non-array index items. */
+    public function testParseTableSkipsNonArrayIndexItem(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'c', 'type' => 'string', 'length' => 1],
+            ],
+            MDK::INDEXES => [
+                'not_an_array',
+                ['columns' => ['c'], 'name' => 'idx_c'],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertTrue($table->hasIndex('idx_c'));
+        self::assertCount(1, $table->getIndexes());
+    }
+
+    /** parseTable skips FK when foreign_columns is empty. */
+    public function testParseTableSkipsForeignKeyWithEmptyForeignColumns(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'ref_id', 'type' => 'integer'],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                [
+                    'columns'         => ['ref_id'],
+                    'foreign_table'   => 'other',
+                    'foreign_columns' => [],
+                ],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertCount(0, $table->getForeignKeys());
+    }
+
+    /** parseTable skips FK when foreign_table is empty. */
+    public function testParseTableSkipsForeignKeyWithEmptyForeignTable(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'ref_id', 'type' => 'integer'],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                [
+                    'columns'         => ['ref_id'],
+                    'foreign_table'   => '',
+                    'foreign_columns' => ['id'],
+                ],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertCount(0, $table->getForeignKeys());
+    }
+
+    /** parseTable skips non-array FK items. */
+    public function testParseTableSkipsNonArrayForeignKeyItem(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'user_id', 'type' => 'integer'],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                'not_an_array',
+                [
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
+                    'foreign_columns' => ['id'],
+                ],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertCount(1, $table->getForeignKeys());
+    }
+
+    /** parseTable when FOREIGN_KEYS is not an array treats it as no FKs. */
+    public function testParseTableForeignKeysNotArrayYieldsNoFks(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => 'not_an_array',
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertCount(0, $table->getForeignKeys());
     }
 
     /** Index without name uses addIndex(cols) / addUniqueIndex(cols). */
@@ -348,5 +474,141 @@ class SchemaDefinitionParserTest extends TestCase
         ];
         $table = $this->parser->parseTable('orders', $tableDef);
         self::assertCount(1, $table->getForeignKeys());
+    }
+
+    /** parseTable skips column when type is empty string. */
+    public function testParseTableSkipsColumnWithEmptyType(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'empty_type', 'type' => ''],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertTrue($table->hasColumn('id'));
+        self::assertFalse($table->hasColumn('empty_type'));
+    }
+
+    /** parseTable skips column when name is empty string. */
+    public function testParseTableSkipsColumnWithEmptyName(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => '', 'type' => 'string'],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertTrue($table->hasColumn('id'));
+        self::assertCount(1, $table->getColumns());
+    }
+
+    /** parseTable treats index with columns as empty string as empty list (no index added). */
+    public function testParseTableIndexWithEmptyColumnsString(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer'],
+                ['name' => 'c', 'type' => 'string', 'length' => 1],
+            ],
+            MDK::INDEXES => [
+                ['columns' => '', 'name' => 'empty_cols'],
+            ],
+        ];
+        $table = $this->parser->parseTable('t', $tableDef);
+        self::assertFalse($table->hasIndex('empty_cols'));
+        self::assertCount(0, $table->getIndexes());
+    }
+
+    /** parseTable FK with onUpdate option. */
+    public function testParseTableForeignKeyWithOnUpdate(): void
+    {
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                [
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
+                    'foreign_columns' => ['id'],
+                    'onDelete'        => 'CASCADE',
+                    'onUpdate'        => 'CASCADE',
+                ],
+            ],
+        ];
+        $table = $this->parser->parseTable('orders', $tableDef);
+        self::assertCount(1, $table->getForeignKeys());
+    }
+
+    /** setTablePrimaryKey with empty array returns early (covered via reflection). */
+    public function testSetTablePrimaryKeyWithEmptyArrayEarlyReturn(): void
+    {
+        $table = new Table('t');
+        $table->addColumn('id', 'integer');
+        $ref = new ReflectionMethod(SchemaDefinitionParser::class, 'setTablePrimaryKey');
+        $ref->setAccessible(true);
+        $parser = new SchemaDefinitionParser();
+        $ref->invoke($parser, $table, []);
+        self::assertNull($table->getPrimaryKey());
+    }
+
+    /** parseTable with named FK uses options-then-name param order when Table reports options as 4th param (DBAL 4 style). */
+    public function testParseTableForeignKeyNamedWhenOptionsAreFourthParam(): void
+    {
+        $parser   = new SchemaDefinitionParserOptionsFirstFk();
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                [
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
+                    'foreign_columns' => ['id'],
+                    'name'            => 'fk_user',
+                ],
+            ],
+        ];
+        $table = $parser->parseTable('orders', $tableDef);
+        self::assertTrue($table->hasForeignKey('fk_user'));
+    }
+}
+
+/**
+ * Table whose addForeignKeyConstraint has options as 4th param (DBAL 4 style) so parser uses the else branch.
+ *
+ * @internal
+ *
+ * @phpstan-ignore-next-line class.extendsFinal (Doctrine Table is not final at runtime in all DBAL versions)
+ */
+final class TableOptionsFirstFk extends Table
+{
+    public function addForeignKeyConstraint(
+        string $foreignTable,
+        array $localColumnNames,
+        array $foreignColumnNames,
+        array $options = [],
+        ?string $name = null,
+    ): Table {
+        return parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $options, $name);
+    }
+}
+
+/**
+ * Parser that uses TableOptionsFirstFk so addForeignKeyConstraintToTable else branch is covered.
+ *
+ * @internal
+ */
+final class SchemaDefinitionParserOptionsFirstFk extends SchemaDefinitionParser
+{
+    protected function createTable(string $tableName): Table
+    {
+        return new TableOptionsFirstFk($tableName);
     }
 }

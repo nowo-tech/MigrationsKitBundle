@@ -1,11 +1,24 @@
-/vendor/
-.phpunit.cache/
-coverage/
-coverage.xml
-.php-cs-fixer.cache
+# Dependencies
+/vendor
+
+# Environment and secrets
 .env
 .env.local
-demo/symfony7/vendor/
-demo/symfony7/var/
-demo/symfony8/vendor/
-demo/symfony8/var/
+.env.*.local
+
+# Test coverage
+/coverage
+/coverage.xml
+
+# PHP tool caches
+/.php-cs-fixer.cache
+/.phpunit.cache
+/.phpunit.result.cache
+
+# Archives / compressed
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

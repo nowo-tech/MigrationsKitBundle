@@ -191,11 +191,9 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         ];
         $sqls = $service->apply($schema, $def);
 
-        $dropFkForThisTable = array_filter($sqls, static function (string $sql): bool {
-            return stripos($sql, 'DROP FOREIGN KEY') !== false
-                && stripos($sql, 'customers') !== false
-                && stripos($sql, 'fk_customers_partner_intervener') !== false;
-        });
+        $dropFkForThisTable = array_filter($sqls, static fn (string $sql): bool => stripos($sql, 'DROP FOREIGN KEY') !== false
+            && stripos($sql, 'customers') !== false
+            && stripos($sql, 'fk_customers_partner_intervener') !== false);
         self::assertCount(1, $dropFkForThisTable, 'Must emit exactly one DROP FOREIGN KEY for fk_customers_partner_intervener, not duplicate');
     }
 

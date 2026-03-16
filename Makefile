@@ -9,45 +9,46 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync
+.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync rector rector-dry phpstan
 .PHONY: demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony7 demo-migrate-symfony8
-.PHONY: up down up-symfony7 up-symfony8 build shell demo-install
+.PHONY: up down up-symfony7 up-symfony8 build shell demo-install demo-down
 
 # Default target
 help:
 	@echo "Migrations Kit Bundle - Development Commands (Docker)"
 	@echo ""
 	@echo "Usage: make <target>"
-	@echo "  Development targets run inside the container."
 	@echo ""
 	@echo "Targets:"
-	@echo "  install       Install Composer dependencies"
-	@echo "  test          Run PHPUnit tests"
-	@echo "  test-coverage Run tests with code coverage (PCOV in container)"
-	@echo "  cs-check      Check code style (PHP-CS-Fixer)"
-	@echo "  cs-fix        Fix code style"
-	@echo "  qa            Run all QA (cs-check + test)"
-	@echo "  release-check Pre-release: cs-fix, cs-check, test-coverage, demo healthchecks"
-	@echo "  composer-sync Validate composer.json and align composer.lock (no install)"
-	@echo "  clean         Remove vendor, cache, coverage"
-	@echo "  update        Update composer.lock (composer update)"
-	@echo "  validate      Run composer validate --strict"
-	@echo "  assets        No frontend assets in this bundle (no-op)"
+	@echo "  up             Start root container (docker-compose at bundle root)"
+	@echo "  down           Stop root container"
+	@echo "  build          Rebuild root Docker image (no cache)"
+	@echo "  shell          Open shell in root container"
+	@echo "  install        Install Composer dependencies"
+	@echo "  assets         No frontend assets in this bundle (no-op)"
+	@echo "  test           Run PHPUnit tests"
+	@echo "  test-coverage  Run tests with code coverage (PCOV in container)"
+	@echo "  cs-check       Check code style (PHP-CS-Fixer)"
+	@echo "  cs-fix         Fix code style"
+	@echo "  rector         Apply Rector refactoring"
+	@echo "  rector-dry     Run Rector in dry-run mode"
+	@echo "  phpstan        Run PHPStan static analysis"
+	@echo "  qa             Run all QA (cs-check + test)"
+	@echo "  release-check  Pre-release: cs-fix, cs-check, rector-dry, phpstan, test-coverage, demo healthchecks"
+	@echo "  composer-sync  Validate composer.json and align composer.lock (no install)"
+	@echo "  clean          Remove vendor, cache, coverage"
+	@echo "  update         Update composer.lock (composer update)"
+	@echo "  validate       Run composer validate --strict"
 	@echo ""
-	@echo "Demos (run from bundle root; demos use path repo ../..):"
+	@echo "Demos:"
+	@echo "  demo-install   Install Composer dependencies in demo"
 	@echo "  demo-up-symfony7   Install deps in demo/symfony7"
 	@echo "  demo-up-symfony8   Install deps in demo/symfony8"
-	@echo "  demo-migrate-symfony7  Run migrations in demo/symfony7"
-	@echo "  demo-migrate-symfony8  Run migrations in demo/symfony8"
-	@echo ""
-	@echo "Demos with Docker (FrankenPHP):"
-	@echo "  up             Start demo symfony8 (http://localhost:8008)"
-	@echo "  down           Stop demo containers"
 	@echo "  up-symfony7    Start demo symfony7 (http://localhost:8007)"
 	@echo "  up-symfony8    Start demo symfony8 (http://localhost:8008)"
-	@echo "  build          Rebuild Docker image (no cache)"
-	@echo "  shell          Open shell in container"
-	@echo "  demo-install   Install Composer dependencies"
+	@echo "  demo-migrate-symfony7  Run migrations in demo/symfony7"
+	@echo "  demo-migrate-symfony8  Run migrations in demo/symfony8"
+	@echo "  demo-down      Stop demo containers"
 	@echo ""
 
 # Ensure the container is up; if not, start docker compose
@@ -61,11 +62,13 @@ ensure-up:
 install: ensure-up
 	$(RUN) composer install
 
+# Run tests (no -T so TTY is allocated and PHPUnit can show colors in console)
 test: install
-	$(RUN) composer test
+	$(COMPOSE) exec $(SERVICE_PHP) composer test
 
+# Run tests with coverage (no -T so coverage is shown in console with colors)
 test-coverage: install
-	$(RUN) composer test-coverage
+	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage
 
 cs-check: install
 	$(RUN) composer cs-check
@@ -73,13 +76,22 @@ cs-check: install
 cs-fix: install
 	$(RUN) composer cs-fix
 
+rector: install
+	$(RUN) composer rector
+
+rector-dry: install
+	$(RUN) composer rector-dry
+
+phpstan: install
+	$(RUN) composer phpstan
+
 qa: install
 	$(RUN) composer qa
 
-release-check: ensure-up composer-sync cs-fix cs-check test-coverage release-check-demos
+release-check: ensure-up composer-sync cs-fix cs-check rector-dry phpstan test-coverage release-check-demos
 
 release-check-demos:
-	@$(MAKE) -C demo release-verify
+	@$(MAKE) -C demo release-check
 
 composer-sync: ensure-up
 	$(RUN) composer update --no-install
@@ -115,23 +127,33 @@ demo-migrate-symfony7:
 demo-migrate-symfony8:
 	cd demo/symfony8 && mkdir -p var && $(COMPOSER) migrate
 
-# Demo con Docker (FrankenPHP)
-up: up-symfony8
+# Root docker-compose (bundle dev: install, test, cs-check, etc.)
+up:
+	$(COMPOSE) build
+	$(COMPOSE) up -d
+	@echo "Installing dependencies..."
+	@sleep 2
+	$(RUN) composer install --no-interaction
+	@echo "✅ Root container ready!"
 
 down:
-	$(MAKE) -C demo/symfony8 down
+	$(COMPOSE) down
 
+shell:
+	$(COMPOSE) exec $(SERVICE_PHP) sh
+
+build:
+	$(COMPOSE) build --no-cache
+
+# Demo con Docker (FrankenPHP)
 up-symfony7:
 	$(MAKE) -C demo/symfony7 up
 
 up-symfony8:
 	$(MAKE) -C demo/symfony8 up
 
-build:
-	$(MAKE) -C demo/symfony8 build
-
-shell:
-	$(MAKE) -C demo/symfony8 shell
+demo-down:
+	$(MAKE) -C demo/symfony8 down
 
 demo-install:
 	$(MAKE) -C demo/symfony8 install

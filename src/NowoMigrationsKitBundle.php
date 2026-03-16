@@ -26,6 +26,10 @@ class NowoMigrationsKitBundle extends Bundle
      */
     public function getContainerExtension(): ?ExtensionInterface
     {
-        return $this->extension ??= new MigrationsKitExtension();
+        if ($this->extension === null) {
+            $this->extension = new MigrationsKitExtension();
+        }
+
+        return $this->extension instanceof ExtensionInterface ? $this->extension : null;
     }
 }

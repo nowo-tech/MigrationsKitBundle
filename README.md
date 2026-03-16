@@ -104,22 +104,25 @@ More examples: [docs/USAGE.md](docs/USAGE.md) and [docs/EXAMPLE.md](docs/EXAMPLE
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [**Installation**](docs/INSTALLATION.md) | Requirements, Flex and manual install |
-| [**Configuration**](docs/CONFIGURATION.md) | All options and defaults |
-| [**Usage**](docs/USAGE.md) | SchemaChecker, CreateTablesService, MDK, **rename column that has index**, viewing SQL before running |
-| [**Example**](docs/EXAMPLE.md) | Full migration examples |
-| [**Declarative schema**](docs/DECLARATIVE_SCHEMA.md) | Definition format (MDK) and apply() |
-| [**Demo migrations reference**](docs/DEMO_MIGRATIONS_REFERENCE.md) | Use cases matrix, expected SQL per migration, safety, `make write-sql-reference-mysql` |
-| [**Demo**](demo/README.md) | Run demos (Symfony 7/8), Make targets, **field dictionary** (AuditFields), **MySQL 8** ([symfony8/docs/MIGRATIONS_MYSQL.md](demo/symfony8/docs/MIGRATIONS_MYSQL.md)) |
-| [**Flow diagrams**](docs/FLOWCHARTS.md) | Mermaid flowcharts: apply() flow, checks, DBAL API per scenario |
-| [**Changelog**](docs/CHANGELOG.md) | Version history |
-| [**Upgrading**](docs/UPGRADING.md) | Upgrade notes between versions |
-| [**Roadmap**](docs/ROADMAP.md) | Vision and future ideas |
-| [**Security**](docs/SECURITY.md) | Reporting vulnerabilities |
-| [**Contributing**](docs/CONTRIBUTING.md) | How to contribute and code style |
-| [**Release**](docs/RELEASE.md) | Release checklist (for maintainers) |
+- [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md)
+- [Installation](docs/INSTALLATION.md)
+- [Configuration](docs/CONFIGURATION.md)
+- [Usage](docs/USAGE.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Upgrading](docs/UPGRADING.md)
+- [Release](docs/RELEASE.md)
+- [Security](docs/SECURITY.md)
+- [Engram](docs/ENGRAM.md)
+- [Roadmap](docs/ROADMAP.md)
+
+### Additional documentation
+
+- [Example](docs/EXAMPLE.md)
+- [Declarative schema](docs/DECLARATIVE_SCHEMA.md)
+- [Demo migrations reference](docs/DEMO_MIGRATIONS_REFERENCE.md)
+- [Demo](demo/README.md)
+- [Flow diagrams](docs/FLOWCHARTS.md)
 
 ## Requirements
 
@@ -135,7 +138,7 @@ See [docs/INSTALLATION.md](docs/INSTALLATION.md#requirements) and [docs/UPGRADIN
 
 ## Demo
 
-Demos for Symfony 7 and 8 are in `demo/symfony7`, `demo/symfony8`. Each includes example migrations using **CreateTablesService** and the MDK format (create table, add/rename/modify/drop columns, indexes, foreign keys), plus a **field dictionary** (`migrations/FieldDictionary/AuditFields`) for reusable audit columns (timestamps, created_by/updated_by with FK in two phases). From the bundle root: `make demo-up-symfony8` then `make demo-migrate-symfony8`. **Always check SQL before applying:** use `make migrate-dry-run` (or `doctrine:migrations:migrate --dry-run -vvv`). See [docs/USAGE.md](docs/USAGE.md#viewing-sql-before-running-migrations) for all options (`migrate-dry-run`, `migrate-write-sql`, `migrate-verbose`). [demo/README.md](demo/README.md) and each `demo/symfony*/README.md` have run instructions.
+Demos for Symfony 7 and 8 are in `demo/symfony7`, `demo/symfony8`. Each runs with **FrankenPHP** (worker mode). Each includes example migrations using **CreateTablesService** and the MDK format (create table, add/rename/modify/drop columns, indexes, foreign keys), plus a **field dictionary** (`migrations/FieldDictionary/AuditFields`) for reusable audit columns (timestamps, created_by/updated_by with FK in two phases). From the bundle root: `make demo-up-symfony8` then `make demo-migrate-symfony8`. **Always check SQL before applying:** use `make migrate-dry-run` (or `doctrine:migrations:migrate --dry-run -vvv`). See [docs/USAGE.md](docs/USAGE.md#viewing-sql-before-running-migrations) for all options (`migrate-dry-run`, `migrate-write-sql`, `migrate-verbose`). [demo/README.md](demo/README.md) and each `demo/symfony*/README.md` have run instructions.
 
 ## Development
 

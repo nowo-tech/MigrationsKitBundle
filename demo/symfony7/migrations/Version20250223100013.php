@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DoctrineMigrations;
 
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
@@ -30,6 +31,16 @@ final class Version20250223100013 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        // SQLite cannot safely change the primary key in this demo using the same ALTER strategy
+        // as other platforms. Recreating the table with a different PK can lead to
+        // "table has more than one primary key" errors. For the purposes of this demo migration
+        // we simply skip on SQLite; other platforms are still covered.
+        if ($this->connection->getDatabasePlatform() instanceof SQLitePlatform) {
+            $this->write('Skipping PK change on SQLite (demo migration Version20250223100013).');
+
+            return;
+        }
+
         $service      = new CreateTablesService($this->connection, new SchemaDefinitionParser());
         $introspected = $this->connection->createSchemaManager()->introspectSchema();
         $definition   = [

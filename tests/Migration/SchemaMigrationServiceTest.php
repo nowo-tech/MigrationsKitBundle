@@ -233,7 +233,7 @@ class SchemaMigrationServiceTest extends TestCase
     /** Change PK on existing table: drop current PK + add new PK (via comparator). */
     public function testApplyTableEditsChangePrimaryKey(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::markTestSkipped('SQLite does not support changing primary key via simple ALTER');
         }
         $schema = new Schema();
@@ -256,7 +256,7 @@ class SchemaMigrationServiceTest extends TestCase
 
     public function testApplyTableEditsDropPrimaryKey(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP PRIMARY KEY');
         }
         $schema = $this->schemaWithUsersTable();
@@ -300,7 +300,7 @@ class SchemaMigrationServiceTest extends TestCase
 
     public function testApplyTableEditsDropForeignKey(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP FOREIGN KEY');
         }
         $schema = new Schema();
@@ -409,7 +409,7 @@ class SchemaMigrationServiceTest extends TestCase
     /** CreateTablesService drops FKs via DROP_FOREIGN_KEYS. */
     public function testApplyTableEditsDropForeignKeyViaItemWithDropTrue(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP FOREIGN KEY');
         }
         $schema = new Schema();
@@ -805,7 +805,7 @@ class SchemaMigrationServiceTest extends TestCase
         self::assertNotNull($idxAddColumn, 'Expected one SQL to add column role_id (ALTER TABLE ... role_id without INDEX/FK)');
         self::assertNotNull($idxIndex, 'Expected one SQL to create index');
         self::assertGreaterThanOrEqual(2, count($sqls), 'At least ADD COLUMN and INDEX SQL must be emitted');
-        if (!$this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if (!$this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::assertNotNull($idxFk, 'Expected one SQL to add FK');
         }
     }
@@ -894,7 +894,7 @@ class SchemaMigrationServiceTest extends TestCase
 
     public function testApplyDropPrimaryKeyWithDecimalAndCommentColumnsCoversColumnToOptions(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP PRIMARY KEY');
         }
         $schema = $this->schemaWithTableWithDecimalAndComment();
@@ -1087,10 +1087,41 @@ class SchemaMigrationServiceTest extends TestCase
         self::assertEmpty($sqls);
     }
 
+    /** DROP_PRIMARY_KEYS with empty string skips (no SQL) via non-array falsy branch. */
+    public function testApplyDropPrimaryKeysEmptyStringSkips(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::DROP_PRIMARY_KEYS => '',
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    /** DROP_PRIMARY_KEYS on table without primary key skips (no SQL). */
+    public function testApplyDropPrimaryKeysOnTableWithoutPrimaryKeySkips(): void
+    {
+        $schema = new Schema();
+        $schema->createTable('users')->addColumn('id', 'integer', ['notnull' => true]);
+        $def = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::DROP_PRIMARY_KEYS => [],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
     /** Empty string in DROP_FOREIGN_KEYS is skipped; valid FK name still produces DROP (only on platforms that support it). */
     public function testApplyDropForeignKeySkipsEmptyName(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
             self::markTestSkipped('SQLite does not support DROP FOREIGN KEY');
         }
         $schema = new Schema();
@@ -1223,5 +1254,90 @@ class SchemaMigrationServiceTest extends TestCase
         $sqls = $this->service->apply($schema, $def);
         self::assertNotEmpty($sqls);
         self::assertStringContainsString('name', implode(' ', $sqls));
+    }
+
+    /** Phase 1: when dropping a table, drop FKs that reference it first (cover getDropForeignKeySQL used in Phase 1). */
+    public function testApplyPhase1DropsFkReferencingDroppedTable(): void
+    {
+        $schema = new Schema();
+        $users  = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->addColumn('user_id', 'integer', ['notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+        $orders->addForeignKeyConstraint('users', ['user_id'], ['id'], [], 'fk_orders_user');
+        $def  = [MDK::DROP_TABLES => ['users']];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+        $sqlString = implode(' ', $sqls);
+        self::assertTrue(
+            str_contains($sqlString, 'DROP TABLE') || str_contains($sqlString, 'DROP FOREIGN KEY') || str_contains($sqlString, 'DROP INDEX'),
+            'Should emit drop FK and/or drop table',
+        );
+    }
+
+    /** DROP_INDEXES with empty string in list is skipped (continue). */
+    public function testApplyDropIndexesSkipsEmptyIndexName(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $schema->getTable('users')->addIndex(['name'], 'idx_name');
+        $def = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::DROP_INDEXES => ['', 'idx_name'],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+    }
+
+    /** DROP_COLUMNS with empty string in list does not add it to toDrop (skip iteration). */
+    public function testApplyDropColumnsSkipsEmptyColumnName(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::DROP_COLUMNS => ['', 'name'],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertNotEmpty($sqls);
+    }
+
+    /** Table not in schema and def has only rename columns: skip create (continue at Phase 3). */
+    public function testApplySkipsCreateTableWhenOnlyRenameColumns(): void
+    {
+        $schema = new Schema();
+        $def    = [
+            MDK::TABLES => [
+                'ghost' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'old_col', MDK::RENAME => 'new_col'],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    /** Existing table with COLUMNS not array: missingColumnsForTable returns []. */
+    public function testApplyExistingTableWithColumnsNotArrayYieldsNoMissingColumns(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => null,
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
     }
 }

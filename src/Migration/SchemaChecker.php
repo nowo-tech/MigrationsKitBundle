@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Migration;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Throwable;
 
@@ -16,10 +17,10 @@ use function strlen;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final class SchemaChecker
+final readonly class SchemaChecker
 {
     public function __construct(
-        private readonly Connection $connection
+        private Connection $connection
     ) {
     }
 
@@ -28,6 +29,9 @@ final class SchemaChecker
         return $this->connection;
     }
 
+    /**
+     * @return AbstractSchemaManager<AbstractPlatform>
+     */
     public function getSchemaManager(): AbstractSchemaManager
     {
         return $this->connection->createSchemaManager();
@@ -81,7 +85,7 @@ final class SchemaChecker
             }
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
 
-            return $table->getPrimaryKey() !== null;
+            return $table->getPrimaryKey() instanceof \Doctrine\DBAL\Schema\Index;
         } catch (Throwable) {
             return false;
         }

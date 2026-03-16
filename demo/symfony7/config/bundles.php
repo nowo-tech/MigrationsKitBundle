@@ -10,4 +10,5 @@ return [
     Doctrine\Bundle\DoctrineBundle\DoctrineBundle::class             => ['all' => true],
     Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle::class => ['all' => true],
     Nowo\MigrationsKitBundle\NowoMigrationsKitBundle::class          => ['all' => true],
+    Nowo\TwigInspectorBundle\NowoTwigInspectorBundle::class          => ['dev' => true, 'test' => true],
 ];

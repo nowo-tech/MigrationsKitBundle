@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Schema\Definition;
 
-use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use ReflectionMethod;
@@ -19,7 +18,7 @@ use function is_array;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final class SchemaDefinitionParser
+class SchemaDefinitionParser
 {
     /**
      * Builds a Table from a table definition array.
@@ -28,7 +27,7 @@ final class SchemaDefinitionParser
      */
     public function parseTable(string $tableName, array $tableDef): Table
     {
-        $table   = new Table($tableName);
+        $table   = $this->createTable($tableName);
         $columns = $tableDef[MDK::COLUMNS] ?? [];
         if (!is_array($columns)) {
             return $table;
@@ -59,7 +58,7 @@ final class SchemaDefinitionParser
                 }
                 $cols = $item['columns'] ?? [];
                 if (is_array($cols) && $cols !== []) {
-                    $this->setTablePrimaryKey($table, $cols);
+                    $this->setTablePrimaryKey($table, array_values(array_map(strval(...), $cols)));
                     break;
                 }
             }
@@ -77,20 +76,19 @@ final class SchemaDefinitionParser
                 if ($cols === []) {
                     continue;
                 }
-                $name   = $idx['name'] ?? null;
-                $unique = !empty($idx['unique']);
+                $colList = array_values(array_map(strval(...), $cols));
+                $name    = $idx['name'] ?? null;
+                $unique  = !empty($idx['unique']);
                 if ($name !== null && $name !== '') {
                     if ($unique) {
-                        $table->addUniqueIndex($cols, (string) $name);
+                        $table->addUniqueIndex($colList, (string) $name);
                     } else {
-                        $table->addIndex($cols, (string) $name);
+                        $table->addIndex($colList, (string) $name);
                     }
+                } elseif ($unique) {
+                    $table->addUniqueIndex($colList);
                 } else {
-                    if ($unique) {
-                        $table->addUniqueIndex($cols);
-                    } else {
-                        $table->addIndex($cols);
-                    }
+                    $table->addIndex($colList);
                 }
             }
         }
@@ -115,11 +113,13 @@ final class SchemaDefinitionParser
             if (isset($fk['onUpdate'])) {
                 $options['onUpdate'] = $fk['onUpdate'];
             }
-            $fkName = $fk['name'] ?? null;
+            $localColList   = array_values(array_map('strval', $localCols));
+            $foreignColList = array_values(array_map('strval', $foreignCols));
+            $fkName         = $fk['name'] ?? null;
             if ($fkName !== null && $fkName !== '') {
-                $this->addForeignKeyConstraintToTable($table, (string) $foreignTable, $localCols, $foreignCols, $options, (string) $fkName);
+                $this->addForeignKeyConstraintToTable($table, (string) $foreignTable, $localColList, $foreignColList, $options, (string) $fkName);
             } else {
-                $table->addForeignKeyConstraint($foreignTable, $localCols, $foreignCols);
+                $table->addForeignKeyConstraint($foreignTable, $localColList, $foreignColList);
             }
         }
 
@@ -127,19 +127,29 @@ final class SchemaDefinitionParser
     }
 
     /**
+     * Factory for the Table instance used in parseTable. Override in tests to use a custom Table (e.g. for DBAL param-order coverage).
+     */
+    protected function createTable(string $tableName): Table
+    {
+        return new Table($tableName);
+    }
+
+    /**
      * Add a foreign key to the table with options (onDelete, onUpdate) and correct parameter order for DBAL 3 vs 4.
      *
-     * @param list<string> $localColumns
-     * @param list<string> $foreignColumns
-     * @param array<string, string> $options e.g. onDelete, onUpdate
+     * @param non-empty-list<string> $localColumns
+     * @param non-empty-list<string> $foreignColumns
+     * @param array<string, mixed> $options e.g. onDelete, onUpdate
      */
     private function addForeignKeyConstraintToTable(Table $table, string $foreignTable, array $localColumns, array $foreignColumns, array $options, string $fkName): void
     {
         $nameFirst = $this->tableAddForeignKeyConstraintExpectsNameAsFourthParam($table);
         if ($nameFirst) {
-            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, $fkName, $options);
+            /* @phpstan-ignore-next-line parameterOutOfBounds */
+            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, (string) $fkName, (array) $options);
         } else {
-            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, $options, $fkName);
+            /* @phpstan-ignore-next-line parameterOutOfBounds */
+            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, (array) $options, (string) $fkName);
         }
     }
 
@@ -163,23 +173,16 @@ final class SchemaDefinitionParser
     }
 
     /**
-     * Set the primary key on the table in a way compatible with DBAL 3, 4 and 5.
-     * Uses addPrimaryKeyConstraint() when available (DBAL 4+), else setPrimaryKey() (DBAL 3).
+     * Set the primary key on the table in a way compatible with DBAL 3 and 4.
      *
      * @param list<string> $columnNames
      */
     private function setTablePrimaryKey(Table $table, array $columnNames): void
     {
-        if (method_exists($table, 'addPrimaryKeyConstraint')) {
-            try {
-                $constraint = new PrimaryKeyConstraint($columnNames);
-                $table->addPrimaryKeyConstraint($constraint);
-            } catch (Throwable) {
-                $table->setPrimaryKey($columnNames);
-            }
-        } else {
-            $table->setPrimaryKey($columnNames);
+        if ($columnNames === []) {
+            return;
         }
+        $table->setPrimaryKey($columnNames);
     }
 
     /**

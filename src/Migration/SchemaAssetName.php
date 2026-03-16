@@ -60,8 +60,7 @@ final class SchemaAssetName
             $ref = new ReflectionObject($asset);
             while ($ref !== false) {
                 if ($ref->hasProperty('name')) {
-                    $prop = $ref->getProperty('name');
-                    $prop->setAccessible(true);
+                    $prop  = $ref->getProperty('name');
                     $value = $prop->getValue($asset);
                     if ($value !== null && $value !== '') {
                         return $value;
@@ -80,9 +79,6 @@ final class SchemaAssetName
     {
         if (is_object($name) && method_exists($name, 'toString')) {
             return $name->toString();
-        }
-        if (is_object($name) && method_exists($name, '__toString')) {
-            return (string) $name;
         }
 
         return (string) $name;

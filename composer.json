@@ -44,7 +44,12 @@
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
-        "phpunit/phpunit": "^10.0"
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
+        "phpunit/phpunit": "^10.0",
+        "rector/rector": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -59,11 +64,12 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
-            "composer/package-versions-deprecated": true
+            "composer/package-versions-deprecated": true,
+            "phpstan/extension-installer": true
         }
     },
     "archive": {
-        "exclude": ["/demo"]
+        "exclude": ["/demo", "/.cursor"]
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -72,6 +78,9 @@
         "test-coverage": ["vendor/bin/phpunit --colors=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text=php://stdout", "php scripts/check-coverage.php"],
         "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs-fix": "vendor/bin/php-cs-fixer fix",
+        "phpstan": "phpstan analyse --memory-limit=512M",
+        "rector": "rector process",
+        "rector-dry": "rector process --dry-run --no-progress-bar",
         "qa": ["@cs-check", "@test"]
     },
     "scripts-descriptions": {
@@ -79,6 +88,9 @@
         "test-coverage": "Run PHPUnit with code coverage and enforce minimum (see scripts/check-coverage.php)",
         "cs-check": "Check code style with PHP-CS-Fixer",
         "cs-fix": "Fix code style with PHP-CS-Fixer",
+        "phpstan": "Run PHPStan static analysis",
+        "rector": "Apply Rector refactoring",
+        "rector-dry": "Run Rector in dry-run mode",
         "qa": "Run all quality assurance checks"
     }
 }

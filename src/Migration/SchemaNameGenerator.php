@@ -17,21 +17,33 @@ final class SchemaNameGenerator
     private const FK_PREFIX   = 'FK_';
     private const HASH_LENGTH = 16;
 
+    /**
+     * @param list<string> $columns
+     */
     public static function generatePKName(string $tableName, array $columns): string
     {
         return self::PK_PREFIX . self::hashSuffix($tableName, $columns);
     }
 
+    /**
+     * @param list<string> $columns
+     */
     public static function generateIndexName(string $tableName, array $columns): string
     {
         return self::IDX_PREFIX . self::hashSuffix($tableName, $columns);
     }
 
+    /**
+     * @param list<string> $columns
+     */
     public static function generateForeignKeyName(string $tableName, array $columns): string
     {
         return self::FK_PREFIX . self::hashSuffix($tableName, $columns);
     }
 
+    /**
+     * @param list<string> $columns
+     */
     private static function hashSuffix(string $tableName, array $columns): string
     {
         $key = $tableName . "\0" . implode("\0", $columns);

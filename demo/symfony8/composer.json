@@ -15,10 +15,8 @@
     "symfony/framework-bundle": "^8.0",
     "symfony/runtime": "^8.0",
     "symfony/yaml": "^8.0",
-    "symfony/debug-bundle": "^8.0",
     "symfony/http-kernel": "^8.0",
-    "symfony/twig-bundle": "^8.0",
-    "symfony/web-profiler-bundle": "^8.0"
+    "symfony/twig-bundle": "^8.0"
   },
   "config": {
     "allow-plugins": {
@@ -69,5 +67,10 @@
       "url": "/var/migrations-kit-bundle"
     }
   ],
-  "minimum-stability": "dev"
+  "minimum-stability": "dev",
+  "require-dev": {
+    "nowo-tech/twig-inspector-bundle": "v1.0.5",
+    "symfony/debug-bundle": "8.1.x-dev",
+    "symfony/web-profiler-bundle": "8.1.x-dev"
+  }
 }

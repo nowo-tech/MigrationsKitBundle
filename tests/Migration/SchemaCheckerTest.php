@@ -5,18 +5,22 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Migration;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
 use Exception;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class SchemaCheckerTest extends TestCase
 {
-    private Connection $connection;
-    private AbstractSchemaManager $schemaManager;
+    private Connection&MockObject $connection;
+
+    /** @var AbstractSchemaManager<AbstractPlatform>&MockObject */
+    private AbstractSchemaManager&MockObject $schemaManager;
 
     protected function setUp(): void
     {

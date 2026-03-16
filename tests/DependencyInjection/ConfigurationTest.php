@@ -24,6 +24,7 @@ class ConfigurationTest extends TestCase
 
     public function testAliasConstant(): void
     {
+        /* @phpstan-ignore-next-line staticMethod.alreadyNarrowedType */
         self::assertSame('nowo_migrations_kit', Configuration::ALIAS);
     }
 

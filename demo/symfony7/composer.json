@@ -15,10 +15,8 @@
     "symfony/framework-bundle": "^7.0",
     "symfony/runtime": "^7.0",
     "symfony/yaml": "^7.0",
-    "symfony/debug-bundle": "^7.0",
     "symfony/http-kernel": "^7.0",
-    "symfony/twig-bundle": "^7.0",
-    "symfony/web-profiler-bundle": "^7.0"
+    "symfony/twig-bundle": "^7.0"
   },
   "config": {
     "allow-plugins": {
@@ -72,5 +70,10 @@
       }
     }
   ],
-  "minimum-stability": "dev"
+  "minimum-stability": "dev",
+  "require-dev": {
+    "nowo-tech/twig-inspector-bundle": "v1.0.5",
+    "symfony/debug-bundle": "7.4.x-dev",
+    "symfony/web-profiler-bundle": "7.4.x-dev"
+  }
 }

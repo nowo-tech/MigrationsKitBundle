@@ -90,6 +90,62 @@ jobs:
           fi
           echo "✅ Coverage generated"
 
+  test-dbal:
+    name: DBAL ${{ matrix.dbal }} (PHP 8.2, Symfony 7.0)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dbal: ['3', '4']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: json
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php82-symfony70-dbal${{ matrix.dbal }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-php82-symfony70-dbal${{ matrix.dbal }}-composer-
+
+      - name: Pin PHP and Symfony
+        run: |
+          composer config platform.php 8.2.0
+          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/http-kernel:^7.0 symfony/yaml:^7.0 --no-interaction --no-update
+
+      - name: Pin Doctrine DBAL ${{ matrix.dbal }}
+        run: composer require doctrine/dbal:^${{ matrix.dbal }}.0 --no-interaction --no-update
+
+      - name: Update dependencies
+        run: composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
+
+      - name: Run tests (DBAL ${{ matrix.dbal }})
+        run: |
+          echo "🧪 Running tests on Doctrine DBAL ${{ matrix.dbal }}..."
+          composer test
+          if [ $? -ne 0 ]; then
+            echo "❌ ERROR: Tests failed on DBAL ${{ matrix.dbal }}"
+            exit 1
+          fi
+          echo "✅ All tests passed on DBAL ${{ matrix.dbal }}"
+
   code-style:
     name: Code Style
     runs-on: ubuntu-latest
@@ -199,6 +255,57 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
+          fail_ci_if_error: false
+
+  coverage-dbal3:
+    name: Code Coverage (DBAL 3)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: json
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Pin Symfony 7.0 and Doctrine DBAL 3
+        run: |
+          composer config platform.php 8.2.0
+          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/http-kernel:^7.0 symfony/yaml:^7.0 --no-interaction --no-update
+          composer require doctrine/dbal:^3.0 --no-interaction --no-update
+
+      - name: Update dependencies
+        run: composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
+
+      - name: Run tests with coverage (DBAL 3)
+        run: |
+          echo "🧪 Running tests with coverage on DBAL 3..."
+          rm -rf .phpunit.cache
+          composer test-coverage
+          if [ $? -ne 0 ]; then
+            echo "❌ ERROR: Tests failed on DBAL 3"
+            exit 1
+          fi
+          echo "✅ All tests passed on DBAL 3"
+
+      - name: Validate coverage file
+        run: |
+          if [ ! -f coverage.xml ]; then
+            echo "ERROR: coverage.xml was not generated"
+            exit 1
+          fi
+          echo "✅ coverage.xml generated"
+
+      - name: Upload coverage to Codecov (DBAL 3)
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          flags: dbal3
           fail_ci_if_error: false
 
 # Maintainer: Héctor Franco Aceituno (@HecFranco)
