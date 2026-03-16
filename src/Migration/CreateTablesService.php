@@ -491,7 +491,7 @@ final readonly class CreateTablesService
                         foreach ((array) $generated as $sql) {
                             $sqls[] = $sql;
                         }
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         // e.g. SQLite / DBAL 3: add FK on new columns not supported in same run
                         if (!$platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
                             throw $e;
