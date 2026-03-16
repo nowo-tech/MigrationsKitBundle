@@ -589,14 +589,28 @@ class SchemaDefinitionParserTest extends TestCase
  */
 final class TableOptionsFirstFk extends Table
 {
+    /**
+     * @param mixed $foreignTable
+     * @param non-empty-list<string> $localColumnNames
+     * @param non-empty-list<string> $foreignColumnNames
+     * @param array<string,mixed> $options
+     * @param mixed $name
+     *
+     * @return Table
+     *
+     * @phpstan-ignore-next-line return.type argument.type
+     */
     public function addForeignKeyConstraint(
-        string $foreignTable,
+        $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
         array $options = [],
-        ?string $name = null,
+        $name = null,
     ): Table {
-        return parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $options, $name);
+        /** @var Table $result */
+        $result = parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $options, $name);
+
+        return $result;
     }
 }
 
