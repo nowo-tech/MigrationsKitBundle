@@ -491,8 +491,11 @@ final readonly class CreateTablesService
                         foreach ((array) $generated as $sql) {
                             $sqls[] = $sql;
                         }
-                    } catch (\Doctrine\DBAL\Platforms\Exception\NotSupported) {
-                        // e.g. SQLite: add FK on new columns not supported in same run
+                    } catch (\Throwable $e) {
+                        // e.g. SQLite / DBAL 3: add FK on new columns not supported in same run
+                        if (!$platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+                            throw $e;
+                        }
                     }
                 } else {
                     $localColList   = array_values(array_map(static fn ($c): string => (string) $c, $localColumns));
