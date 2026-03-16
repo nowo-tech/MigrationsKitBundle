@@ -596,8 +596,6 @@ final class TableOptionsFirstFk extends Table
      * @param array<string,mixed> $options
      * @param mixed $name
      *
-     * @return Table
-     *
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
