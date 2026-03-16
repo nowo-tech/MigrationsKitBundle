@@ -1,5 +1,33 @@
 # Release process
 
+## Release v2.0.7 (ready)
+
+Documentation and changelog are prepared for **v2.0.7**. Before tagging, ensure the lock file is valid:
+
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
+
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.7 release"
+   git push origin master
+   git tag -a v2.0.7 -m "Release v2.0.7"
+   git push origin v2.0.7
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.7` and paste the [2.0.7] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## Release v2.0.6 (ready)
 
 Documentation and changelog are prepared for **v2.0.6**. Before tagging, ensure the lock file is valid:

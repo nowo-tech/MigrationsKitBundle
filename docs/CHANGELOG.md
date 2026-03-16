@@ -21,6 +21,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.7] - 2026-03-16
+
+### Added
+
+- **CI matrix for Doctrine DBAL** — GitHub Actions now runs the test suite against **DBAL 3 and DBAL 4** on PHP 8.2 / Symfony 7.0 (`test-dbal`), plus a dedicated **coverage job for DBAL 3** (`coverage-dbal3`) that uploads a separate report to Codecov. This verifies real compatibility with both major DBAL lines.
+- **Tests & coverage** — Many new PHPUnit tests for `CreateTablesService` and `SchemaDefinitionParser`, including integration tests in `SchemaMigrationServiceTest` and demo migrations, significantly increasing real coverage without ignores or configuration tweaks.
+
+### Changed
+
+- **Static analysis & internals** — PHPStan is now at **0 errors**, with refined types and method signatures for DBAL 3/4 (comparator, `SchemaDiff::toSql`, `getAlterSchemaSQL`, `getRenameColumnSQL`, parameter order).
+- **Demo & CI** — The Symfony 7/8 demo migrations were updated to better exercise the bundle phases (drops, PK changes, indexes, FKs) and are now part of the release health‑check.
+
+### Fixed
+
+- **SQLite demo migration** — In `demo/symfony7`, migration `Version20250223100013` (PK change on `kit_pk_demo`) now skips on SQLite, avoiding `"table \"kit_pk_demo\" has more than one primary key"` while still exercising the PK‑change path on other platforms.
+- **DBAL compatibility edges** — Several edge‑case paths in `CreateTablesService` and `SchemaDefinitionParser` were adjusted and covered by tests so they behave correctly across DBAL 3/4 for foreign keys, indexes, primary keys, and column modifications.
+
+---
+
 ## [2.0.6] - 2025-02-27
 
 ### Added

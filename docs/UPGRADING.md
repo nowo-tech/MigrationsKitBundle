@@ -31,6 +31,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.7
+
+- **No breaking changes.** This release focuses on internal quality (more tests and higher coverage, 0 PHPStan errors) and makes support for **Doctrine DBAL 3 and 4** explicit via dedicated CI jobs.
+- **Demos:** The Symfony 7 demo adjusts migration `Version20250223100013` to skip the PK change on SQLite, avoiding driver errors in that environment.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and validate with your own `make test` / `make test-coverage`.
+
+---
+
 ## Upgrading to 2.0.6
 
 - **No breaking changes.** This release fixes ON DELETE/ON UPDATE for **new tables** (CREATE TABLE with FKs) and avoids duplicate DROP COLUMN in generated SQL.
