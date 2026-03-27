@@ -6,6 +6,21 @@ This document describes the **declarative schema definition** used with **Create
 
 **Requirements:** Doctrine DBAL 2.x, 3.x or 4.x (see [INSTALLATION.md](INSTALLATION.md#requirements)). Schema is passed from the migration's `up()`/`down()`; for accurate checks, use `$this->connection->createSchemaManager()->introspectSchema()`.
 
+## Table of contents
+
+- [Order of operations (apply execution order)](#order-of-operations-apply-execution-order)
+- [MigrationDefinitionKeys (MDK)](#migrationdefinitionkeys-mdk)
+- [Top-level structure](#top-level-structure)
+- [Columns](#columns)
+  - [Supported types (DBAL)](#supported-types-dbal)
+- [Primary key](#primary-key)
+- [Indexes](#indexes)
+- [Foreign keys](#foreign-keys)
+- [Using CreateTablesService in a migration](#using-createtablesservice-in-a-migration)
+- [Full example](#full-example)
+- [SchemaChecker (checks only)](#schemachecker-checks-only)
+- [See also](#see-also)
+
 ## Order of operations (apply execution order)
 
 The bundle applies changes in this fixed order so that dependencies are respected (e.g. drop FKs before tables, create columns before indexes):

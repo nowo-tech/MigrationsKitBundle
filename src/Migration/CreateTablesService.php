@@ -491,7 +491,7 @@ final readonly class CreateTablesService
                         foreach ((array) $generated as $sql) {
                             $sqls[] = $sql;
                         }
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         // e.g. SQLite / DBAL 3: add FK on new columns not supported in same run
                         if (!$platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
                             throw $e;
@@ -683,11 +683,11 @@ final readonly class CreateTablesService
                 $sql = $platform->getRenameColumnSQL($column, $newName, $tableName);
             }
             /* @phpstan-ignore-next-line booleanOr.alwaysFalse */
-            if ($sql === null || $sql === '') {
+            if ($sql === '') {
                 return [];
             }
 
-            return (array) $sql;
+            return $sql;
         } catch (Throwable) {
             // @codeCoverageIgnoreEnd
             return [];
@@ -899,7 +899,7 @@ final readonly class CreateTablesService
 
         // Drop FKs that reference any of the columns we are about to drop first (avoids DBAL deprecation
         // "Dropping columns referenced by constraints is deprecated")
-        $columnNamesSet = array_flip(array_map([$this, 'normalizeIdentifier'], $columnNames));
+        $columnNamesSet = array_flip(array_map($this->normalizeIdentifier(...), $columnNames));
         foreach ($table->getForeignKeys() as $fk) {
             $localCols = $fk->getLocalColumns();
             foreach ($localCols as $col) {

@@ -2,6 +2,13 @@
 
 The bundle is configured under the root key `nowo_migrations_kit`. The only option is **`connection`**, which defines which Doctrine DBAL connection the **CreateTablesService** uses when it is injected as a service (e.g. from the container). In migrations you typically instantiate `new CreateTablesService($this->connection, ...)` with the migration’s connection, so this config is only relevant if you use the service from the container.
 
+## Table of contents
+
+- [Options](#options)
+- [Example](#example)
+- [Using another connection in a migration](#using-another-connection-in-a-migration)
+- [Loading configuration](#loading-configuration)
+
 ## Options
 
 | Option       | Type     | Default   | Description                                                                 |

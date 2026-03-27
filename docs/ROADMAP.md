@@ -2,6 +2,16 @@
 
 This document outlines the direction of Migrations Kit Bundle and helps contributors and users understand upcoming priorities.
 
+## Table of contents
+
+- [Vision](#vision)
+- [Current focus (1.x)](#current-focus-1x)
+- [Short term (next releases)](#short-term-next-releases)
+- [Implemented](#implemented)
+- [Possible future (ideas, not committed)](#possible-future-ideas-not-committed)
+- [Out of scope (for this bundle)](#out-of-scope-for-this-bundle)
+- [Community](#community)
+
 ## Vision
 
 Migrations Kit Bundle aims to provide **simple, reliable helpers for Doctrine Migrations** in Symfony: **SchemaChecker** (table/column/index/FK exist), and **CreateTablesService** with a declarative definition format (MDK) so you can describe schema changes in arrays and emit only the needed SQL. The bundle stays compatible with multiple Doctrine DBAL and doctrine/migrations versions.

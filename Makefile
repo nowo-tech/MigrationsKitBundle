@@ -9,7 +9,7 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync rector rector-dry phpstan
+.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync rector rector-dry phpstan
 .PHONY: demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony7 demo-migrate-symfony8
 .PHONY: up down up-symfony7 up-symfony8 build shell demo-install demo-down
 
@@ -68,7 +68,8 @@ test: install
 
 # Run tests with coverage (no -T so coverage is shown in console with colors)
 test-coverage: install
-	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage
+	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
+	./.scripts/php-coverage-percent.sh coverage-php.txt
 
 cs-check: install
 	$(RUN) composer cs-check

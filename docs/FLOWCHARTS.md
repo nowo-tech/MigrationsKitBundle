@@ -6,6 +6,25 @@ This document describes the flow of **CreateTablesService::apply()** and the che
 
 ---
 
+## Table of contents
+
+- [1. General flow: apply() → doApply()](#1-general-flow-apply--doapply)
+- [2. Drop table (drop_tables or tables\[name\]\[drop\])](#2-drop-table-drop_tables-or-tablesnamedrop)
+- [3. Create new table (table does not exist)](#3-create-new-table-table-does-not-exist)
+- [4. Edit table: applyTableEdits overview](#4-edit-table-applytableedits-overview)
+- [5. Drop shortcuts (drop_foreign_keys, drop_indexes, drop_columns)](#5-drop-shortcuts-drop_foreign_keys-drop_indexes-drop_columns)
+- [6. Columns: rename, drop, add, modify](#6-columns-rename-drop-add-modify)
+- [7. Primary key: drop and add](#7-primary-key-drop-and-add)
+- [8. Indexes: drop (by name) and add](#8-indexes-drop-by-name-and-add)
+- [9. Foreign keys: drop (by name) and add](#9-foreign-keys-drop-by-name-and-add)
+- [10. emitAlterTable (core of all table changes)](#10-emitaltertable-core-of-all-table-changes)
+- [11. API usage summary](#11-api-usage-summary)
+- [12. Case: migration up() — create table + add column on another table](#12-case-migration-up--create-table--add-column-on-another-table)
+- [13. Case: migration down() — drop table + drop column and index](#13-case-migration-down--drop-table--drop-column-and-index)
+- [See also](#see-also)
+
+---
+
 ## 1. General flow: apply() → doApply()
 
 **What this diagram shows:** The entry point is `apply(schema, definition)`, which collects SQL into an array and may forward each statement to an emitter. The main work is done in a conceptual `doApply`: obtain the platform, process `drop_tables`, then for each table in the definition either drop it, create it (if missing), or apply edits (rename/modify/add columns, indexes, FKs). The flowchart is conceptual; the real implementation uses Phases 1–4 (see [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md#order-of-operations-apply-execution-order)).

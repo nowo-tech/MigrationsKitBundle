@@ -2,6 +2,14 @@
 
 Thank you for considering contributing to Migrations Kit Bundle.
 
+## Table of contents
+
+- [Development setup](#development-setup)
+- [Code style](#code-style)
+- [Tests](#tests)
+- [Pull requests](#pull-requests)
+- [Reporting issues](#reporting-issues)
+
 ## Development setup
 
 1. Clone the repository and install dependencies:

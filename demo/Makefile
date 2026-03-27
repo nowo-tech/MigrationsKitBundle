@@ -2,7 +2,7 @@
 # From bundle root: make demo-up-symfony8 / make demo-migrate-symfony8
 # From demo/: make up-symfony8 / make migrate-symfony8 (no Docker), or make docker-up-symfony8 (Docker)
 
-.PHONY: help up-all migrate-all clean-all release-verify
+.PHONY: help up-all migrate-all clean-all release-verify update-bundle-all
 .PHONY: up-symfony7 up-symfony8 migrate-symfony7 migrate-symfony8
 .PHONY: docker-up-symfony7 docker-up-symfony8 docker-down-symfony7 docker-down-symfony8
 .PHONY: docker-restart-symfony7 docker-restart-symfony8 docker-build-symfony7 docker-build-symfony8
@@ -55,12 +55,16 @@ clean-all:
 test-coverage-all:
 	@for d in $(DEMOS); do $(MAKE) -C $$d test-coverage || exit 1; done
 	@echo "test-coverage-all done."
-release-check: test-coverage-all release-verify
+release-check: update-bundle-all test-coverage-all release-verify
 	@echo "All demos passed release-check."
+
+update-bundle-all:
+	@for d in $(DEMOS); do $(MAKE) -C $$d update-bundle || exit 1; done
+	@echo "All demos updated with latest bundle code."
 
 release-verify:
 	@for d in $(DEMOS); do \
-		port=$$(grep '^PORT=' $$d/.env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+		port=$$(grep '^PORT=' $$d/.env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
 		[ -z "$$port" ] && port=$$(case $$d in symfony7) echo 8007;; symfony8) echo 8008;; *) echo 8000;; esac); \
 		echo "🔍 Release verify: $$d (port $$port)..."; \
 		$(MAKE) docker-up-$$d; \

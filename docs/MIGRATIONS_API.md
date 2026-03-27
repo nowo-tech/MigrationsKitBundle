@@ -4,6 +4,28 @@ Summary of methods for **checks**, **create**, **edit**, and **delete** in migra
 
 ---
 
+## Table of contents
+
+- [1. Doctrine Migrations (migration class)](#1-doctrine-migrations-migration-class)
+- [2. Checks (does it exist?)](#2-checks-does-it-exist)
+  - [2.1 Schema (`Doctrine\DBAL\Schema\Schema`)](#21-schema-doctrinedbalschemaschema)
+  - [2.2 Table (`Doctrine\DBAL\Schema\Table`)](#22-table-doctrinedbalschematable)
+  - [2.3 SchemaManager (introspection)](#23-schemamanager-introspection)
+- [3. Create (tables, columns, indexes, FKs)](#3-create-tables-columns-indexes-fks)
+  - [3.1 Generating create SQL](#31-generating-create-sql)
+  - [3.2 Building Schema / Table](#32-building-schema--table)
+- [4. Edit (ALTER: add/remove columns, indexes, FKs)](#4-edit-alter-addremove-columns-indexes-fks)
+  - [4.1 Comparator and SchemaDiff](#41-comparator-and-schemadiff)
+  - [4.2 Concrete changes (examples)](#42-concrete-changes-examples)
+  - [4.3 Platform and TableDiff](#43-platform-and-tablediff)
+- [5. Delete (DROP)](#5-delete-drop)
+  - [5.1 From a Schema](#51-from-a-schema)
+  - [5.2 Direct drop SQL](#52-direct-drop-sql)
+- [6. Summary by DBAL version](#6-summary-by-dbal-version)
+- [7. References](#7-references)
+
+---
+
 ## 1. Doctrine Migrations (migration class)
 
 In `up(Schema $schema)` / `down(Schema $schema)` you have:

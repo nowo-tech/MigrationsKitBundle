@@ -2,6 +2,16 @@
 
 This guide covers installing Migrations Kit Bundle in a Symfony application.
 
+## Table of contents
+
+- [Requirements](#requirements)
+- [Install with Composer](#install-with-composer)
+- [Register the bundle](#register-the-bundle)
+  - [With Symfony Flex](#with-symfony-flex)
+  - [Manual registration](#manual-registration)
+- [Using in migrations](#using-in-migrations)
+- [Next steps](#next-steps)
+
 ## Requirements
 
 The bundle is **compatible with Symfony 7 and 8** (and PHP 8.2+).

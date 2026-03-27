@@ -3,5 +3,5 @@
 # Use SchemaChecker and CreateTablesService in Doctrine Migrations. See README for examples.
 
 nowo_migrations_kit:
-    # Doctrine connection name used by SchemaChecker when injected as service (e.g. bin/console)
+    # Doctrine connection name for CreateTablesService when registered as a service (see docs/CONFIGURATION.md)
     connection: default

@@ -5,19 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Table of contents
+
+- [[Unreleased]](#unreleased)
+  - [Documentation](#documentation)
+- [[2.0.7] - 2026-03-16](#207---2026-03-16)
+  - [Added](#added)
+  - [Changed](#changed)
+  - [Fixed](#fixed)
+- [[2.0.6] - 2025-02-27](#206---2025-02-27)
+  - [Added](#added-1)
+  - [Changed](#changed-1)
+  - [Fixed](#fixed-1)
+- [[2.0.5] - 2025-02-27](#205---2025-02-27)
+  - [Added](#added-2)
+  - [Changed](#changed-2)
+  - [Removed](#removed)
+- [[2.0.4] - 2025-02-27](#204---2025-02-27)
+  - [Added](#added-3)
+  - [Changed](#changed-3)
+  - [Fixed](#fixed-2)
+- [[2.0.3] - 2025-02-27](#203---2025-02-27)
+  - [Added](#added-4)
+  - [Changed](#changed-4)
+  - [Fixed](#fixed-3)
+- [[2.0.2] - 2025-02-25](#202---2025-02-25)
+  - [Added](#added-5)
+  - [Changed](#changed-5)
+  - [Fixed](#fixed-4)
+- [[2.0.1] - 2025-02-25](#201---2025-02-25)
+  - [Changed](#changed-6)
+- [[2.0.0] - 2025-02-25](#200---2025-02-25)
+  - [Breaking changes](#breaking-changes)
+  - [Added](#added-6)
+  - [Changed](#changed-7)
+  - [Fixed](#fixed-5)
+- [[1.2.1] - 2026-02-22](#121---2026-02-22)
+  - [Fixed](#fixed-6)
+  - [Changed](#changed-8)
+- [[1.2.0] - 2026-02-20](#120---2026-02-20)
+  - [Added](#added-7)
+  - [Changed](#changed-9)
+  - [Fixed](#fixed-7)
+- [[1.1.0] - 2026-02-20](#110---2026-02-20)
+  - [Added](#added-8)
+  - [Fixed](#fixed-8)
+- [[1.0.0] - 2026-02-20](#100---2026-02-20)
+  - [Added](#added-9)
+
 ## [Unreleased]
 
-### Added
+### Documentation
 
-- (No changes yet.)
-
-### Changed
-
-- (No changes yet.)
-
-### Fixed
-
-- (No changes yet.)
+- **README** — Configuration comment now describes `connection` as used for **CreateTablesService** when registered (not SchemaChecker). Demo section clarifies FrankenPHP **worker mode** only in production; default `APP_ENV=dev` uses **Caddyfile.dev** without worker.
+- **DEMO-FRANKENPHP.md** — Example `bundles.php` matches the Symfony 8 demo (Doctrine, DoctrineMigrations, Twig Inspector).
+- **USAGE.md** — Removed incorrect claim that **SchemaChecker** is injectable; documented that only **CreateTablesService** is affected by `nowo_migrations_kit.connection` when registered as a service.
+- **Symfony Flex recipe comment** — Aligned with `CONFIGURATION.md` (CreateTablesService + container registration).
 
 ---
 
@@ -235,7 +278,7 @@ First release under **nowo-tech**.
 - **SchemaChecker:** `tableExists`, `columnExists`, `indexExists`, `hasPrimaryKey`, `foreignKeyExists`, `listTableColumns`; compatible with DBAL 2.x, 3.x and 4.x.
 - **MigrationDefinitionRunner:** run from array (`tables` + `columns`), `ensureTable`, `ensureColumn`, `ensureIndex`; only runs SQL when the target does not exist.
 - **SchemaSync (declarative schema):** desired schema in one array; create/alter/drop tables, columns, indexes; requires DBAL 3.x or 4.x.
-- **Configuration:** `nowo_migrations_kit.connection` for the injected SchemaChecker service.
+- **Configuration:** `nowo_migrations_kit.connection` for **CreateTablesService** when registered as a service (not used by manually instantiated `SchemaChecker`).
 - Demos for Symfony 7 and 8 with doctrine/migrations 3.x and 4.x.
 - Documentation in `docs/` (CONFIGURATION, INSTALLATION, USAGE, DECLARATIVE_SCHEMA, CONTRIBUTING, EXAMPLE, RELEASE, ROADMAP, UPGRADING).
 - Makefile, Docker, and GitHub CI for development and releases.

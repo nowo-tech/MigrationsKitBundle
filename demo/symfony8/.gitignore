@@ -1,16 +1,24 @@
-###> symfony/framework-bundle ###
+# Local environment and secrets
 /.env
 /.env.local
 /.env.dev
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
+
+# Dependencies and build outputs
+/vendor/
 /public/bundles/
 /var/
-/vendor/
-###< symfony/framework-bundle ###
 
-###> phpunit/phpunit ###
+# Test artifacts
 /phpunit.xml
 /.phpunit.cache/
-###< phpunit/phpunit ###
+
+# Archives / compressed
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

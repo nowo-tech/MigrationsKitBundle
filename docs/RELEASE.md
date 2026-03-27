@@ -1,5 +1,23 @@
 # Release process
 
+## Table of contents
+
+- [Release v2.0.7 (ready)](#release-v207-ready)
+- [Release v2.0.6 (ready)](#release-v206-ready)
+- [Creating a new version (e.g. v2.0.0)](#creating-a-new-version-eg-v200)
+- [After releasing](#after-releasing)
+- [v2.0.6 (2025-02-27)](#v206-2025-02-27)
+- [v2.0.5 (2025-02-27)](#v205-2025-02-27)
+- [v2.0.4 (2025-02-27)](#v204-2025-02-27)
+- [v2.0.3 (2025-02-27)](#v203-2025-02-27)
+- [v2.0.2 (2025-02-25)](#v202-2025-02-25)
+- [v2.0.1 (2025-02-25)](#v201-2025-02-25)
+- [v2.0.0 (2025-02-25)](#v200-2025-02-25)
+- [v1.2.1 (2026-02-22)](#v121-2026-02-22)
+- [v1.2.0 (2026-02-20)](#v120-2026-02-20)
+- [v1.1.0 (2026-02-20)](#v110-2026-02-20)
+- [v1.0.0 (2026-02-20)](#v100-2026-02-20)
+
 ## Release v2.0.7 (ready)
 
 Documentation and changelog are prepared for **v2.0.7**. Before tagging, ensure the lock file is valid:

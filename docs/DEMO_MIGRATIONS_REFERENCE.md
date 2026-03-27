@@ -9,6 +9,30 @@ This document answers:
 
 **Verification:** Re-run on 2025-02-25: `make db-reset-mysql` + `make migrate-mysql` in both `demo/symfony7` and `demo/symfony8`. All 14 migrations (Version20250223100000–00013) executed successfully; 15 SQL statements total. Reference SQL below matches the emitted output.
 
+## Table of contents
+
+- [1. Matrix: bundle operation vs demo migration](#1-matrix-bundle-operation-vs-demo-migration)
+- [2. Reference SQL per migration](#2-reference-sql-per-migration)
+  - [How to generate the SQL yourself](#how-to-generate-the-sql-yourself)
+  - [Version20250223100000 — Create table kit_item](#version20250223100000--create-table-kit_item)
+  - [Version20250223100001 — Create table kit_example (all column types)](#version20250223100001--create-table-kit_example-all-column-types)
+  - [Version20250223100002 — Create kit_user, add user_id to kit_item](#version20250223100002--create-kit_user-add-user_id-to-kit_item)
+  - [Version20250223100003 — Add foreign key kit_item.user_id -> kit_user.id](#version20250223100003--add-foreign-key-kit_itemuser_id---kit_userid)
+  - [Version20250223100004 — Drop table kit_example](#version20250223100004--drop-table-kit_example)
+  - [Version20250223100005 — Drop index and FK on kit_item (user_id)](#version20250223100005--drop-index-and-fk-on-kit_item-user_id)
+  - [Version20250223100006 — Drop table kit_user](#version20250223100006--drop-table-kit_user)
+  - [Version20250223100007 — Drop column user_id from kit_item](#version20250223100007--drop-column-user_id-from-kit_item)
+  - [Version20250223100008 — Rename col_string to col_title in kit_example](#version20250223100008--rename-col_string-to-col_title-in-kit_example)
+  - [Version20250223100009 — Modify col_string_nullable length to 200 in kit_example](#version20250223100009--modify-col_string_nullable-length-to-200-in-kit_example)
+  - [Version20250223100010 — Add index and unique on kit_example](#version20250223100010--add-index-and-unique-on-kit_example)
+  - [Version20250223100011 — Create table kit_pk_demo (for PK drop/change demos)](#version20250223100011--create-table-kit_pk_demo-for-pk-dropchange-demos)
+  - [Version20250223100012 — Drop primary key on kit_pk_demo](#version20250223100012--drop-primary-key-on-kit_pk_demo)
+  - [Version20250223100013 — Add primary key on kit_pk_demo (existing table, column code)](#version20250223100013--add-primary-key-on-kit_pk_demo-existing-table-column-code)
+- [3. Is the bundle safe to use?](#3-is-the-bundle-safe-to-use)
+  - [Safe aspects](#safe-aspects)
+  - [Recommendations](#recommendations)
+  - [Summary](#summary)
+
 ---
 
 ## 1. Matrix: bundle operation vs demo migration

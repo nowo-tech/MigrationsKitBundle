@@ -49,11 +49,8 @@ class SchemaAssetNameTest extends TestCase
             }
         };
         $asset = new class($nameValue) {
-            public object $name;
-
-            public function __construct(object $name)
+            public function __construct(public object $name)
             {
-                $this->name = $name;
             }
         };
         self::assertSame($nameValue, $asset->name);

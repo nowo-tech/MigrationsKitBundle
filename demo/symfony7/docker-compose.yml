@@ -34,8 +34,8 @@ services:
       MYSQL_DATABASE: demo
       MYSQL_USER: app
       MYSQL_PASSWORD: app
-    ports:
-      - "${MYSQL_PORT:-3307}:3306"
+    expose:
+      - "3306"
     networks:
       - migrations-kit-demo-network
     healthcheck:

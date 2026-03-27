@@ -1,0 +1,63 @@
+name: Sync Releases
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-releases:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Sync releases from tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          tags="$(git tag -l 'v*' | sort -V)"
+
+          if [ -z "$tags" ]; then
+            echo "No v* tags found."
+            exit 0
+          fi
+
+          for tag in $tags; do
+            version="${tag#v}"
+            tag_message="$(git tag -l --format='%(contents)' "$tag" 2>/dev/null || true)"
+            [ -n "$tag_message" ] || tag_message="Release $tag"
+
+            changelog_entry=""
+            if [ -f docs/CHANGELOG.md ]; then
+              version_re="$(printf '%s' "$version" | sed 's/\./\\./g')"
+              changelog_entry="$(awk "/^## \\[?${version_re}\\]?/ {flag=1; next} /^## \\[?[0-9]/ {flag=0} flag" docs/CHANGELOG.md 2>/dev/null || true)"
+            fi
+
+            body="$tag_message"
+            if [ -n "$changelog_entry" ]; then
+              body="$(printf '%s\n\n## Changelog\n\n%s' "$tag_message" "$changelog_entry")"
+            fi
+
+            if gh release view "$tag" >/dev/null 2>&1; then
+              current_body="$(gh release view "$tag" --json body -q .body || true)"
+              if [ -z "$current_body" ] || [ "$current_body" = "Release $tag" ]; then
+                printf '%s' "$body" > /tmp/release-body.txt
+                gh release edit "$tag" --notes-file /tmp/release-body.txt
+                echo "Updated release $tag"
+              else
+                echo "Release $tag already complete"
+              fi
+            else
+              printf '%s' "$body" > /tmp/release-body.txt
+              gh release create "$tag" --title "Release $tag" --notes-file /tmp/release-body.txt
+              echo "Created release $tag"
+            fi
+          done

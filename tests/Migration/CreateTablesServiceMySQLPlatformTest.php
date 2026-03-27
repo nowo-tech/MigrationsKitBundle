@@ -241,7 +241,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         $sqls = $service->apply($schema, $def);
         self::assertNotEmpty($sqls);
         $sql = implode(' ', $sqls);
-        if (strpos($sql, 'ON DELETE') === false) {
+        if (!str_contains($sql, 'ON DELETE')) {
             self::markTestSkipped('Current DBAL/MySQL combo does not include ON DELETE clauses in CREATE TABLE for this scenario.');
         }
         self::assertStringContainsString('ON DELETE CASCADE', $sql, 'New table FK with onDelete CASCADE must produce ON DELETE CASCADE in SQL');

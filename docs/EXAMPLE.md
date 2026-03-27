@@ -2,6 +2,14 @@
 
 For runnable examples see the [demo migrations](https://github.com/nowo-tech/migrations-kit-bundle/tree/main/demo) in `demo/symfony7` and `demo/symfony8`.
 
+## Table of contents
+
+- [Basic usage: apply returns SQL, you add it](#basic-usage-apply-returns-sql-you-add-it)
+- [Interleaving: apply + manual addSql + apply again](#interleaving-apply--manual-addsql--apply-again)
+- [SchemaChecker only (conditional SQL)](#schemachecker-only-conditional-sql)
+- [What you get](#what-you-get)
+- [See also](#see-also)
+
 ## Basic usage: apply returns SQL, you add it
 
 Call `apply($schema, $definition)` with an **introspected** schema. The service returns the list of SQL statements; add each with `$this->addSql()`:

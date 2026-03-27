@@ -14,6 +14,27 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 
 **CreateTablesService behaviour:** If the table does not exist → CREATE TABLE with all defined columns and primary key. If the table exists → rename columns (RENAME), modify column type/options, add missing columns; then create indexes (INDEXES) and foreign keys. Column defs with `MDK::DROP => true` are skipped when adding; use `DROP_COLUMNS` to drop columns. Pass the **introspected** schema so it reflects the current database.
 
+## Table of contents
+
+- [SchemaChecker](#schemachecker)
+  - [In the migration with `$this->connection`](#in-the-migration-with-thisconnection)
+  - [Example: full migration using only SchemaChecker](#example-full-migration-using-only-schemachecker)
+  - [Example: list columns and add only the missing ones](#example-list-columns-and-add-only-the-missing-ones)
+  - [Available methods](#available-methods)
+- [MigrationDefinitionKeys (MDK)](#migrationdefinitionkeys-mdk)
+- [Recommended: independent, well-ordered migrations](#recommended-independent-well-ordered-migrations)
+- [Renaming a column that has an index](#renaming-a-column-that-has-an-index)
+- [CreateTablesService (declarative definitions)](#createtablesservice-declarative-definitions)
+- [Reusable audit columns (field dictionary)](#reusable-audit-columns-field-dictionary)
+- [Multiple connections](#multiple-connections)
+- [Doctrine migrations versions](#doctrine-migrations-versions)
+- [Viewing SQL before running migrations](#viewing-sql-before-running-migrations)
+  - [Exporting and viewing SQL before applying](#exporting-and-viewing-sql-before-applying)
+- [Executing and committing after each migration](#executing-and-committing-after-each-migration)
+  - [Transaction already committed (deprecation) when using DDL on MySQL](#transaction-already-committed-deprecation-when-using-ddl-on-mysql)
+  - [AbstractAsset::getName() deprecated (DBAL 5)](#abstractassetgetname-deprecated-dbal-5)
+- [See also](#see-also)
+
 ## SchemaChecker
 
 Service that checks whether tables, columns, indexes and foreign keys exist. Compatible with DBAL 2.x (deprecated methods) and 3.x/4.x.
@@ -311,7 +332,7 @@ $otherConnection = $this->registry->getConnection('other');
 $checker = new SchemaChecker($otherConnection);
 ```
 
-You can also inject the **SchemaChecker** service (which uses the connection set in `nowo_migrations_kit.connection`) and, when you need another connection, create a new checker with `new SchemaChecker($otherConnection)`.
+The bundle does **not** register **SchemaChecker** as a container service; use `new SchemaChecker($this->connection)` (or `new SchemaChecker($otherConnection)`) in migrations. The **`nowo_migrations_kit.connection`** option applies only to **CreateTablesService** when you register that class as a service (see [CONFIGURATION.md](CONFIGURATION.md)).
 
 ---
 

@@ -550,7 +550,6 @@ class SchemaDefinitionParserTest extends TestCase
         $table = new Table('t');
         $table->addColumn('id', 'integer');
         $ref = new ReflectionMethod(SchemaDefinitionParser::class, 'setTablePrimaryKey');
-        $ref->setAccessible(true);
         $parser = new SchemaDefinitionParser();
         $ref->invoke($parser, $table, []);
         self::assertNull($table->getPrimaryKey());
@@ -599,11 +598,11 @@ final class TableOptionsFirstFk extends Table
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
-        $foreignTable,
+        string $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
         array $options = [],
-        $name = null,
+        ?string $name = null,
     ): Table {
         /** @var Table $result */
         $result = parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $options, $name);
@@ -619,7 +618,7 @@ final class TableOptionsFirstFk extends Table
  */
 final class SchemaDefinitionParserOptionsFirstFk extends SchemaDefinitionParser
 {
-    protected function createTable(string $tableName): Table
+    protected function createTable(string $tableName): \Nowo\MigrationsKitBundle\Tests\Schema\Definition\TableOptionsFirstFk
     {
         return new TableOptionsFirstFk($tableName);
     }

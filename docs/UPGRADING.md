@@ -4,6 +4,25 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 **Current API:** The bundle provides **SchemaChecker** (table/column/index/FK checks, `listTableColumns`, `getConnection`, `getSchemaManager`) and **CreateTablesService** (declarative definitions in MDK format). Use **introspected** schema: `$schema = $this->connection->createSchemaManager()->introspectSchema()`, then call `$service->apply($schema, $definition)` and add each returned SQL with `$this->addSql($sql)` in a loop. Build the service with `new CreateTablesService($this->connection, new SchemaDefinitionParser())`. Supporting classes: **MigrationDefinitionKeys** (MDK constants), **SchemaDefinitionParser**. See [USAGE.md](USAGE.md) and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md).
 
+## Table of contents
+
+- [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.7](#upgrading-to-207)
+- [Upgrading to 2.0.6](#upgrading-to-206)
+- [Upgrading to 2.0.5](#upgrading-to-205)
+- [Upgrading to 2.0.4](#upgrading-to-204)
+- [Upgrading to 2.0.3](#upgrading-to-203)
+- [Upgrading to 2.0.2](#upgrading-to-202)
+- [Upgrading to 2.0.1](#upgrading-to-201)
+- [Upgrading to 2.0.0](#upgrading-to-200)
+  - [What was removed](#what-was-removed)
+  - [What stays the same](#what-stays-the-same)
+  - [Upgrade steps](#upgrade-steps)
+- [Upgrading to 1.2.1](#upgrading-to-121)
+- [Upgrading to 1.2.0](#upgrading-to-120)
+- [Upgrading to 1.1.0](#upgrading-to-110)
+- [Upgrading to 1.0.0](#upgrading-to-100)
+
 ## General upgrade process
 
 1. **Back up configuration**  

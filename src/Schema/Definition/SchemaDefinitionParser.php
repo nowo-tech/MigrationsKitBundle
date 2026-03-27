@@ -113,8 +113,8 @@ class SchemaDefinitionParser
             if (isset($fk['onUpdate'])) {
                 $options['onUpdate'] = $fk['onUpdate'];
             }
-            $localColList   = array_values(array_map('strval', $localCols));
-            $foreignColList = array_values(array_map('strval', $foreignCols));
+            $localColList   = array_values(array_map(strval(...), $localCols));
+            $foreignColList = array_values(array_map(strval(...), $foreignCols));
             $fkName         = $fk['name'] ?? null;
             if ($fkName !== null && $fkName !== '') {
                 $this->addForeignKeyConstraintToTable($table, (string) $foreignTable, $localColList, $foreignColList, $options, (string) $fkName);
@@ -146,10 +146,10 @@ class SchemaDefinitionParser
         $nameFirst = $this->tableAddForeignKeyConstraintExpectsNameAsFourthParam($table);
         if ($nameFirst) {
             /* @phpstan-ignore-next-line parameterOutOfBounds */
-            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, (string) $fkName, (array) $options);
+            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, $fkName, $options);
         } else {
             /* @phpstan-ignore-next-line parameterOutOfBounds */
-            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, (array) $options, (string) $fkName);
+            $table->addForeignKeyConstraint($foreignTable, $localColumns, $foreignColumns, $options, $fkName);
         }
     }
 
