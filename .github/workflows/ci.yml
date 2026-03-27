@@ -252,7 +252,7 @@ jobs:
           echo "✅ coverage.xml generated"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.xml
           fail_ci_if_error: false
@@ -302,7 +302,7 @@ jobs:
           echo "✅ coverage.xml generated"
 
       - name: Upload coverage to Codecov (DBAL 3)
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.xml
           flags: dbal3
