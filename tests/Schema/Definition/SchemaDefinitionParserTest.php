@@ -549,7 +549,7 @@ class SchemaDefinitionParserTest extends TestCase
     {
         $table = new Table('t');
         $table->addColumn('id', 'integer');
-        $ref = new ReflectionMethod(SchemaDefinitionParser::class, 'setTablePrimaryKey');
+        $ref    = new ReflectionMethod(SchemaDefinitionParser::class, 'setTablePrimaryKey');
         $parser = new SchemaDefinitionParser();
         $ref->invoke($parser, $table, []);
         self::assertNull($table->getPrimaryKey());
@@ -618,7 +618,7 @@ final class TableOptionsFirstFk extends Table
  */
 final class SchemaDefinitionParserOptionsFirstFk extends SchemaDefinitionParser
 {
-    protected function createTable(string $tableName): \Nowo\MigrationsKitBundle\Tests\Schema\Definition\TableOptionsFirstFk
+    protected function createTable(string $tableName): TableOptionsFirstFk
     {
         return new TableOptionsFirstFk($tableName);
     }
