@@ -19,9 +19,9 @@ use PHPUnit\Framework\TestCase;
  */
 class CreateTablesServiceMySQLPlatformTest extends TestCase
 {
-    private function createServiceWithMySQLPlatform(): CreateTablesService
+    private function createServiceWithMySQLPlatform(?MySQLPlatform $platform = null): CreateTablesService
     {
-        $platform      = new MySQLPlatform();
+        $platform      = $platform ?? new MySQLPlatform();
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
         $schemaManager->method('createComparator')->willReturn(
             new \Doctrine\DBAL\Schema\Comparator($platform),
@@ -246,5 +246,151 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         }
         self::assertStringContainsString('ON DELETE CASCADE', $sql, 'New table FK with onDelete CASCADE must produce ON DELETE CASCADE in SQL');
         self::assertStringContainsString('ON DELETE SET NULL', $sql, 'New table FK with onDelete SET NULL must produce ON DELETE SET NULL in SQL');
+    }
+
+    /** Phase 1 must emit DROP FOREIGN KEY before dropping referenced table on MySQL-capable platform. */
+    public function testApplyDropTablesDropsReferencingForeignKeysOnMySQLPlatform(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform();
+        $schema  = new Schema();
+
+        $users = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->addColumn('user_id', 'integer', ['notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+        $orders->addForeignKeyConstraint('users', ['user_id'], ['id'], [], 'fk_orders_users');
+
+        $def  = [MDK::DROP_TABLES => ['users']];
+        $sqls = $service->apply($schema, $def);
+        $sql  = implode(' ', $sqls);
+
+        self::assertNotEmpty($sqls);
+        self::assertStringContainsStringIgnoringCase('DROP FOREIGN KEY', $sql);
+        self::assertStringContainsStringIgnoringCase('DROP TABLE', $sql);
+    }
+
+    /** FK on a just-added local column should be emitted via getCreateForeignKeySQL path. */
+    public function testApplyAddsForeignKeyForNewColumnViaDirectPlatformSqlOnMySQL(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform();
+        $schema  = new Schema();
+
+        $users = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'user_id', 'type' => 'integer', 'notnull' => false],
+                    ],
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                            'name'            => 'fk_orders_user_new_col',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $sqls = $service->apply($schema, $def);
+        $sql  = implode(' ', $sqls);
+        self::assertNotEmpty($sqls);
+        self::assertStringContainsStringIgnoringCase('FOREIGN KEY', $sql);
+        self::assertStringContainsString('fk_orders_user_new_col', $sql);
+    }
+
+    /** Non-SQLite platforms rethrow errors from direct getCreateForeignKeySQL path. */
+    public function testApplyRethrowsForeignKeyCreateErrorsOnNonSqlitePlatforms(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform(new ThrowingForeignKeyMySQLPlatform());
+        $schema  = new Schema();
+
+        $users = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
+                    ],
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                            'name'            => 'fk_throwing_path',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('forced create FK failure');
+        $service->apply($schema, $def);
+    }
+
+    /** Duplicate SQL in phase 2a should be deduplicated (covers seenInPhase2a duplicate branch). */
+    public function testApplyDropColumnsDeduplicatesDuplicateAlterSql(): void
+    {
+        $service = $this->createServiceWithMySQLPlatform(new DuplicateAlterSchemaSqlMySQLPlatform());
+        $schema  = new Schema();
+        $table   = $schema->createTable('users');
+        $table->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $table->addColumn('name', 'string', ['length' => 255, 'notnull' => true]);
+        $table->setPrimaryKey(['id']);
+
+        $def = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::DROP_COLUMNS => ['name'],
+                ],
+            ],
+        ];
+
+        $sqls = $service->apply($schema, $def);
+        self::assertCount(1, $sqls, 'Duplicate ALTER SQL should be emitted once');
+        self::assertStringContainsStringIgnoringCase('DROP COLUMN', $sqls[0]);
+    }
+}
+
+final class ThrowingForeignKeyMySQLPlatform extends MySQLPlatform
+{
+    public function getCreateForeignKeySQL(\Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey, string $table): string
+    {
+        throw new \RuntimeException('forced create FK failure');
+    }
+}
+
+final class DuplicateAlterSchemaSqlMySQLPlatform extends MySQLPlatform
+{
+    /**
+     * @return array<int, string>
+     */
+    public function getAlterSchemaSQL(\Doctrine\DBAL\Schema\SchemaDiff $diff): array
+    {
+        return [
+            'ALTER TABLE users DROP COLUMN name',
+            'ALTER TABLE users DROP COLUMN name',
+        ];
     }
 }

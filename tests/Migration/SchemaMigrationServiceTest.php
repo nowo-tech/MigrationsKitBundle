@@ -6,6 +6,7 @@ namespace Nowo\MigrationsKitBundle\Tests\Migration;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
@@ -1339,5 +1340,307 @@ class SchemaMigrationServiceTest extends TestCase
         ];
         $sqls = $this->service->apply($schema, $def);
         self::assertEmpty($sqls);
+    }
+
+    public function testApplyDropShortcutsSkipsWhenTableDoesNotExist(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'ghost_table' => [
+                    MDK::COLUMNS           => [
+                        ['name' => 'legacy_name', MDK::RENAME => 'new_name'],
+                    ],
+                    MDK::DROP_FOREIGN_KEYS => ['fk_ghost'],
+                    MDK::DROP_INDEXES      => ['idx_ghost'],
+                    MDK::DROP_COLUMNS      => ['ghost_col'],
+                    MDK::DROP_PRIMARY_KEYS => [],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplyDropForeignKeysSkipsEmptyIdentifierAfterNormalization(): void
+    {
+        $schema = new Schema();
+        $users  = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->addColumn('user_id', 'integer', ['notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+        $orders->addForeignKeyConstraint('users', ['user_id'], ['id'], [], 'fk_orders_user_id');
+
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::DROP_FOREIGN_KEYS => ['   '],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsAddPrimaryKeyWhenDesiredColumnsDoNotExist(): void
+    {
+        $schema = new Schema();
+        $table  = $schema->createTable('no_pk');
+        $table->addColumn('id', 'integer', ['notnull' => true]);
+
+        $def = [
+            MDK::TABLES => [
+                'no_pk' => [
+                    MDK::PRIMARY_KEY => [['columns' => ['missing_col']]],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsIndexesWhenIndexesDefinitionIsNotArray(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::INDEXES => 'invalid',
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsIndexWhenColumnsNormalizeToEmpty(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::INDEXES => [
+                        ['columns' => ['   '], 'name' => 'idx_empty_norm'],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsForeignKeysWhenDefinitionIsNotArray(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::FOREIGN_KEYS => 'invalid',
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsForeignKeyWhenLocalColumnMissingAndNotBeingAdded(): void
+    {
+        $schema = new Schema();
+        $users  = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['missing_local_col'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                            'name'            => 'fk_missing_local',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsForeignKeyWhenForeignColumnMissing(): void
+    {
+        $schema = new Schema();
+        $users  = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $users->setPrimaryKey(['id']);
+
+        $orders = $schema->createTable('orders');
+        $orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $orders->addColumn('user_id', 'integer', ['notnull' => true]);
+        $orders->setPrimaryKey(['id']);
+
+        $def = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['missing_foreign_col'],
+                            'name'            => 'fk_missing_foreign',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplyExistingTableWithColumnsAsStringSkipsMissingColumnsComputation(): void
+    {
+        $schema = $this->schemaWithUsersTable();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => 'invalid_columns',
+                ],
+            ],
+        ];
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplySkipsForeignKeyWhenSchemaReportsForeignTableExistsButCannotResolveIt(): void
+    {
+        $schema = new FlakyForeignTableSchema();
+        $def    = [
+            MDK::TABLES => [
+                'orders' => [
+                    MDK::FOREIGN_KEYS => [
+                        [
+                            'columns'         => ['user_id'],
+                            'foreign_table'   => 'users',
+                            'foreign_columns' => ['id'],
+                            'name'            => 'fk_orders_users_flaky',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+
+    public function testApplyHandlesMissingColumnsWhenTableDisappearsBetweenChecks(): void
+    {
+        $schema = new FlakyUsersSchema();
+        $def    = [
+            MDK::TABLES => [
+                'users' => [
+                    MDK::COLUMNS => [
+                        ['name' => 'email', 'type' => 'string', 'length' => 180, 'notnull' => true],
+                    ],
+                ],
+            ],
+        ];
+
+        $sqls = $this->service->apply($schema, $def);
+        self::assertEmpty($sqls);
+    }
+}
+
+final class FlakyForeignTableSchema extends Schema
+{
+    private int $getTablesCalls = 0;
+    private readonly Table $orders;
+    private readonly Table $usersQualified;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->orders = new Table('orders');
+        $this->orders->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $this->orders->addColumn('user_id', 'integer', ['notnull' => true]);
+        $this->orders->setPrimaryKey(['id']);
+
+        $this->usersQualified = new Table('public.users');
+        $this->usersQualified->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $this->usersQualified->setPrimaryKey(['id']);
+    }
+
+    public function hasTable(string $name): bool
+    {
+        return $name === 'orders';
+    }
+
+    public function getTable(string $name): Table
+    {
+        if ($name === 'orders') {
+            return $this->orders;
+        }
+
+        throw new \InvalidArgumentException('Unknown table: ' . $name);
+    }
+
+    /**
+     * @return list<Table>
+     */
+    public function getTables(): array
+    {
+        $this->getTablesCalls++;
+
+        return $this->getTablesCalls === 1 ? [$this->usersQualified] : [];
+    }
+}
+
+final class FlakyUsersSchema extends Schema
+{
+    private int $usersHasTableCalls = 0;
+    private readonly Table $users;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->users = new Table('users');
+        $this->users->addColumn('id', 'integer', ['autoincrement' => true, 'notnull' => true]);
+        $this->users->setPrimaryKey(['id']);
+    }
+
+    public function hasTable(string $name): bool
+    {
+        if ($name === 'users') {
+            $this->usersHasTableCalls++;
+
+            return $this->usersHasTableCalls === 1;
+        }
+
+        return false;
+    }
+
+    public function getTable(string $name): Table
+    {
+        if ($name === 'users') {
+            return $this->users;
+        }
+
+        throw new \InvalidArgumentException('Unknown table: ' . $name);
+    }
+
+    /**
+     * @return list<Table>
+     */
+    public function getTables(): array
+    {
+        return [];
     }
 }

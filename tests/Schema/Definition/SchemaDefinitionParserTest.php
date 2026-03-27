@@ -577,6 +577,29 @@ class SchemaDefinitionParserTest extends TestCase
         $table = $parser->parseTable('orders', $tableDef);
         self::assertTrue($table->hasForeignKey('fk_user'));
     }
+
+    /** parseTable with named FK uses name-then-options param order when Table reports name as 4th param (DBAL 3 style). */
+    public function testParseTableForeignKeyNamedWhenNameIsFourthParam(): void
+    {
+        $parser   = new SchemaDefinitionParserNameFirstFk();
+        $tableDef = [
+            MDK::COLUMNS => [
+                ['name' => 'id', 'type' => 'integer', 'autoincrement' => true, 'notnull' => true],
+                ['name' => 'user_id', 'type' => 'integer', 'notnull' => true],
+            ],
+            MDK::PRIMARY_KEY  => [['columns' => ['id']]],
+            MDK::FOREIGN_KEYS => [
+                [
+                    'columns'         => ['user_id'],
+                    'foreign_table'   => 'users',
+                    'foreign_columns' => ['id'],
+                    'name'            => 'fk_user_name_first',
+                ],
+            ],
+        ];
+        $table = $parser->parseTable('orders', $tableDef);
+        self::assertTrue($table->hasForeignKey('fk_user_name_first'));
+    }
 }
 
 /**
@@ -621,5 +644,52 @@ final class SchemaDefinitionParserOptionsFirstFk extends SchemaDefinitionParser
     protected function createTable(string $tableName): \Nowo\MigrationsKitBundle\Tests\Schema\Definition\TableOptionsFirstFk
     {
         return new TableOptionsFirstFk($tableName);
+    }
+}
+
+/**
+ * Table whose addForeignKeyConstraint has name as 4th param (DBAL 3 style).
+ *
+ * @internal
+ *
+ * @phpstan-ignore-next-line class.extendsFinal
+ */
+final class TableNameFirstFk extends Table
+{
+    /**
+     * @param mixed $name
+     * @param mixed $options
+     *
+     * @phpstan-ignore-next-line return.type argument.type
+     */
+    public function addForeignKeyConstraint(
+        string $foreignTable,
+        array $localColumnNames,
+        array $foreignColumnNames,
+        mixed $name = null,
+        mixed $options = [],
+    ): Table {
+        /** @var array<string,mixed> $opts */
+        $opts = is_array($options) ? $options : [];
+        /** @var string|null $constraintName */
+        $constraintName = is_string($name) && $name !== '' ? $name : null;
+
+        /** @var Table $result */
+        $result = parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $opts, $constraintName);
+
+        return $result;
+    }
+}
+
+/**
+ * Parser that uses TableNameFirstFk so addForeignKeyConstraintToTable name-first branch is covered.
+ *
+ * @internal
+ */
+final class SchemaDefinitionParserNameFirstFk extends SchemaDefinitionParser
+{
+    protected function createTable(string $tableName): \Nowo\MigrationsKitBundle\Tests\Schema\Definition\TableNameFirstFk
+    {
+        return new TableNameFirstFk($tableName);
     }
 }

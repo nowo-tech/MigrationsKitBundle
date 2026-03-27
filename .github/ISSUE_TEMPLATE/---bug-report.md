@@ -8,10 +8,10 @@ assignees: ''
 ---
 
 <!--
-- Please do not report an issue for a version of `MigrationsKitBundle` that is no longer supported. Currently supported versions are listed here: https://github.com/nowo-tech/MigrationsKitBundle#version-information
+- Please do not report an issue for a version of `migrations-kit-bundle` that is no longer supported. Currently supported versions are listed here: https://github.com/nowo-tech/MigrationsKitBundle#version-information
 - Please fill in this template according to your issue.
 - Please keep the table shown below at the top of your issue.
-- You can retrieve `MigrationsKitBundle` version by running `composer info | grep "MigrationsKitBundle"`.
+- You can retrieve `migrations-kit-bundle` version by running `composer info | grep "migrations-kit-bundle"`.
 - You can retrieve PHP version by running `php -v`.
 - Please post code as text (using proper markup). Do not post screenshots of code.
 - Please remove this comment before submitting your issue.
@@ -19,7 +19,7 @@ assignees: ''
 
 | Q                           | A
 | ----------------------------| -----------------------
-| `MigrationsKitBundle` version    | x.y.z
+| `MigrationsKitBundle` version | x.y.z
 | PHP version                 | x.y.z
 | Database                    | MySQL / PostgreSQL / SQLite / Other
 
