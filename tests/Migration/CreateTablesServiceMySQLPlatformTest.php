@@ -12,6 +12,7 @@ use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * Tests that use a connection with MySQL platform to cover SQL generation
@@ -344,7 +345,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
             ],
         ];
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('forced create FK failure');
         $service->apply($schema, $def);
     }
@@ -377,7 +378,7 @@ final class ThrowingForeignKeyMySQLPlatform extends MySQLPlatform
 {
     public function getCreateForeignKeySQL(\Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey, string $table): string
     {
-        throw new \RuntimeException('forced create FK failure');
+        throw new RuntimeException('forced create FK failure');
     }
 }
 
