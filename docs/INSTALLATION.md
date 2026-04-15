@@ -14,10 +14,10 @@ This guide covers installing Migrations Kit Bundle in a Symfony application.
 
 ## Requirements
 
-The bundle is **compatible with Symfony 7 and 8** (and PHP 8.2+).
+The bundle is **compatible with Symfony 6, 7 and 8** (and PHP 8.1+).
 
-- **PHP** >= 8.2
-- **Symfony** ^7.0 || ^8.0
+- **PHP** >= 8.1
+- **Symfony** ^6.0 || ^7.0 || ^8.0
 - **doctrine/doctrine-bundle** ^2.8 || ^3.0
 - **doctrine/dbal** ^2.13 || ^3.0 || ^4.0
 - **doctrine/migrations** ^3.5 || ^4.0

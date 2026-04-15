@@ -87,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DEMO-FRANKENPHP.md** — Example `bundles.php` matches the Symfony 8 demo (Doctrine, DoctrineMigrations, Twig Inspector).
 - **USAGE.md** — Removed incorrect claim that **SchemaChecker** is injectable; documented that only **CreateTablesService** is affected by `nowo_migrations_kit.connection` when registered as a service.
 - **Symfony Flex recipe comment** — Aligned with `CONFIGURATION.md` (CreateTablesService + container registration).
+- **INSTALLATION.md** — Requirements updated to **PHP >= 8.1** and **Symfony ^6.0 \|\| ^7.0 \|\| ^8.0** (matches `composer.json`).
 
 ---
 
