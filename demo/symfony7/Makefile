@@ -58,10 +58,10 @@ up:
 	@echo "Installing dependencies..."
 	@$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 $(SERVICE_PHP) composer install --no-interaction
 	@$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'mkdir -p var'
-	@DEFAULT_URI=$$(grep '^DEFAULT_URI=' .env.example | cut -d= -f2 | tr -d '\r'); \
-		PORT=$$(grep '^PORT=' .env.example | cut -d= -f2 | tr -d '\r'); \
-		echo "Demo started at: $${DEFAULT_URI:-http://localhost:$${PORT:-8007}}"; \
-		echo "make up does NOT run migrations; run 'make migrate' to apply them."
+	@PORT=$$(grep "^PORT=" .env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	[ -z "$$PORT" ] && PORT=$$(grep "^PORT=" .env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	echo "Demo started at: http://localhost:$$PORT" 
+	@echo "make up does NOT run migrations; run 'make migrate' to apply them."
 
 down:
 	$(COMPOSE) down
