@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.8](#upgrading-to-208)
 - [Upgrading to 2.0.7](#upgrading-to-207)
 - [Upgrading to 2.0.6](#upgrading-to-206)
 - [Upgrading to 2.0.5](#upgrading-to-205)
@@ -47,6 +48,16 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.8
+
+- **No breaking changes** for typical Symfony 7 / 8 and PHP 8.2+ projects.
+- **Composer constraints** — The package now officially supports **PHP >= 8.1** and **Symfony 6** (`symfony/*` `^6.0 || ^7.0 || ^8.0`). If you are already on PHP 8.2+ and Symfony 7 or 8, behaviour is unchanged; you can adopt Symfony 6 or PHP 8.1 only if your stack requires it.
+- **CreateTablesService** — When adding **foreign keys on new columns** in one `apply()`, errors on **non-SQLite** databases are no longer swallowed: only SQLite keeps the previous “skip quietly” behaviour for unsupported same-run FK creation. If you relied on silent failure on MySQL/PostgreSQL (unlikely), review migration logs.
+- **Docs & recipe** — README, USAGE, DEMO-FRANKENPHP, and the Flex recipe comment align with **CreateTablesService** vs **SchemaChecker** and `nowo_migrations_kit.connection`.
+- Upgrade with `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

@@ -6,10 +6,10 @@ declare(strict_types=1);
  * Check that code coverage meets the minimum threshold (default 82%).
  * Reads the Clover XML report produced by PHPUnit and exits with 1 if below threshold.
  *
- * Usage: php scripts/check-coverage.php [coverage.xml] [min-percent]
+ * Usage: php .scripts/check-coverage.php [coverage.xml] [min-percent]
  *
  * Target 95%. Minimum 90%: remaining uncovered is DBAL 2/4 and reflection fallbacks.
- * Override: php scripts/check-coverage.php coverage.xml 95
+ * Override: php .scripts/check-coverage.php coverage.xml 95
  */
 $coverageFile = $argv[1] ?? __DIR__ . '/../coverage.xml';
 $minPercent   = isset($argv[2]) ? (float) $argv[2] : 90.0;

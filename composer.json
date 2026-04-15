@@ -85,7 +85,7 @@
     },
     "scripts-descriptions": {
         "test": "Run PHPUnit tests",
-        "test-coverage": "Run PHPUnit with code coverage and enforce minimum (see scripts/check-coverage.php)",
+        "test-coverage": "Run PHPUnit with code coverage (optional threshold: php .scripts/check-coverage.php)",
         "cs-check": "Check code style with PHP-CS-Fixer",
         "cs-fix": "Fix code style with PHP-CS-Fixer",
         "phpstan": "Run PHPStan static analysis",

@@ -8,52 +8,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-  - [Documentation](#documentation)
-- [[2.0.7] - 2026-03-16](#207---2026-03-16)
+- [[2.0.8] - 2026-04-15](#208---2026-04-15)
   - [Added](#added)
   - [Changed](#changed)
   - [Fixed](#fixed)
-- [[2.0.6] - 2025-02-27](#206---2025-02-27)
+  - [Documentation](#documentation)
+- [[2.0.7] - 2026-03-16](#207---2026-03-16)
   - [Added](#added-1)
   - [Changed](#changed-1)
   - [Fixed](#fixed-1)
-- [[2.0.5] - 2025-02-27](#205---2025-02-27)
+- [[2.0.6] - 2025-02-27](#206---2025-02-27)
   - [Added](#added-2)
   - [Changed](#changed-2)
-  - [Removed](#removed)
-- [[2.0.4] - 2025-02-27](#204---2025-02-27)
+  - [Fixed](#fixed-2)
+- [[2.0.5] - 2025-02-27](#205---2025-02-27)
   - [Added](#added-3)
   - [Changed](#changed-3)
-  - [Fixed](#fixed-2)
-- [[2.0.3] - 2025-02-27](#203---2025-02-27)
+  - [Removed](#removed)
+- [[2.0.4] - 2025-02-27](#204---2025-02-27)
   - [Added](#added-4)
   - [Changed](#changed-4)
   - [Fixed](#fixed-3)
-- [[2.0.2] - 2025-02-25](#202---2025-02-25)
+- [[2.0.3] - 2025-02-27](#203---2025-02-27)
   - [Added](#added-5)
   - [Changed](#changed-5)
   - [Fixed](#fixed-4)
-- [[2.0.1] - 2025-02-25](#201---2025-02-25)
+- [[2.0.2] - 2025-02-25](#202---2025-02-25)
+  - [Added](#added-6)
   - [Changed](#changed-6)
+  - [Fixed](#fixed-5)
+- [[2.0.1] - 2025-02-25](#201---2025-02-25)
+  - [Changed](#changed-7)
 - [[2.0.0] - 2025-02-25](#200---2025-02-25)
   - [Breaking changes](#breaking-changes)
-  - [Added](#added-6)
-  - [Changed](#changed-7)
-  - [Fixed](#fixed-5)
-- [[1.2.1] - 2026-02-22](#121---2026-02-22)
-  - [Fixed](#fixed-6)
-  - [Changed](#changed-8)
-- [[1.2.0] - 2026-02-20](#120---2026-02-20)
   - [Added](#added-7)
-  - [Changed](#changed-9)
+  - [Changed](#changed-8)
+  - [Fixed](#fixed-6)
+- [[1.2.1] - 2026-02-22](#121---2026-02-22)
   - [Fixed](#fixed-7)
-- [[1.1.0] - 2026-02-20](#110---2026-02-20)
+  - [Changed](#changed-9)
+- [[1.2.0] - 2026-02-20](#120---2026-02-20)
   - [Added](#added-8)
+  - [Changed](#changed-10)
   - [Fixed](#fixed-8)
-- [[1.0.0] - 2026-02-20](#100---2026-02-20)
+- [[1.1.0] - 2026-02-20](#110---2026-02-20)
   - [Added](#added-9)
+  - [Fixed](#fixed-9)
+- [[1.0.0] - 2026-02-20](#100---2026-02-20)
+  - [Added](#added-10)
 
 ## [Unreleased]
+
+---
+
+## [2.0.8] - 2026-04-15
+
+### Added
+
+- **Wider runtime support** — `composer.json` requires **PHP >= 8.1** (previously >= 8.2) and allows **Symfony 6** (`symfony/*` `^6.0 || ^7.0 || ^8.0`) alongside Symfony 7 and 8.
+- **Tests** — More coverage in **CreateTablesServiceMySQLPlatformTest**, **SchemaMigrationServiceTest**, and **SchemaDefinitionParserTest** (MySQL platform SQL, integration paths, parser edge cases).
+- **Repository / CI** — GitHub issue and PR templates, Dependabot, stale and PR-lint workflows, sync-releases workflow, CODEOWNERS, FUNDING, Copilot instructions; demo `.env.test` and demo Makefile alignment.
+
+### Changed
+
+- **CreateTablesService** — When adding foreign keys on **new columns** in one `apply()` run, only **SQLite** may skip the step via `catch` (unsupported FK path); on other platforms, exceptions are **rethrown** so failures are not masked.
+- **CreateTablesService** — `getRenameColumnSQL` handling: only an **empty string** is treated as no SQL; the platform return value is passed through without incorrect `(array)` wrapping.
+- **CreateTablesService** — Column name normalization in `dropColumnsViaComparator` uses **`$this->normalizeIdentifier(...)`** as a first-class callable.
+- **SchemaDefinitionParser** — `addForeignKeyConstraint` calls pass **name** and **options** without redundant casts; `array_map` uses **`strval(...)`** callables for column lists.
+- **Developer tooling** — Root `Makefile` `test-coverage` saves console output to **`coverage-php.txt`** and runs **`.scripts/php-coverage-percent.sh`**; Composer **`test-coverage`** runs PHPUnit only (optional Clover check: **`.scripts/check-coverage.php`**). **`composer test`** uses **`--color=always`**.
+
+### Fixed
+
+- **CreateTablesService** — **Non-SQLite** platforms no longer swallow unrelated errors when applying FKs on new columns in the same run (only the SQLite “not supported in same run” case is handled quietly).
 
 ### Documentation
 
