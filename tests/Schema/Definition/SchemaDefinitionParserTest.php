@@ -11,6 +11,9 @@ use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
+use function is_array;
+use function is_string;
+
 class SchemaDefinitionParserTest extends TestCase
 {
     private SchemaDefinitionParser $parser;
@@ -657,9 +660,6 @@ final class SchemaDefinitionParserOptionsFirstFk extends SchemaDefinitionParser
 final class TableNameFirstFk extends Table
 {
     /**
-     * @param mixed $name
-     * @param mixed $options
-     *
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
@@ -688,7 +688,7 @@ final class TableNameFirstFk extends Table
  */
 final class SchemaDefinitionParserNameFirstFk extends SchemaDefinitionParser
 {
-    protected function createTable(string $tableName): \Nowo\MigrationsKitBundle\Tests\Schema\Definition\TableNameFirstFk
+    protected function createTable(string $tableName): TableNameFirstFk
     {
         return new TableNameFirstFk($tableName);
     }

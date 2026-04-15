@@ -7,6 +7,7 @@ namespace Nowo\MigrationsKitBundle\Tests\Migration;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
+use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
@@ -1348,7 +1349,7 @@ class SchemaMigrationServiceTest extends TestCase
         $def    = [
             MDK::TABLES => [
                 'ghost_table' => [
-                    MDK::COLUMNS           => [
+                    MDK::COLUMNS => [
                         ['name' => 'legacy_name', MDK::RENAME => 'new_name'],
                     ],
                     MDK::DROP_FOREIGN_KEYS => ['fk_ghost'],
@@ -1589,7 +1590,7 @@ final class FlakyForeignTableSchema extends Schema
             return $this->orders;
         }
 
-        throw new \InvalidArgumentException('Unknown table: ' . $name);
+        throw new InvalidArgumentException('Unknown table: ' . $name);
     }
 
     /**
@@ -1597,7 +1598,7 @@ final class FlakyForeignTableSchema extends Schema
      */
     public function getTables(): array
     {
-        $this->getTablesCalls++;
+        ++$this->getTablesCalls;
 
         return $this->getTablesCalls === 1 ? [$this->usersQualified] : [];
     }
@@ -1619,7 +1620,7 @@ final class FlakyUsersSchema extends Schema
     public function hasTable(string $name): bool
     {
         if ($name === 'users') {
-            $this->usersHasTableCalls++;
+            ++$this->usersHasTableCalls;
 
             return $this->usersHasTableCalls === 1;
         }
@@ -1633,7 +1634,7 @@ final class FlakyUsersSchema extends Schema
             return $this->users;
         }
 
-        throw new \InvalidArgumentException('Unknown table: ' . $name);
+        throw new InvalidArgumentException('Unknown table: ' . $name);
     }
 
     /**
