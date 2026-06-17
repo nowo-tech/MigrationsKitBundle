@@ -640,11 +640,11 @@ final class TableOptionsFirstFk extends Table
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
-        string $foreignTable,
+        $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
         array $options = [],
-        ?string $name = null,
+        $name = null,
     ): Table {
         return parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $options, $name);
     }
@@ -676,11 +676,11 @@ final class TableNameFirstFk extends Table
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
-        string $foreignTable,
+        $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
-        mixed $name = null,
-        mixed $options = [],
+        $name = null,
+        $options = [],
     ): Table {
         /** @var array<string,mixed> $opts */
         $opts = is_array($options) ? $options : [];
