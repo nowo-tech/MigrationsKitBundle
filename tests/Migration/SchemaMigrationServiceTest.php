@@ -1560,6 +1560,7 @@ class SchemaMigrationServiceTest extends TestCase
     }
 }
 
+/** @phpstan-ignore-next-line class.extendsFinalByPhpDoc */
 final class FlakyForeignTableSchema extends Schema
 {
     private int $getTablesCalls = 0;
@@ -1579,12 +1580,12 @@ final class FlakyForeignTableSchema extends Schema
         $this->usersQualified->setPrimaryKey(['id']);
     }
 
-    public function hasTable($name): bool
+    public function hasTable(string $name): bool
     {
         return $name === 'orders';
     }
 
-    public function getTable($name): Table
+    public function getTable(string $name): Table
     {
         if ($name === 'orders') {
             return $this->orders;
@@ -1604,6 +1605,7 @@ final class FlakyForeignTableSchema extends Schema
     }
 }
 
+/** @phpstan-ignore-next-line class.extendsFinalByPhpDoc */
 final class FlakyUsersSchema extends Schema
 {
     private int $usersHasTableCalls = 0;
@@ -1617,7 +1619,7 @@ final class FlakyUsersSchema extends Schema
         $this->users->setPrimaryKey(['id']);
     }
 
-    public function hasTable($name): bool
+    public function hasTable(string $name): bool
     {
         if ($name === 'users') {
             ++$this->usersHasTableCalls;
@@ -1628,7 +1630,7 @@ final class FlakyUsersSchema extends Schema
         return false;
     }
 
-    public function getTable($name): Table
+    public function getTable(string $name): Table
     {
         if ($name === 'users') {
             return $this->users;

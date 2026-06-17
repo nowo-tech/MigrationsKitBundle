@@ -663,12 +663,13 @@ final class TableNameFirstFk extends Table
         string $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
-        $name = null,
-        $options = [],
+        mixed $name = null,
+        mixed $options = [],
     ): Table {
         /** @var array<string,mixed> $opts */
         $opts = is_array($options) ? $options : [];
-        /** @var string|null $constraintName */
+        // DBAL 3-style 4th arg is constraint name (mixed); parent Table types param 4 as options array.
+        /** @phpstan-ignore function.impossibleType, booleanAnd.alwaysFalse, notIdentical.alwaysTrue */
         $constraintName = is_string($name) && $name !== '' ? $name : null;
 
         return parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $opts, $constraintName);
