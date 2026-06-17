@@ -13,6 +13,7 @@ use Doctrine\DBAL\Schema\Table;
 use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use stdClass;
 
 class TableSchemaHelperTest extends TestCase
@@ -149,7 +150,9 @@ final class ComparatorConfigCapturingSchemaManager
 {
     public bool $receivedConfig = false;
 
-    public function __construct(private readonly Comparator $inner) {}
+    public function __construct(private readonly Comparator $inner)
+    {
+    }
 
     public function createComparator(ComparatorConfig $config): Comparator
     {
@@ -168,12 +171,14 @@ final class ThrowingConfigComparatorSchemaManager
 {
     public bool $fallbackCalled = false;
 
-    public function __construct(private readonly Comparator $inner) {}
+    public function __construct(private readonly Comparator $inner)
+    {
+    }
 
-    public function createComparator(ComparatorConfig|null $config = null): Comparator
+    public function createComparator(?ComparatorConfig $config = null): Comparator
     {
         if ($config instanceof ComparatorConfig) {
-            throw new \RuntimeException('forced config comparator failure');
+            throw new RuntimeException('forced config comparator failure');
         }
 
         $this->fallbackCalled = true;
