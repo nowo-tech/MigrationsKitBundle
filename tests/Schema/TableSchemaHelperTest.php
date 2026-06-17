@@ -25,7 +25,10 @@ class TableSchemaHelperTest extends TestCase
 
     public function testCreateSchemaComparatorUsesDbalComparator(): void
     {
-        $connection    = DriverManager::getConnection(['url' => 'sqlite:///:memory:']);
+        $connection = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
         $schemaManager = $connection->createSchemaManager();
         $comparator    = TableSchemaHelper::createSchemaComparator($schemaManager);
 

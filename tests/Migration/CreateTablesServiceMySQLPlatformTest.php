@@ -376,7 +376,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
 
 final class ThrowingForeignKeyMySQLPlatform extends MySQLPlatform
 {
-    public function getCreateForeignKeySQL(\Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey, string $table): string
+    public function getCreateForeignKeySQL(\Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey, $table): string
     {
         throw new RuntimeException('forced create FK failure');
     }

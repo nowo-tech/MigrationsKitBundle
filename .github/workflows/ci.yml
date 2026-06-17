@@ -1,4 +1,5 @@
 # CI: tests on PHP 8.2–8.5 × Symfony 7.0, 8.0 (exclusions for incompatible pairs).
+# DBAL 3|4 × Symfony 7.0|8.0 (PHP 8.2 for SF7, PHP 8.4 for SF8).
 # Coverage with PCOV; release updated via release.yml on tag push.
 name: CI
 
@@ -91,12 +92,24 @@ jobs:
           echo "✅ Coverage generated"
 
   test-dbal:
-    name: DBAL ${{ matrix.dbal }} (PHP 8.2, Symfony 7.0)
+    name: DBAL ${{ matrix.dbal }} (PHP ${{ matrix.php }}, Symfony ${{ matrix.symfony }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        dbal: ['3', '4']
+        include:
+          - dbal: '3'
+            symfony: '7.0'
+            php: '8.2'
+          - dbal: '4'
+            symfony: '7.0'
+            php: '8.2'
+          - dbal: '3'
+            symfony: '8.0'
+            php: '8.4'
+          - dbal: '4'
+            symfony: '8.0'
+            php: '8.4'
 
     steps:
       - name: Checkout code
@@ -105,7 +118,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
           extensions: json
           coverage: pcov
           tools: composer:v2
@@ -121,30 +134,39 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-php82-symfony70-dbal${{ matrix.dbal }}-composer-${{ hashFiles('**/composer.json') }}
+          key: ${{ runner.os }}-php${{ matrix.php }}-symfony${{ matrix.symfony }}-dbal${{ matrix.dbal }}-composer-${{ hashFiles('**/composer.json') }}
           restore-keys: |
-            ${{ runner.os }}-php82-symfony70-dbal${{ matrix.dbal }}-composer-
+            ${{ runner.os }}-php${{ matrix.php }}-symfony${{ matrix.symfony }}-dbal${{ matrix.dbal }}-composer-
 
       - name: Pin PHP and Symfony
         run: |
-          composer config platform.php 8.2.0
-          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/http-kernel:^7.0 symfony/yaml:^7.0 --no-interaction --no-update
+          composer config platform.php ${{ matrix.php }}.0
+          composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/yaml:^${{ matrix.symfony }} --no-interaction --no-update
+
+      - name: Pin doctrine-bundle for Symfony 8
+        if: matrix.symfony == '8.0'
+        run: composer require doctrine/doctrine-bundle:^3.0 --no-interaction --no-update
 
       - name: Pin Doctrine DBAL ${{ matrix.dbal }}
         run: composer require doctrine/dbal:^${{ matrix.dbal }}.0 --no-interaction --no-update
 
       - name: Update dependencies
-        run: composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
-
-      - name: Run tests (DBAL ${{ matrix.dbal }})
         run: |
-          echo "🧪 Running tests on Doctrine DBAL ${{ matrix.dbal }}..."
+          if [ "${{ matrix.symfony }}" = "8.0" ]; then
+            composer update doctrine/doctrine-bundle doctrine/dbal symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          else
+            composer update doctrine/dbal symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          fi
+
+      - name: Run tests (DBAL ${{ matrix.dbal }}, Symfony ${{ matrix.symfony }})
+        run: |
+          echo "🧪 Running tests on Doctrine DBAL ${{ matrix.dbal }} with Symfony ${{ matrix.symfony }}..."
           composer test
           if [ $? -ne 0 ]; then
-            echo "❌ ERROR: Tests failed on DBAL ${{ matrix.dbal }}"
+            echo "❌ ERROR: Tests failed on DBAL ${{ matrix.dbal }} with Symfony ${{ matrix.symfony }}"
             exit 1
           fi
-          echo "✅ All tests passed on DBAL ${{ matrix.dbal }}"
+          echo "✅ All tests passed on DBAL ${{ matrix.dbal }} with Symfony ${{ matrix.symfony }}"
 
   code-style:
     name: Code Style
