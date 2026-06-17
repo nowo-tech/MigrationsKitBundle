@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.9](#upgrading-to-209)
 - [Upgrading to 2.0.8](#upgrading-to-208)
 - [Upgrading to 2.0.7](#upgrading-to-207)
 - [Upgrading to 2.0.6](#upgrading-to-206)
@@ -48,6 +49,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.9
+
+- **No breaking changes.** This release removes **DBAL 4 deprecation notices** when the bundle sets primary keys or builds schema comparators during migration SQL generation.
+- **Behaviour** — Generated SQL is unchanged; only internal calls were updated (`Table::addPrimaryKeyConstraint()` when available, `ComparatorConfig::withReportModifiedIndexes(false)` for comparators). Shared logic lives in the internal **TableSchemaHelper** class; you do not need to reference it in your migrations.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed. If you run migrations with `-vvv` on DBAL 4, you should see fewer deprecation warnings from this bundle.
 
 ---
 

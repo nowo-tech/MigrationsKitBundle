@@ -2,11 +2,13 @@
 
 ## Table of contents
 
+- [Release v2.0.9 (ready)](#release-v209-ready)
 - [Release v2.0.8 (ready)](#release-v208-ready)
 - [Release v2.0.7 (ready)](#release-v207-ready)
 - [Release v2.0.6 (ready)](#release-v206-ready)
 - [Creating a new version (e.g. v2.0.0)](#creating-a-new-version-eg-v200)
 - [After releasing](#after-releasing)
+- [v2.0.9 (2026-06-17)](#v209-2026-06-17)
 - [v2.0.8 (2026-04-15)](#v208-2026-04-15)
 - [v2.0.6 (2025-02-27)](#v206-2025-02-27)
 - [v2.0.5 (2025-02-27)](#v205-2025-02-27)
@@ -19,6 +21,34 @@
 - [v1.2.0 (2026-02-20)](#v120-2026-02-20)
 - [v1.1.0 (2026-02-20)](#v110-2026-02-20)
 - [v1.0.0 (2026-02-20)](#v100-2026-02-20)
+
+## Release v2.0.9 (ready)
+
+Documentation and changelog are prepared for **v2.0.9**. Before tagging, ensure the lock file is valid:
+
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
+
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.9 release"
+   git push origin master
+   git tag -a v2.0.9 -m "Release v2.0.9"
+   git push origin v2.0.9
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.9` and paste the [2.0.9] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
 
 ## Release v2.0.8 (ready)
 
@@ -134,6 +164,13 @@ Documentation and changelog are prepared for **v2.0.6**. Before tagging, ensure 
 
 - Keep `## [Unreleased]` at the top of [CHANGELOG.md](CHANGELOG.md) for the next version; add new changes there.
 - Optionally bump a dev version in `composer.json` for development.
+
+---
+
+## v2.0.9 (2026-06-17)
+
+- **Scope:** **TableSchemaHelper** for DBAL 3/4-compatible primary keys and schema comparators; **CreateTablesService** and **SchemaDefinitionParser** updated to avoid DBAL 4 deprecations (`setPrimaryKey`, modified-index comparator detection); tests for the helper.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.9.
 
 ---
 
