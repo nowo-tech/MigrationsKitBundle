@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.12](#upgrading-to-2012)
 - [Upgrading to 2.0.11](#upgrading-to-2011)
 - [Upgrading to 2.0.10](#upgrading-to-2010)
 - [Upgrading to 2.0.9](#upgrading-to-209)
@@ -51,6 +52,13 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.12
+
+- **No breaking changes.** This release fixes DBAL 3 CI jobs only (PHPUnit stub signatures); runtime behaviour and migration SQL are unchanged.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

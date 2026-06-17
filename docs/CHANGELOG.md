@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.12] - 2026-06-17](#2012---2026-06-17)
+  - [Fixed](#fixed)
 - [[2.0.11] - 2026-06-17](#2011---2026-06-17)
   - [Changed](#changed)
   - [Fixed](#fixed)
@@ -67,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Added](#added-10)
 
 ## [Unreleased]
+
+---
+
+## [2.0.12] - 2026-06-17
+
+### Fixed
+
+- **Tests (DBAL 3)** — Align PHPUnit `Schema` and `Table` stub method signatures with DBAL 3 (untyped parameters), fixing CI fatal errors (exit 255) in `test-dbal` and `coverage-dbal3` jobs.
 
 ---
 

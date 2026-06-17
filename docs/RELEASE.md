@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Release v2.0.12 (ready)](#release-v2012-ready)
 - [Release v2.0.11 (ready)](#release-v2011-ready)
 - [Release v2.0.10 (ready)](#release-v2010-ready)
 - [Release v2.0.9 (ready)](#release-v209-ready)
@@ -10,6 +11,7 @@
 - [Release v2.0.6 (ready)](#release-v206-ready)
 - [Creating a new version (e.g. v2.0.0)](#creating-a-new-version-eg-v200)
 - [After releasing](#after-releasing)
+- [v2.0.12 (2026-06-17)](#v2012-2026-06-17)
 - [v2.0.11 (2026-06-17)](#v2011-2026-06-17)
 - [v2.0.10 (2026-06-17)](#v2010-2026-06-17)
 - [v2.0.9 (2026-06-17)](#v209-2026-06-17)
@@ -25,6 +27,34 @@
 - [v1.2.0 (2026-02-20)](#v120-2026-02-20)
 - [v1.1.0 (2026-02-20)](#v110-2026-02-20)
 - [v1.0.0 (2026-02-20)](#v100-2026-02-20)
+
+## Release v2.0.12 (ready)
+
+Documentation and changelog are prepared for **v2.0.12**. Before tagging, ensure the lock file is valid:
+
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
+
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.12 release"
+   git push origin master
+   git tag -a v2.0.12 -m "Release v2.0.12"
+   git push origin v2.0.12
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.12` and paste the [2.0.12] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
 
 ## Release v2.0.11 (ready)
 
@@ -224,6 +254,13 @@ Documentation and changelog are prepared for **v2.0.6**. Before tagging, ensure 
 
 - Keep `## [Unreleased]` at the top of [CHANGELOG.md](CHANGELOG.md) for the next version; add new changes there.
 - Optionally bump a dev version in `composer.json` for development.
+
+---
+
+## v2.0.12 (2026-06-17)
+
+- **Scope:** Fix DBAL 3 CI (`test-dbal`, `coverage-dbal3`) — PHPUnit `Schema`/`Table` stub signatures compatible with DBAL 3 untyped parameters. No runtime or API changes.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.12.
 
 ---
 
