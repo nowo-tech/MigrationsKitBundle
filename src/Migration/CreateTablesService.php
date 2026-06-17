@@ -14,6 +14,7 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
+use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -85,7 +86,7 @@ final readonly class CreateTablesService
         $sqls          = [];
         $platform      = $this->connection->getDatabasePlatform();
         $schemaManager = $this->connection->createSchemaManager();
-        $comparator    = $schemaManager->createComparator();
+        $comparator    = TableSchemaHelper::createSchemaComparator($schemaManager);
 
         // Phase 1: drop FKs that reference any table we are about to drop (so DROP TABLE can succeed).
         $dropTables = $this->normalizeDropTablesList($definition[MDK::DROP_TABLES] ?? null);
@@ -1119,11 +1120,7 @@ final readonly class CreateTablesService
         if ($columnNames === []) {
             return [];
         }
-        try {
-            $table->setPrimaryKey($columnNames);
-        } catch (Throwable) {
-            $table->setPrimaryKey($columnNames);
-        }
+        TableSchemaHelper::setPrimaryKey($table, $columnNames);
         $diff = $comparator->compareSchemas($fromSchema, $toSchema);
 
         return $this->schemaDiffToSql($diff, $platform, $schemaManager);
