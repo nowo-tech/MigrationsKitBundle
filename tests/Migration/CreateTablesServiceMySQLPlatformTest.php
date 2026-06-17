@@ -370,7 +370,8 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
 
         $sqls = $service->apply($schema, $def);
         self::assertCount(1, $sqls, 'Duplicate ALTER SQL should be emitted once');
-        self::assertStringContainsStringIgnoringCase('DROP COLUMN', $sqls[0]);
+        // DBAL 3 MySQL may emit "DROP name"; DBAL 4 uses "DROP COLUMN name".
+        self::assertMatchesRegularExpression('/DROP\s+(?:COLUMN\s+)?name/i', $sqls[0]);
     }
 }
 
