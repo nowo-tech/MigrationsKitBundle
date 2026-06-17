@@ -6,6 +6,7 @@ namespace Nowo\MigrationsKitBundle\Schema\Definition;
 
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use ReflectionMethod;
 use Throwable;
 
@@ -182,7 +183,7 @@ class SchemaDefinitionParser
         if ($columnNames === []) {
             return;
         }
-        $table->setPrimaryKey($columnNames);
+        TableSchemaHelper::setPrimaryKey($table, $columnNames);
     }
 
     /**

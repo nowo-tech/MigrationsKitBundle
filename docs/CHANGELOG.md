@@ -61,6 +61,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.9] - 2026-06-16
+
+### Added
+
+- **TableSchemaHelper** — Shared DBAL 3/4-compatible helpers for primary keys and schema comparators.
+
+### Fixed
+
+- **DBAL 4 deprecations** — Use `Table::addPrimaryKeyConstraint()` when available instead of deprecated `Table::setPrimaryKey()` in `SchemaDefinitionParser` and `CreateTablesService`.
+- **DBAL 4 deprecations** — Create schema comparators with `ComparatorConfig::withReportModifiedIndexes(false)` to silence modified-index detection deprecation.
+
+---
+
 ## [2.0.8] - 2026-04-15
 
 ### Added
