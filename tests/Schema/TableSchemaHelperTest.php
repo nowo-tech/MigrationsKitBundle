@@ -147,7 +147,8 @@ final class ComparatorConfigCapturingSchemaManager
 
     public function createComparator(ComparatorConfig $config): Comparator
     {
-        $this->receivedConfig = true;
+        $this->receivedConfig = class_exists(ComparatorConfig::class);
+        $config->withReportModifiedIndexes(false);
 
         return $this->inner;
     }

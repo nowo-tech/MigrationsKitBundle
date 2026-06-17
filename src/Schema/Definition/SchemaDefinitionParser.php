@@ -176,7 +176,7 @@ class SchemaDefinitionParser
         try {
             $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
 
-            return array_map(static fn (ReflectionParameter $p) => $p->getName(), $method->getParameters());
+            return array_map(static fn (ReflectionParameter $p): string => $p->getName(), $method->getParameters());
         } catch (Throwable) {
             return null;
         }

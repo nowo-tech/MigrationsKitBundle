@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.11] - 2026-06-17](#2011---2026-06-17)
+  - [Changed](#changed)
+  - [Fixed](#fixed)
 - [[2.0.10] - 2026-06-17](#2010---2026-06-17)
   - [Changed](#changed)
   - [Fixed](#fixed)
@@ -64,6 +67,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Added](#added-10)
 
 ## [Unreleased]
+
+---
+
+## [2.0.11] - 2026-06-17
+
+### Changed
+
+- **TableSchemaHelper** — Improved DBAL 3/4 schema comparator creation and primary-key handling; class is no longer `final` (internal helper, not part of the public API).
+- **SchemaDefinitionParser** — Refactored FK parameter-order detection for clearer DBAL 3 vs 4 branching.
+- **CreateTablesService** — Removed redundant guard in the column-modify loop (behaviour unchanged).
+
+### Fixed
+
+- **PHPStan** — Resolved all level-8 static analysis errors in `src/` and `tests/`.
+- **Tests & coverage** — Expanded PHPUnit coverage for `TableSchemaHelper` and `SchemaDefinitionParser`; bundle line coverage ~99% (`CreateTablesService` at 100%).
 
 ---
 

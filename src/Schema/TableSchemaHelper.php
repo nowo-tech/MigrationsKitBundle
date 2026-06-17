@@ -29,7 +29,7 @@ class TableSchemaHelper
             return;
         }
 
-        if (static::supportsPrimaryKeyConstraints()) {
+        if (self::supportsPrimaryKeyConstraints()) {
             $editor = PrimaryKeyConstraint::editor();
             if ($constraintName !== null && $constraintName !== '') {
                 $editor = $editor->setUnquotedName($constraintName);

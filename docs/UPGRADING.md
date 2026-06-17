@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.11](#upgrading-to-2011)
 - [Upgrading to 2.0.10](#upgrading-to-2010)
 - [Upgrading to 2.0.9](#upgrading-to-209)
 - [Upgrading to 2.0.8](#upgrading-to-208)
@@ -50,6 +51,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.11
+
+- **No breaking changes** for typical usage (`SchemaChecker`, `CreateTablesService`, MDK definitions). Generated migration SQL is unchanged.
+- **Internal** — `TableSchemaHelper` is no longer declared `final`; you do not need to change migrations or config. This helper is not part of the documented public API.
+- **Quality** — PHPStan level 8 clean; higher test coverage. Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

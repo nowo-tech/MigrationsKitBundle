@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Release v2.0.11 (ready)](#release-v2011-ready)
 - [Release v2.0.10 (ready)](#release-v2010-ready)
 - [Release v2.0.9 (ready)](#release-v209-ready)
 - [Release v2.0.8 (ready)](#release-v208-ready)
@@ -9,6 +10,7 @@
 - [Release v2.0.6 (ready)](#release-v206-ready)
 - [Creating a new version (e.g. v2.0.0)](#creating-a-new-version-eg-v200)
 - [After releasing](#after-releasing)
+- [v2.0.11 (2026-06-17)](#v2011-2026-06-17)
 - [v2.0.10 (2026-06-17)](#v2010-2026-06-17)
 - [v2.0.9 (2026-06-17)](#v209-2026-06-17)
 - [v2.0.8 (2026-04-15)](#v208-2026-04-15)
@@ -23,6 +25,34 @@
 - [v1.2.0 (2026-02-20)](#v120-2026-02-20)
 - [v1.1.0 (2026-02-20)](#v110-2026-02-20)
 - [v1.0.0 (2026-02-20)](#v100-2026-02-20)
+
+## Release v2.0.11 (ready)
+
+Documentation and changelog are prepared for **v2.0.11**. Before tagging, ensure the lock file is valid:
+
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
+
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.11 release"
+   git push origin master
+   git tag -a v2.0.11 -m "Release v2.0.11"
+   git push origin v2.0.11
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.11` and paste the [2.0.11] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
 
 ## Release v2.0.10 (ready)
 
@@ -197,9 +227,16 @@ Documentation and changelog are prepared for **v2.0.6**. Before tagging, ensure 
 
 ---
 
+## v2.0.11 (2026-06-17)
+
+- **Scope:** PHPStan level 8 clean; internal refactors in **TableSchemaHelper** and **SchemaDefinitionParser**; expanded PHPUnit coverage (~99% lines, **CreateTablesService** at 100%). No API or migration SQL changes.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.11.
+
+---
+
 ## v2.0.10 (2026-06-17)
 
-- **Scope:** CI matrix refined (PHP 8.2–8.5 × Symfony 7|8; `test-dbal` for DBAL 3|4 × Symfony 7 and DBAL 4 × Symfony 8); PHPUnit stubs and MySQL drop-column assertion compatible with DBAL 3.
+- **Scope:** CI matrix refined (PHP 8.2–8.5 × Symfony 7|8; `test-dbal` for DBAL 3|4); PHPUnit stubs and MySQL drop-column assertion compatible with DBAL 3.
 - **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.10.
 
 ---
