@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.10] - 2026-06-17](#2010---2026-06-17)
+  - [Changed](#changed)
+  - [Fixed](#fixed)
 - [[2.0.9] - 2026-06-17](#209---2026-06-17)
   - [Added](#added)
   - [Fixed](#fixed)
@@ -61,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Added](#added-10)
 
 ## [Unreleased]
+
+---
+
+## [2.0.10] - 2026-06-17
+
+### Changed
+
+- **CI** — Refined workflow matrix: PHP 8.2–8.5 × Symfony 7|8; dedicated `test-dbal` job for DBAL 3|4 × Symfony 7 and DBAL 4 × Symfony 8.
+
+### Fixed
+
+- **Tests (DBAL 3)** — Align `Table` FK stubs with DBAL 3 method signatures in PHPUnit tests.
+- **Tests (MySQL)** — Accept both `DROP name` (DBAL 3) and `DROP COLUMN name` (DBAL 4) in drop-column deduplication assertion.
 
 ---
 

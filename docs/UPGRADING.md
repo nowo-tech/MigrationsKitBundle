@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.10](#upgrading-to-2010)
 - [Upgrading to 2.0.9](#upgrading-to-209)
 - [Upgrading to 2.0.8](#upgrading-to-208)
 - [Upgrading to 2.0.7](#upgrading-to-207)
@@ -49,6 +50,13 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.10
+
+- **No breaking changes.** This release improves CI coverage (DBAL 3|4 × Symfony 7|8) and fixes PHPUnit compatibility with DBAL 3 in test stubs and MySQL drop-column assertions.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed. No migration or config changes required.
 
 ---
 
