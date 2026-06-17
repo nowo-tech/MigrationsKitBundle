@@ -8,6 +8,7 @@ use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use ReflectionMethod;
+use ReflectionParameter;
 use Throwable;
 
 use function array_key_exists;
@@ -175,7 +176,7 @@ class SchemaDefinitionParser
         try {
             $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
 
-            return array_map(static fn (\ReflectionParameter $p) => $p->getName(), $method->getParameters());
+            return array_map(static fn (ReflectionParameter $p) => $p->getName(), $method->getParameters());
         } catch (Throwable) {
             return null;
         }
