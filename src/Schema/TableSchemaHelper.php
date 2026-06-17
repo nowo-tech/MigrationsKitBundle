@@ -33,6 +33,8 @@ final class TableSchemaHelper
             if ($constraintName !== null && $constraintName !== '') {
                 $editor = $editor->setUnquotedName($constraintName);
             }
+            // Column names come from schema definitions; non-empty at runtime (PHPStan: list<string> vs non-empty-string).
+            /** @phpstan-ignore argument.type */
             $table->addPrimaryKeyConstraint($editor->setUnquotedColumnNames(...$columnNames)->create());
 
             return;
@@ -47,6 +49,10 @@ final class TableSchemaHelper
 
     public static function createSchemaComparator(object $schemaManager): Comparator
     {
+        if (!method_exists($schemaManager, 'createComparator')) {
+            throw new \InvalidArgumentException('Schema manager must provide createComparator().');
+        }
+
         if (class_exists(ComparatorConfig::class)) {
             $config = (new ComparatorConfig())->withReportModifiedIndexes(false);
 
@@ -70,7 +76,6 @@ final class TableSchemaHelper
 
     private static function supportsPrimaryKeyConstraints(): bool
     {
-        return class_exists(PrimaryKeyConstraint::class)
-            && method_exists(Table::class, 'addPrimaryKeyConstraint');
+        return class_exists(PrimaryKeyConstraint::class);
     }
 }

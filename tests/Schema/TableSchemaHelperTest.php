@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Schema;
 
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Schema\Comparator;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use PHPUnit\Framework\TestCase;
@@ -30,8 +30,10 @@ class TableSchemaHelperTest extends TestCase
             'memory' => true,
         ]);
         $schemaManager = $connection->createSchemaManager();
-        $comparator    = TableSchemaHelper::createSchemaComparator($schemaManager);
+        $comparator = TableSchemaHelper::createSchemaComparator($schemaManager);
+        $schema     = new Schema();
+        $diff       = $comparator->compareSchemas($schema, $schema);
 
-        self::assertInstanceOf(Comparator::class, $comparator);
+        self::assertTrue($diff->isEmpty());
     }
 }
