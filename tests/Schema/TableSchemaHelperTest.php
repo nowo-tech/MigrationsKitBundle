@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Schema;
 
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
