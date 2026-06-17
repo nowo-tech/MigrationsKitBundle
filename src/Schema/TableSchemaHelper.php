@@ -75,7 +75,7 @@ final class TableSchemaHelper
         return $comparator;
     }
 
-    protected static function supportsPrimaryKeyConstraints(): bool
+    private static function supportsPrimaryKeyConstraints(): bool
     {
         return class_exists(PrimaryKeyConstraint::class);
     }
