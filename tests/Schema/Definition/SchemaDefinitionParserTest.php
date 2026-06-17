@@ -704,3 +704,24 @@ final class SchemaDefinitionParserNameFirstFk extends SchemaDefinitionParser
         return new TableNameFirstFk($tableName);
     }
 }
+
+/** @internal */
+final class SchemaDefinitionParserNullFkReflection extends SchemaDefinitionParser
+{
+    protected function foreignKeyConstraintParameterNames(Table $table): ?array
+    {
+        return null;
+    }
+}
+
+/** @internal */
+final class SchemaDefinitionParserShortFkReflection extends SchemaDefinitionParser
+{
+    /**
+     * @return list<string>
+     */
+    protected function foreignKeyConstraintParameterNames(Table $table): array
+    {
+        return ['foreignTable', 'localColumnNames', 'foreignColumnNames'];
+    }
+}

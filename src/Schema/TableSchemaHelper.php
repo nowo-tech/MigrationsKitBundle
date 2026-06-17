@@ -18,7 +18,7 @@ use Throwable;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final class TableSchemaHelper
+class TableSchemaHelper
 {
     /**
      * @param list<string>|non-empty-list<string> $columnNames

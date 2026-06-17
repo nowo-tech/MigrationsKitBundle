@@ -177,3 +177,16 @@ final class ThrowingConfigComparatorSchemaManager
         return $this->inner;
     }
 }
+
+/**
+ * Test double that forces the DBAL 3 legacy setPrimaryKey() code path.
+ *
+ * @internal
+ */
+final class LegacyPrimaryKeyTableSchemaHelper extends TableSchemaHelper
+{
+    protected static function supportsPrimaryKeyConstraints(): bool
+    {
+        return false;
+    }
+}
