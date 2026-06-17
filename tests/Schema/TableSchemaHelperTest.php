@@ -30,9 +30,9 @@ class TableSchemaHelperTest extends TestCase
             'memory' => true,
         ]);
         $schemaManager = $connection->createSchemaManager();
-        $comparator = TableSchemaHelper::createSchemaComparator($schemaManager);
-        $schema     = new Schema();
-        $diff       = $comparator->compareSchemas($schema, $schema);
+        $comparator    = TableSchemaHelper::createSchemaComparator($schemaManager);
+        $schema        = new Schema();
+        $diff          = $comparator->compareSchemas($schema, $schema);
 
         self::assertTrue($diff->isEmpty());
     }

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
+use InvalidArgumentException;
 use ReflectionMethod;
 use Throwable;
 
@@ -34,7 +35,7 @@ final class TableSchemaHelper
                 $editor = $editor->setUnquotedName($constraintName);
             }
             // Column names come from schema definitions; non-empty at runtime (PHPStan: list<string> vs non-empty-string).
-            /** @phpstan-ignore argument.type */
+            /* @phpstan-ignore argument.type */
             $table->addPrimaryKeyConstraint($editor->setUnquotedColumnNames(...$columnNames)->create());
 
             return;
@@ -50,7 +51,7 @@ final class TableSchemaHelper
     public static function createSchemaComparator(object $schemaManager): Comparator
     {
         if (!method_exists($schemaManager, 'createComparator')) {
-            throw new \InvalidArgumentException('Schema manager must provide createComparator().');
+            throw new InvalidArgumentException('Schema manager must provide createComparator().');
         }
 
         if (class_exists(ComparatorConfig::class)) {
