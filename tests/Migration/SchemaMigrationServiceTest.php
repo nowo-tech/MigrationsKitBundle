@@ -1579,12 +1579,12 @@ final class FlakyForeignTableSchema extends Schema
         $this->usersQualified->setPrimaryKey(['id']);
     }
 
-    public function hasTable(string $name): bool
+    public function hasTable($name): bool
     {
         return $name === 'orders';
     }
 
-    public function getTable(string $name): Table
+    public function getTable($name): Table
     {
         if ($name === 'orders') {
             return $this->orders;
@@ -1617,7 +1617,7 @@ final class FlakyUsersSchema extends Schema
         $this->users->setPrimaryKey(['id']);
     }
 
-    public function hasTable(string $name): bool
+    public function hasTable($name): bool
     {
         if ($name === 'users') {
             ++$this->usersHasTableCalls;
@@ -1628,7 +1628,7 @@ final class FlakyUsersSchema extends Schema
         return false;
     }
 
-    public function getTable(string $name): Table
+    public function getTable($name): Table
     {
         if ($name === 'users') {
             return $this->users;

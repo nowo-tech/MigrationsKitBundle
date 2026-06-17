@@ -1,5 +1,5 @@
 # CI: tests on PHP 8.2–8.5 × Symfony 7.0, 8.0 (exclusions for incompatible pairs).
-# DBAL 3|4 × Symfony 7.0|8.0 (PHP 8.2 for SF7, PHP 8.4 for SF8).
+# DBAL 3|4 × Symfony 7.0; DBAL 4 × Symfony 8.0 (DBAL 3 + SF8 is not installable: doctrine-bundle 3 requires DBAL 4).
 # Coverage with PCOV; release updated via release.yml on tag push.
 name: CI
 
@@ -104,9 +104,6 @@ jobs:
           - dbal: '4'
             symfony: '7.0'
             php: '8.2'
-          - dbal: '3'
-            symfony: '8.0'
-            php: '8.4'
           - dbal: '4'
             symfony: '8.0'
             php: '8.4'
