@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Schema;
 
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
-use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use InvalidArgumentException;
@@ -52,14 +50,10 @@ class TableSchemaHelperTest extends TestCase
 
     public function testSetPrimaryKeyUsesLegacyApiWhenPrimaryKeyConstraintUnavailable(): void
     {
-        if (class_exists(PrimaryKeyConstraint::class)) {
-            self::markTestSkipped('PrimaryKeyConstraint is available; legacy setPrimaryKey path runs on DBAL 3 only.');
-        }
-
         $table = new Table('legacy');
         $table->addColumn('id', 'integer', ['notnull' => true]);
 
-        TableSchemaHelper::setPrimaryKey($table, ['id'], 'pk_legacy');
+        LegacyPrimaryKeyTableSchemaHelper::setPrimaryKey($table, ['id'], 'pk_legacy');
 
         self::assertNotNull($table->getPrimaryKey());
         self::assertSame(['id'], $table->getPrimaryKey()->getColumns());
@@ -67,14 +61,10 @@ class TableSchemaHelperTest extends TestCase
 
     public function testSetPrimaryKeyUsesLegacyApiWithoutConstraintNameWhenPrimaryKeyConstraintUnavailable(): void
     {
-        if (class_exists(PrimaryKeyConstraint::class)) {
-            self::markTestSkipped('PrimaryKeyConstraint is available; legacy setPrimaryKey path runs on DBAL 3 only.');
-        }
-
         $table = new Table('legacy');
         $table->addColumn('id', 'integer', ['notnull' => true]);
 
-        TableSchemaHelper::setPrimaryKey($table, ['id']);
+        LegacyPrimaryKeyTableSchemaHelper::setPrimaryKey($table, ['id']);
 
         self::assertNotNull($table->getPrimaryKey());
     }
