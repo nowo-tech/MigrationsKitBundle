@@ -159,18 +159,26 @@ class SchemaDefinitionParser
      */
     private function tableAddForeignKeyConstraintExpectsNameAsFourthParam(Table $table): bool
     {
-        try {
-            $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
-            $params = $method->getParameters();
-            if (isset($params[3])) {
-                $fourth = $params[3]->getName();
-
-                return $fourth === 'name' || $fourth === 'constraintName';
-            }
-        } catch (Throwable) {
+        $paramNames = $this->foreignKeyConstraintParameterNames($table);
+        if ($paramNames === null || !isset($paramNames[3])) {
+            return false;
         }
 
-        return false;
+        return $paramNames[3] === 'name' || $paramNames[3] === 'constraintName';
+    }
+
+    /**
+     * @return list<string>|null null when reflection fails
+     */
+    protected function foreignKeyConstraintParameterNames(Table $table): ?array
+    {
+        try {
+            $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
+
+            return array_map(static fn (\ReflectionParameter $p) => $p->getName(), $method->getParameters());
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

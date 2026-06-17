@@ -603,6 +603,22 @@ class SchemaDefinitionParserTest extends TestCase
         $table = $parser->parseTable('orders', $tableDef);
         self::assertTrue($table->hasForeignKey('fk_user_name_first'));
     }
+
+    public function testForeignKeyParamOrderReturnsFalseWhenReflectionFails(): void
+    {
+        $parser = new SchemaDefinitionParserNullFkReflection();
+        $method = new ReflectionMethod(SchemaDefinitionParser::class, 'tableAddForeignKeyConstraintExpectsNameAsFourthParam');
+
+        self::assertFalse($method->invoke($parser, new Table('orders')));
+    }
+
+    public function testForeignKeyParamOrderReturnsFalseWhenFourthParameterIsMissing(): void
+    {
+        $parser = new SchemaDefinitionParserShortFkReflection();
+        $method = new ReflectionMethod(SchemaDefinitionParser::class, 'tableAddForeignKeyConstraintExpectsNameAsFourthParam');
+
+        self::assertFalse($method->invoke($parser, new Table('orders')));
+    }
 }
 
 /**

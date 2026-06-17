@@ -29,7 +29,7 @@ final class TableSchemaHelper
             return;
         }
 
-        if (self::supportsPrimaryKeyConstraints()) {
+        if (static::supportsPrimaryKeyConstraints()) {
             $editor = PrimaryKeyConstraint::editor();
             if ($constraintName !== null && $constraintName !== '') {
                 $editor = $editor->setUnquotedName($constraintName);
@@ -75,7 +75,7 @@ final class TableSchemaHelper
         return $comparator;
     }
 
-    private static function supportsPrimaryKeyConstraints(): bool
+    protected static function supportsPrimaryKeyConstraints(): bool
     {
         return class_exists(PrimaryKeyConstraint::class);
     }
