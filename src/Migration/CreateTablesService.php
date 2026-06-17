@@ -288,12 +288,8 @@ final readonly class CreateTablesService
             // Phase 3b: modify columns (type/options change for existing columns).
             $modifyList = $this->collectModifyColumnsForTable($schema, $tableName, $tableDef);
             foreach ($modifyList as $colDef) {
-                $name = $colDef['name'] ?? '';
-                if ($name === '') {
-                    continue;
-                }
                 [, $type, $options] = $this->parser->getColumnAddArgs($colDef);
-                $alterSqls          = $this->modifyColumnViaComparator($schema, $tableName, (string) $name, $type, $options, $comparator, $platform, $schemaManager);
+                $alterSqls          = $this->modifyColumnViaComparator($schema, $tableName, (string) $colDef['name'], $type, $options, $comparator, $platform, $schemaManager);
                 foreach ($alterSqls as $sql) {
                     $sqls[] = $sql;
                 }
