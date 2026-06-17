@@ -20,7 +20,7 @@ use Throwable;
 final class TableSchemaHelper
 {
     /**
-     * @param non-empty-list<string>|list<string> $columnNames
+     * @param list<string>|non-empty-list<string> $columnNames
      */
     public static function setPrimaryKey(Table $table, array $columnNames, ?string $constraintName = null): void
     {
