@@ -22,7 +22,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
 {
     private function createServiceWithMySQLPlatform(?MySQLPlatform $platform = null): CreateTablesService
     {
-        $platform      = $platform ?? new MySQLPlatform();
+        $platform ??= new MySQLPlatform();
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
         $schemaManager->method('createComparator')->willReturn(
             new \Doctrine\DBAL\Schema\Comparator($platform),
