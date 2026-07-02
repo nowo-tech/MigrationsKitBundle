@@ -35,6 +35,11 @@ Thank you for considering contributing to Migrations Kit Bundle.
    # or: make qa
    ```
 
+5. Update dependencies (bundle + demos):
+   ```bash
+   make update-deps
+   ```
+
 ## Code style
 
 The project uses [PHP-CS-Fixer](https://github.com/FriendsOfPHP/PHP-CS-Fixer) with the rules in `.php-cs-fixer.dist.php`. Please run `composer cs-fix` before submitting a pull request.

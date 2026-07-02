@@ -52,7 +52,7 @@ A major version would only be considered if we introduce breaking changes (e.g. 
 
 ## Community
 
-- **Issues & PRs:** [GitHub Issues](https://github.com/nowo-tech/migrations-kit-bundle/issues) and Pull Requests are welcome.
+- **Issues & PRs:** [GitHub Issues](https://github.com/nowo-tech/MigrationsKitBundle/issues) and Pull Requests are welcome.
 - **Security:** Report vulnerabilities responsibly (e.g. via GitHub Security Advisories or the maintainers).
 
 If you rely on Migrations Kit Bundle, consider giving it a **star** on GitHub so others can discover it more easily.

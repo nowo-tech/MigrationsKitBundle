@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.13](#upgrading-to-2013)
 - [Upgrading to 2.0.12](#upgrading-to-2012)
 - [Upgrading to 2.0.11](#upgrading-to-2011)
 - [Upgrading to 2.0.10](#upgrading-to-2010)
@@ -52,6 +53,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.13
+
+- **No breaking changes.** Runtime behaviour, migration SQL, and the public API are unchanged.
+- **Contributors** — From the bundle root you can run `make update-deps` to refresh Composer lock files in the bundle container and in both Symfony demos (REQ-MAKE-008). Existing targets `make update` and `make composer-sync` are unchanged.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

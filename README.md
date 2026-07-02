@@ -142,7 +142,7 @@ Demos for Symfony 7 and 8 are in `demo/symfony7`, `demo/symfony8`. Each runs wit
 
 ## Development
 
-Run tests and QA with Docker: `docker compose up -d --build && docker compose exec php composer install && docker compose exec php composer test` (or `composer test-coverage`, `composer qa`). Without Docker: `composer install && composer test`. See [Makefile](Makefile) for all targets.
+Run tests and QA with Docker: `docker compose up -d --build && docker compose exec php composer install && docker compose exec php composer test` (or `composer test-coverage`, `composer qa`). Without Docker: `composer install && composer test`. See [Makefile](Makefile) for all targets (`make update-deps` refreshes bundle and demo dependencies).
 
 ## Tests and coverage
 

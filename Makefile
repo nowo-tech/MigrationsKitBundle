@@ -9,7 +9,7 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update validate assets release-check release-check-demos composer-sync rector rector-dry phpstan
+.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos composer-sync rector rector-dry phpstan
 .PHONY: demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony7 demo-migrate-symfony8
 .PHONY: up down up-symfony7 up-symfony8 build shell demo-install demo-down
 
@@ -38,6 +38,7 @@ help:
 	@echo "  composer-sync  Validate composer.json and align composer.lock (no install)"
 	@echo "  clean          Remove vendor, cache, coverage"
 	@echo "  update         Update composer.lock (composer update)"
+	@echo "  update-deps    Update composer in bundle container and all demos (REQ-MAKE-008)"
 	@echo "  validate       Run composer validate --strict"
 	@echo ""
 	@echo "Demos:"
@@ -158,3 +159,7 @@ demo-down:
 
 demo-install:
 	$(MAKE) -C demo/symfony8 install
+
+# REQ-MAKE-008: update-deps (REQ-MAKE-008)
+BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk

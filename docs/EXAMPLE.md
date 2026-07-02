@@ -1,6 +1,6 @@
 # Full example
 
-For runnable examples see the [demo migrations](https://github.com/nowo-tech/migrations-kit-bundle/tree/main/demo) in `demo/symfony7` and `demo/symfony8`.
+For runnable examples see the [demo migrations](https://github.com/nowo-tech/MigrationsKitBundle/tree/main/demo) in `demo/symfony7` and `demo/symfony8`.
 
 ## Table of contents
 

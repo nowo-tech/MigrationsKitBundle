@@ -15,10 +15,10 @@
         "database",
         "dbal"
     ],
-    "homepage": "https://github.com/nowo-tech/migrations-kit-bundle",
+    "homepage": "https://github.com/nowo-tech/MigrationsKitBundle",
     "support": {
-        "issues": "https://github.com/nowo-tech/migrations-kit-bundle/issues",
-        "source": "https://github.com/nowo-tech/migrations-kit-bundle"
+        "issues": "https://github.com/nowo-tech/MigrationsKitBundle/issues",
+        "source": "https://github.com/nowo-tech/MigrationsKitBundle"
     },
     "authors": [
         {

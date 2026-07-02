@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.13] - 2026-07-02](#2013---2026-07-02)
+  - [Added](#added)
+  - [Changed](#changed)
+  - [Documentation](#documentation)
 - [[2.0.12] - 2026-06-17](#2012---2026-06-17)
   - [Fixed](#fixed)
 - [[2.0.11] - 2026-06-17](#2011---2026-06-17)
@@ -72,7 +76,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.0.12] - 2026-06-17
+## [2.0.13] - 2026-07-02
+
+### Added
+
+- **Makefile (REQ-MAKE-008)** — `make update-deps` updates Composer dependencies in the bundle Docker container and in all demos (`demo/symfony7`, `demo/symfony8`). Demo Makefiles include the shared aggregate and per-demo update-deps targets from `.scripts/`.
+
+### Changed
+
+- **composer.json** — Corrected GitHub homepage, issues, and source URLs to `nowo-tech/MigrationsKitBundle`.
+- **Dev dependencies** — Refreshed `composer.lock` files (bundle and demos) via `make update-deps` (Symfony 7.4.14, PHPStan 2.2.3, Rector 2.5.2, php-cs-fixer 3.95.11, etc.).
+
+### Documentation
+
+- **EXAMPLE.md**, **ROADMAP.md** — GitHub links aligned with the canonical repository name.
+
+---
 
 ### Fixed
 

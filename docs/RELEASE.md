@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Release v2.0.13 (ready)](#release-v2013-ready)
 - [Release v2.0.12 (ready)](#release-v2012-ready)
 - [Release v2.0.11 (ready)](#release-v2011-ready)
 - [Release v2.0.10 (ready)](#release-v2010-ready)
@@ -11,6 +12,7 @@
 - [Release v2.0.6 (ready)](#release-v206-ready)
 - [Creating a new version (e.g. v2.0.0)](#creating-a-new-version-eg-v200)
 - [After releasing](#after-releasing)
+- [v2.0.13 (2026-07-02)](#v2013-2026-07-02)
 - [v2.0.12 (2026-06-17)](#v2012-2026-06-17)
 - [v2.0.11 (2026-06-17)](#v2011-2026-06-17)
 - [v2.0.10 (2026-06-17)](#v2010-2026-06-17)
@@ -27,6 +29,34 @@
 - [v1.2.0 (2026-02-20)](#v120-2026-02-20)
 - [v1.1.0 (2026-02-20)](#v110-2026-02-20)
 - [v1.0.0 (2026-02-20)](#v100-2026-02-20)
+
+## Release v2.0.13 (ready)
+
+Documentation and changelog are prepared for **v2.0.13**. Before tagging, ensure the lock file is valid:
+
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
+
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.13 release"
+   git push origin master
+   git tag -a v2.0.13 -m "Release v2.0.13"
+   git push origin v2.0.13
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.13` and paste the [2.0.13] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
 
 ## Release v2.0.12 (ready)
 
@@ -254,6 +284,15 @@ Documentation and changelog are prepared for **v2.0.6**. Before tagging, ensure 
 
 - Keep `## [Unreleased]` at the top of [CHANGELOG.md](CHANGELOG.md) for the next version; add new changes there.
 - Optionally bump a dev version in `composer.json` for development.
+
+---
+
+---
+
+## v2.0.13 (2026-07-02)
+
+- **Scope:** `make update-deps` (REQ-MAKE-008) for bundle and demo dependency updates; GitHub URLs in `composer.json` and docs; refreshed dev lock files (Symfony 7.4.14, PHPStan, Rector, etc.). No runtime or API changes.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.13.
 
 ---
 
