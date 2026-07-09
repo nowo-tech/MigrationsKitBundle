@@ -1343,7 +1343,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/migrations-kit-bundle",
-                "reference": "bcbcc187119b0fd23df8b2c970d23ddafd160499"
+                "reference": "c317480d688d927d53bcd899e7d662818b9d4d61"
             },
             "require": {
                 "doctrine/dbal": "^2.13 || ^3.0 || ^4.0",
@@ -1663,12 +1663,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/cache.git",
-                "reference": "9adfcb2a7fc3924473b09f5a0b058dcc2cc7be9a"
+                "reference": "dcd28e30e01cb52eb133226b88590b4e7b4079d8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/cache/zipball/9adfcb2a7fc3924473b09f5a0b058dcc2cc7be9a",
-                "reference": "9adfcb2a7fc3924473b09f5a0b058dcc2cc7be9a",
+                "url": "https://api.github.com/repos/symfony/cache/zipball/dcd28e30e01cb52eb133226b88590b4e7b4079d8",
+                "reference": "dcd28e30e01cb52eb133226b88590b4e7b4079d8",
                 "shasum": ""
             },
             "require": {
@@ -1759,7 +1759,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-17T14:44:48+00:00"
+            "time": "2026-07-09T09:34:18+00:00"
         },
         {
             "name": "symfony/cache-contracts",
