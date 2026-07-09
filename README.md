@@ -113,6 +113,7 @@ More examples: [docs/USAGE.md](docs/USAGE.md) and [docs/EXAMPLE.md](docs/EXAMPLE
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
 - [Engram](docs/ENGRAM.md)
+- [GitHub Spec Kit](docs/SPEC-KIT.md)
 - [Roadmap](docs/ROADMAP.md)
 
 ### Additional documentation

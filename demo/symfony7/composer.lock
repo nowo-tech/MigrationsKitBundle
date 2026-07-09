@@ -1343,7 +1343,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/migrations-kit-bundle",
-                "reference": "da7a24fe659d50927303213e30a9e8c22cb26694"
+                "reference": "bcbcc187119b0fd23df8b2c970d23ddafd160499"
             },
             "require": {
                 "doctrine/dbal": "^2.13 || ^3.0 || ^4.0",
@@ -2916,12 +2916,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-foundation.git",
-                "reference": "f71c3cc4fbde8da461f0c5e5cded34c1e72ad84d"
+                "reference": "b98fde607839a9bb43662f428b32d7f3d95eb5b7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/f71c3cc4fbde8da461f0c5e5cded34c1e72ad84d",
-                "reference": "f71c3cc4fbde8da461f0c5e5cded34c1e72ad84d",
+                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/b98fde607839a9bb43662f428b32d7f3d95eb5b7",
+                "reference": "b98fde607839a9bb43662f428b32d7f3d95eb5b7",
                 "shasum": ""
             },
             "require": {
@@ -2990,7 +2990,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-27T21:00:51+00:00"
+            "time": "2026-07-03T20:33:43+00:00"
         },
         {
             "name": "symfony/http-kernel",
@@ -4475,12 +4475,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/yaml.git",
-                "reference": "f8f328665ace2370d1e10645b807ba1646dc7dcc"
+                "reference": "17f120284cf67a13da0d725d17a75417cae14900"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/yaml/zipball/f8f328665ace2370d1e10645b807ba1646dc7dcc",
-                "reference": "f8f328665ace2370d1e10645b807ba1646dc7dcc",
+                "url": "https://api.github.com/repos/symfony/yaml/zipball/17f120284cf67a13da0d725d17a75417cae14900",
+                "reference": "17f120284cf67a13da0d725d17a75417cae14900",
                 "shasum": ""
             },
             "require": {
@@ -4543,7 +4543,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-08T20:24:16+00:00"
+            "time": "2026-07-03T20:33:43+00:00"
         },
         {
             "name": "twig/twig",
@@ -4551,12 +4551,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/twigphp/Twig.git",
-                "reference": "6a175a574556e0a761513bde4db69d39141d6e88"
+                "reference": "209a98402bb561b5c92b30500dd72a1a55d6c9c5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/twigphp/Twig/zipball/6a175a574556e0a761513bde4db69d39141d6e88",
-                "reference": "6a175a574556e0a761513bde4db69d39141d6e88",
+                "url": "https://api.github.com/repos/twigphp/Twig/zipball/209a98402bb561b5c92b30500dd72a1a55d6c9c5",
+                "reference": "209a98402bb561b5c92b30500dd72a1a55d6c9c5",
                 "shasum": ""
             },
             "require": {
@@ -4624,7 +4624,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-25T07:13:09+00:00"
+            "time": "2026-07-08T20:23:12+00:00"
         }
     ],
     "packages-dev": [

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.14] - 2026-07-09](#2014---2026-07-09)
+  - [Added](#added)
+  - [Changed](#changed)
+  - [Documentation](#documentation)
+  - [Fixed](#fixed)
 - [[2.0.13] - 2026-07-02](#2013---2026-07-02)
   - [Added](#added)
   - [Changed](#changed)
@@ -76,6 +81,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.14] - 2026-07-09
+
+### Added
+
+- **GitHub Spec Kit** — Baseline specification under `specs/001-baseline/` (`spec.md`, `code-inventory.md` mapping 100% of `src/`), `.specify/` scaffolding, and Cursor Agent skills (`.cursor/skills/speckit-*`). Operator manual: [SPEC-KIT.md](SPEC-KIT.md).
+
+### Changed
+
+- **SPEC-DRIVEN-DEVELOPMENT.md** — Three-layer model (Spec Kit baseline, product behaviour, `REQ-*` traceability); user stories aligned with migration-author workflows.
+- **Dev dependencies** — Refreshed lock files (bundle and demos): php-cs-fixer 3.95.12, nikic/php-parser 5.8.0, and related transitive updates.
+
+### Documentation
+
+- **README.md** — Link to [SPEC-KIT.md](SPEC-KIT.md) in the documentation index.
+
+### Fixed
+
+- **CHANGELOG.md** — Restored missing `[2.0.12]` section header (content was present but mis-nested under 2.0.13).
+
+---
+
 ## [2.0.13] - 2026-07-02
 
 ### Added
@@ -92,6 +118,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **EXAMPLE.md**, **ROADMAP.md** — GitHub links aligned with the canonical repository name.
 
 ---
+
+## [2.0.12] - 2026-06-17
 
 ### Fixed
 

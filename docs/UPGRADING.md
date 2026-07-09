@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.14](#upgrading-to-2014)
 - [Upgrading to 2.0.13](#upgrading-to-2013)
 - [Upgrading to 2.0.12](#upgrading-to-2012)
 - [Upgrading to 2.0.11](#upgrading-to-2011)
@@ -53,6 +54,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.14
+
+- **No breaking changes.** Runtime behaviour, migration SQL, and the public API are unchanged.
+- **Maintainers** — GitHub Spec Kit baseline is documented in [SPEC-KIT.md](SPEC-KIT.md) and [SPEC-DRIVEN-DEVELOPMENT.md](SPEC-DRIVEN-DEVELOPMENT.md). When you change production code under `src/`, keep `specs/001-baseline/` in sync.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

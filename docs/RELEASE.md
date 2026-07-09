@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Release v2.0.14 (ready)](#release-v2014-ready)
 - [Release v2.0.13 (ready)](#release-v2013-ready)
 - [Release v2.0.12 (ready)](#release-v2012-ready)
 - [Release v2.0.11 (ready)](#release-v2011-ready)
@@ -12,6 +13,7 @@
 - [Release v2.0.6 (ready)](#release-v206-ready)
 - [Creating a new version (e.g. v2.0.0)](#creating-a-new-version-eg-v200)
 - [After releasing](#after-releasing)
+- [v2.0.14 (2026-07-09)](#v2014-2026-07-09)
 - [v2.0.13 (2026-07-02)](#v2013-2026-07-02)
 - [v2.0.12 (2026-06-17)](#v2012-2026-06-17)
 - [v2.0.11 (2026-06-17)](#v2011-2026-06-17)
@@ -29,6 +31,34 @@
 - [v1.2.0 (2026-02-20)](#v120-2026-02-20)
 - [v1.1.0 (2026-02-20)](#v110-2026-02-20)
 - [v1.0.0 (2026-02-20)](#v100-2026-02-20)
+
+## Release v2.0.14 (ready)
+
+Documentation and changelog are prepared for **v2.0.14**. Before tagging, ensure the lock file is valid:
+
+1. **Sync composer.lock** (required for `composer validate --strict` / `make release-check`):
+   ```bash
+   make composer-sync
+   ```
+   If you don't use Docker, run from the bundle root: `composer update --no-install` then `composer validate --strict`. Commit `composer.lock` if it changed.
+
+2. **Run full release check** (optional but recommended):
+   ```bash
+   make release-check
+   ```
+
+3. **Commit, push, and tag**:
+   ```bash
+   git add -A
+   git commit -m "Prepare v2.0.14 release"
+   git push origin master
+   git tag -a v2.0.14 -m "Release v2.0.14"
+   git push origin v2.0.14
+   ```
+
+4. **(Optional)** Open GitHub → Releases → Draft a new release from tag `v2.0.14` and paste the [2.0.14] section from [CHANGELOG.md](CHANGELOG.md).
+
+---
 
 ## Release v2.0.13 (ready)
 
@@ -286,6 +316,15 @@ Documentation and changelog are prepared for **v2.0.6**. Before tagging, ensure 
 - Optionally bump a dev version in `composer.json` for development.
 
 ---
+
+---
+
+---
+
+## v2.0.14 (2026-07-09)
+
+- **Scope:** GitHub Spec Kit baseline (`specs/001-baseline/`, `.specify/`, `.cursor/skills/speckit-*`), [SPEC-KIT.md](SPEC-KIT.md), updated [SPEC-DRIVEN-DEVELOPMENT.md](SPEC-DRIVEN-DEVELOPMENT.md); dev lock refresh; CHANGELOG structure fix for 2.0.12. No runtime or API changes.
+- **Checklist:** CHANGELOG and UPGRADING updated. Run `make composer-sync`, then `make release-check`, commit, push, and tag v2.0.14.
 
 ---
 
