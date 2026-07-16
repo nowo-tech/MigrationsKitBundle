@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.15](#upgrading-to-2015)
 - [Upgrading to 2.0.14](#upgrading-to-2014)
 - [Upgrading to 2.0.13](#upgrading-to-2013)
 - [Upgrading to 2.0.12](#upgrading-to-2012)
@@ -54,6 +55,15 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.15
+
+- **No breaking changes.** Runtime behaviour, migration SQL, and the public API are unchanged.
+- **Contributors** — Install local hooks once per clone: `make setup-hooks`. Do not add Cursor co-author trailers to commits (REQ-GIT-001). See [GITHUB_CI.md](GITHUB_CI.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+- **CI** — New `git-hygiene` job and a wider Symfony matrix (`7.0`, `7.4`, `8.0`, `8.1`). No action required for package consumers.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

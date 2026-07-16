@@ -15,6 +15,28 @@ Doctrine Migrations helpers: **SchemaChecker** for idempotent existence checks a
 
 ---
 
+## User Scenarios & Testing
+
+### User Story 1 — Idempotent schema checks (Priority: P1)
+
+As a migration author, I use `SchemaChecker` before DDL so migrations skip work when tables, columns, indexes, or foreign keys already exist.
+
+**Independent Test**: Run a migration twice against SQLite/MySQL/PostgreSQL; the second run performs no duplicate DDL when guards return true.
+
+### User Story 2 — Declarative MDK migrations (Priority: P1)
+
+As a migration author, I define schema changes as MDK arrays so `CreateTablesService` emits ordered SQL for create/alter/drop phases.
+
+**Independent Test**: Feed a valid MDK array to `CreateTablesService::apply()` and assert SQL order respects FK/index dependencies.
+
+### User Story 3 — Symfony demo compatibility (Priority: P2)
+
+As a maintainer, I run demos on Symfony 7 and 8 matrices so DBAL 3/4 compatibility stays verified in CI.
+
+**Independent Test**: `make release-check-demos` completes on both demo stacks without migration errors.
+
+---
+
 ## Requirements
 
 - **FR-SCHEMA-001**: `SchemaChecker` exposes `tableExists`, `columnExists`, `indexExists`, `foreignKeyExists`, etc. without container injection.
