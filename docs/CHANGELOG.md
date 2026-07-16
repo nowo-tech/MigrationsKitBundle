@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.15] - 2026-07-16](#2015---2026-07-16)
+  - [Added](#added)
+  - [Changed](#changed)
+  - [Documentation](#documentation)
 - [[2.0.14] - 2026-07-09](#2014---2026-07-09)
   - [Added](#added)
   - [Changed](#changed)
@@ -78,6 +82,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Added](#added-10)
 
 ## [Unreleased]
+
+---
+
+## [2.0.15] - 2026-07-16
+
+### Added
+
+- **REQ-GIT-001** — Git history must not contain Cursor co-author trailers (`Co-authored-by: Cursor` / `cursoragent@cursor.com`). Artifacts: `.scripts/check-no-cursor-coauthor.sh`, `.scripts/strip-cursor-coauthor-from-history.sh`, `.githooks/commit-msg`, `.cursor/rules/01-git-commits.mdc`; Makefile targets `setup-hooks`, `check-no-cursor-coauthor`, `strip-cursor-coauthor-from-history`; CI job `git-hygiene`.
+- **CODE_OF_CONDUCT.md** — Contributor Covenant Code of Conduct.
+- **docs/GITHUB_CI.md** — Operator manual for GitHub Actions CI requirements (REQ-GIT-001).
+
+### Changed
+
+- **CI matrix** — Symfony versions expanded to `7.0`, `7.4`, `8.0`, `8.1` (PHP 8.2/8.3 still exclude Symfony 8.x).
+- **release-check** — Runs `check-no-cursor-coauthor` before other pre-release steps.
+- **Dev dependencies** — Refreshed `composer.lock` (php-cs-fixer 3.95.15, rector 2.5.7, etc.).
+- **specs/001-baseline/spec.md** — Added user scenarios and independent tests for SchemaChecker, MDK migrations, and demos.
+
+### Documentation
+
+- **README.md**, **CONTRIBUTING.md**, **RELEASE.md** — Links and guidance for Code of Conduct, GITHUB_CI, Spec-driven development, and post-tag git-hygiene check.
 
 ---
 
