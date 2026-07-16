@@ -1,5 +1,0 @@
-# Schema sync status: shows if entities are in sync with DB (before/after migrations)
-app_schema_status:
-    path: /
-    controller: App\Controller\SchemaStatusController::index
-    methods: GET

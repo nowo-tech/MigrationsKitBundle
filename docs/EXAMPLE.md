@@ -1,6 +1,6 @@
 # Full example
 
-For runnable examples see the [demo migrations](https://github.com/nowo-tech/MigrationsKitBundle/tree/main/demo) in `demo/symfony7` and `demo/symfony8`.
+For runnable examples see the [demo migrations](https://github.com/nowo-tech/MigrationsKitBundle/tree/main/demo) in `demo/symfony8`.
 
 ## Table of contents
 
@@ -119,4 +119,4 @@ if ($checker->tableExists('user') && !$checker->columnExists('user', 'beta_enabl
 - [FLOWCHARTS.md](FLOWCHARTS.md) — Flow diagrams (Mermaid) for apply() and checks.
 - [CONFIGURATION.md](CONFIGURATION.md) — Bundle configuration.
 - [USAGE.md](USAGE.md#reusable-audit-columns-field-dictionary) — Field dictionary and reusable audit columns.
-- Demo migrations in `demo/symfony7`, `demo/symfony8` — runnable examples and FieldDictionary.
+- Demo migrations in `demo/symfony8` — runnable examples and FieldDictionary.

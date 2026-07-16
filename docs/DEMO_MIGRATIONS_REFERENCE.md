@@ -7,7 +7,7 @@ This document answers:
 3. **Reference SQL** — Expected queries per migration (MySQL 8 and SQLite) so you can check correctness.
 4. **Is the bundle safe to use?** — Safety assessment and recommendations.
 
-**Verification:** Re-run on 2025-02-25: `make db-reset-mysql` + `make migrate-mysql` in both `demo/symfony7` and `demo/symfony8`. All 14 migrations (Version20250223100000–00013) executed successfully; 15 SQL statements total. Reference SQL below matches the emitted output.
+**Verification:** Re-run on 2025-02-25: `make db-reset-mysql` + `make migrate-mysql` in `demo/symfony8`. All 14 migrations (Version20250223100000–00013) executed successfully; 15 SQL statements total. Reference SQL below matches the emitted output.
 
 ## Table of contents
 

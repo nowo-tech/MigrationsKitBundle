@@ -259,4 +259,4 @@ See [USAGE.md](USAGE.md) for examples.
 - [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) — Use cases matrix, expected SQL per migration, safety.
 - [CONFIGURATION.md](CONFIGURATION.md) — Bundle configuration.
 - [USAGE.md](USAGE.md#reusable-audit-columns-field-dictionary) — Reusable audit columns (field dictionary).
-- Demo migrations in `demo/symfony7`, `demo/symfony8` — runnable definitions and **FieldDictionary/AuditFields** for create, edit, rename, drop (columns, indexes, FKs, tables). See Version20250223100000–00013.
+- Demo migrations in `demo/symfony8` — runnable definitions and **FieldDictionary/AuditFields** for create, edit, rename, drop (columns, indexes, FKs, tables). See Version20250223100000–00013.

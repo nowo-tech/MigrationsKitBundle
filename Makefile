@@ -10,8 +10,8 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 COMPOSER ?= composer
 
 .PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos composer-sync rector rector-dry phpstan check-no-cursor-coauthor strip-cursor-coauthor-from-history setup-hooks
-.PHONY: demo-up-symfony7 demo-up-symfony8 demo-migrate-symfony7 demo-migrate-symfony8
-.PHONY: up down up-symfony7 up-symfony8 build shell demo-install demo-down
+.PHONY: demo-up-symfony8 demo-migrate-symfony8
+.PHONY: up down up-symfony8 build shell demo-install demo-down
 
 # Default target
 help:
@@ -45,11 +45,8 @@ help:
 	@echo ""
 	@echo "Demos:"
 	@echo "  demo-install   Install Composer dependencies in demo"
-	@echo "  demo-up-symfony7   Install deps in demo/symfony7"
 	@echo "  demo-up-symfony8   Install deps in demo/symfony8"
-	@echo "  up-symfony7    Start demo symfony7 (http://localhost:8007)"
 	@echo "  up-symfony8    Start demo symfony8 (http://localhost:8008)"
-	@echo "  demo-migrate-symfony7  Run migrations in demo/symfony7"
 	@echo "  demo-migrate-symfony8  Run migrations in demo/symfony8"
 	@echo "  demo-down      Stop demo containers"
 	@echo ""
@@ -115,18 +112,10 @@ assets:
 	@echo "No frontend assets in this bundle."
 
 # Demo targets (install + migrate)
-demo-up-symfony7:
-	@echo "Installing demo symfony7..."
-	cd demo/symfony7 && $(COMPOSER) install --no-interaction
-	@echo "✅ demo/symfony7 ready"
-
 demo-up-symfony8:
 	@echo "Installing demo symfony8..."
 	cd demo/symfony8 && $(COMPOSER) install --no-interaction
 	@echo "✅ demo/symfony8 ready"
-
-demo-migrate-symfony7:
-	cd demo/symfony7 && mkdir -p var && $(COMPOSER) migrate
 
 demo-migrate-symfony8:
 	cd demo/symfony8 && mkdir -p var && $(COMPOSER) migrate
@@ -150,9 +139,6 @@ build:
 	$(COMPOSE) build --no-cache
 
 # Demo con Docker (FrankenPHP)
-up-symfony7:
-	$(MAKE) -C demo/symfony7 up
-
 up-symfony8:
 	$(MAKE) -C demo/symfony8 up
 

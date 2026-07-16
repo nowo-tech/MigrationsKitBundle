@@ -4,7 +4,6 @@ Each demo is a minimal **Dockerized** Symfony app with **FrankenPHP** and a **Ca
 
 | Demo     | PHP   | Port  | URL (with Docker)      |
 |----------|-------|-------|------------------------|
-| symfony7 | 8.2   | 8007  | http://localhost:8007  |
 | symfony8 | 8.4   | 8008  | http://localhost:8008  |
 
 Each demo includes **Web Profiler**, **Debug** and one entity **KitItem** aligned with the migrations. Migrations use **CreateTablesService** (phase 3: create tables and add missing columns).
@@ -70,7 +69,7 @@ make demo-migrate-symfony8 # run migrations in demo/symfony8
 
 - **Dockerfile** – **FrankenPHP** image (Alpine), extensions `zip`, `intl`, `pdo_sqlite`, `pdo_mysql`, Composer, Caddyfile and entrypoint.
 - **docker/frankenphp/Caddyfile** – Caddy: listen on `:80`, document root in `public`, compression, PHP worker for `index.php`.
-- **docker-compose.yml** – `php` service (SQLite by default), optional `mysql` service (MySQL 8) for tests; container port `80` mapped to `8007`/`8008` on the host.
+- **docker-compose.yml** – `php` service (SQLite by default), optional `mysql` service (MySQL 8) for tests; container port `80` mapped to `8008` on the host.
 - **Makefile** – Targets listed above.
 
 ## Tables and migrations
@@ -89,16 +88,15 @@ make db-reset-mysql     # drop and recreate database
 make migrate-mysql      # run migrations against MySQL 8
 ```
 
-MySQL 8 runs in a separate container; connection is `mysql://app:app@mysql:3306/demo`. Port on host: symfony7 `3307`, symfony8 `3308` (override with `MYSQL_PORT`).
+MySQL 8 runs in a separate container; connection is `mysql://app:app@mysql:3306/demo`. Port on host: symfony8 `3308` (override with `MYSQL_PORT`).
 
-## Doctrine versions (Symfony 7 / 8)
+## Doctrine versions (Symfony 8)
 
 | Demo     | Doctrine ORM | Doctrine DBAL | Doctrine Migrations Bundle |
 |----------|--------------|---------------|----------------------------|
-| symfony7 | ^2.15        | **3.x**       | ^3.3                       |
 | symfony8 | ^3.4         | **4.x**       | ^4.0                       |
 
-Migrations are the same in both demos. **CreateTablesService** uses `introspectSchema()` and works with both DBAL 3.x and 4.x (table/column name resolution handles qualified names when needed).
+Migrations use **CreateTablesService** with `introspectSchema()` and work with DBAL 4.x (table/column name resolution handles qualified names when needed).
 
 ## Field dictionary (optional)
 

@@ -6,7 +6,7 @@ declare(strict_types=1);
 /**
  * Print demo migrations execution order and what each migration/validation does.
  * Run from project root: php scripts/list-migrations-order.php
- * Or: make list-migrations (from demo/symfony8 or demo/symfony7).
+ * Or: make list-migrations (from demo/symfony8).
  *
  * @see docs/DEMO_MIGRATIONS_ORDER.md
  */

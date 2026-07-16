@@ -1,6 +1,6 @@
 # Migrations Kit Bundle
 
-[![CI](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/migrations-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/migrations-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/migrations-kit-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/MigrationsKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.39%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/migrations-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/migrations-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/migrations-kit-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/MigrationsKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.03%25-brightgreen)](#tests-and-coverage)
 
 **Symfony bundle that provides helpers for Doctrine Migrations**: schema checks (table/column/index exist) and array-based migration definitions, so you can write idempotent migrations without repeating SQL and with safe checks. For **Symfony 6, 7 or 8** · PHP 8.1+ · **Doctrine DBAL** 2.x–4.x and **doctrine/migrations** 3.x–4.x.
 
@@ -33,7 +33,7 @@ Looking for **Doctrine migrations helpers**, **table exists migration**, **colum
 - ✅ Compatible with **Doctrine DBAL 2.x, 3.x, 4.x** and **doctrine/migrations 3.x, 4.x**
 - ✅ **SQLite, MySQL and PostgreSQL** — schema checks and migrations work with all three
 - ✅ **Symfony Flex** recipe (register bundle + config; see [docs/INSTALLATION.md](docs/INSTALLATION.md))
-- ✅ **Demos** for Symfony 7 and 8 with example migrations (create table, add/rename/drop columns, indexes, FKs); Make targets to view migration SQL (`migrate-verbose`, `migrate-dry-run`, `migrate-write-sql`)
+- ✅ **Demo** for Symfony 8 with example migrations (create table, add/rename/drop columns, indexes, FKs); Make targets to view migration SQL (`migrate-verbose`, `migrate-dry-run`, `migrate-write-sql`)
 
 ## Installation
 
@@ -142,7 +142,7 @@ See [docs/INSTALLATION.md](docs/INSTALLATION.md#requirements) and [docs/UPGRADIN
 
 ## Demo
 
-Demos for Symfony 7 and 8 are in `demo/symfony7`, `demo/symfony8`. Each runs with **FrankenPHP** in Docker. With the default **`APP_ENV=dev`**, the entrypoint uses **`Caddyfile.dev`** (no PHP worker: one process per request). **Production-style** demos use the default Caddyfile with **worker mode** (see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)). Each demo includes example migrations using **CreateTablesService** and the MDK format (create table, add/rename/modify/drop columns, indexes, foreign keys), plus a **field dictionary** (`migrations/FieldDictionary/AuditFields`) for reusable audit columns (timestamps, created_by/updated_by with FK in two phases). From the bundle root: `make demo-up-symfony8` then `make demo-migrate-symfony8`. **Always check SQL before applying:** use `make migrate-dry-run` (or `doctrine:migrations:migrate --dry-run -vvv`). See [docs/USAGE.md](docs/USAGE.md#viewing-sql-before-running-migrations) for all options (`migrate-dry-run`, `migrate-write-sql`, `migrate-verbose`). [demo/README.md](demo/README.md) and each `demo/symfony*/README.md` have run instructions.
+The Symfony 8 demo is in `demo/symfony8`. It runs with **FrankenPHP** in Docker. With the default **`APP_ENV=dev`**, the entrypoint uses **`Caddyfile.dev`** (no PHP worker: one process per request). **Production-style** demos use the default Caddyfile with **worker mode** (see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)). The demo includes example migrations using **CreateTablesService** and the MDK format (create table, add/rename/modify/drop columns, indexes, foreign keys), plus a **field dictionary** (`migrations/FieldDictionary/AuditFields`) for reusable audit columns (timestamps, created_by/updated_by with FK in two phases). From the bundle root: `make demo-up-symfony8` then `make demo-migrate-symfony8`. **Always check SQL before applying:** use `make migrate-dry-run` (or `doctrine:migrations:migrate --dry-run -vvv`). See [docs/USAGE.md](docs/USAGE.md#viewing-sql-before-running-migrations) for all options (`migrate-dry-run`, `migrate-write-sql`, `migrate-verbose`). [demo/README.md](demo/README.md) and [demo/symfony8/README.md](demo/symfony8/README.md) have run instructions.
 
 ## Development
 
@@ -151,7 +151,7 @@ Run tests and QA with Docker: `docker compose up -d --build && docker compose ex
 ## Tests and coverage
 
 - Tests: PHPUnit (PHP)
-- PHP: 99.39%
+- PHP: 99.03%
 - TS/JS: N/A
 - Python: N/A
 

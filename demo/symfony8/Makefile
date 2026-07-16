@@ -194,10 +194,10 @@ update-bundle: ensure-up
 	@echo "Bundle updated."
 
 test: ensure-up
-	$(COMPOSE) exec -e APP_ENV=test $(SERVICE_PHP) composer test 2>/dev/null || $(COMPOSE) exec $(SERVICE_PHP) php bin/console list
+	@echo "No PHPUnit suite in this demo; use make migrate / migrate-mysql to validate."
 
 test-coverage: ensure-up
-	$(COMPOSE) exec -e APP_ENV=test $(SERVICE_PHP) composer test-coverage 2>/dev/null || $(COMPOSE) exec $(SERVICE_PHP) composer test
+	@echo "No PHPUnit suite in this demo; skipping test-coverage."
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)

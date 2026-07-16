@@ -356,7 +356,7 @@ The kit uses only the connection available in `AbstractMigration` and the `addSq
 Write all SQL that would be executed for pending migrations to a file. No migration is run; the database is unchanged.
 
 ```bash
-# From your project root (or from demo/symfony8, demo/symfony7)
+# From your project root (or from demo/symfony8)
 php bin/console doctrine:migrations:migrate latest --write-sql=var/migration.sql --no-interaction
 ```
 
@@ -483,4 +483,4 @@ So the bundle is prepared for DBAL 5. If you write custom code that introspects 
 - [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md) — definition format and MDK
 - [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) — use cases matrix, expected SQL per migration, safety
 - [demo/README.md](../demo/README.md) — demos, Make targets, and **field dictionary** (AuditFields)
-- Demo migrations in `demo/symfony7`, `demo/symfony8`
+- Demo migrations in `demo/symfony8`
