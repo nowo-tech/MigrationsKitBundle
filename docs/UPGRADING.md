@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.17](#upgrading-to-2017)
 - [Upgrading to 2.0.16](#upgrading-to-2016)
 - [Upgrading to 2.0.15](#upgrading-to-2015)
 - [Upgrading to 2.0.14](#upgrading-to-2014)
@@ -56,6 +57,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.17
+
+- **No breaking changes.** Runtime behaviour, migration SQL, and the public API are unchanged.
+- **CI / contributors** — Fixes a fatal error when running the PHPUnit suite against Doctrine DBAL 3 (typed FK stubs from 2.0.16 were incompatible with DBAL 3’s untyped `Table::addForeignKeyConstraint`). No action required for package consumers.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 
