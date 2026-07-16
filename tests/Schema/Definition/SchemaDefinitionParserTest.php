@@ -631,18 +631,22 @@ class SchemaDefinitionParserTest extends TestCase
 final class TableOptionsFirstFk extends Table
 {
     /**
+     * Untyped $foreignTable/$name keep the override compatible with DBAL 3 (untyped parent) and DBAL 4.
+     *
+     * @param mixed $foreignTable
      * @param non-empty-list<string> $localColumnNames
      * @param non-empty-list<string> $foreignColumnNames
      * @param array<string,mixed> $options
+     * @param mixed $name
      *
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
-        string $foreignTable,
+        $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
         array $options = [],
-        ?string $name = null,
+        $name = null,
     ): Table {
         return parent::addForeignKeyConstraint($foreignTable, $localColumnNames, $foreignColumnNames, $options, $name);
     }
@@ -671,10 +675,12 @@ final class SchemaDefinitionParserOptionsFirstFk extends SchemaDefinitionParser
 final class TableNameFirstFk extends Table
 {
     /**
+     * Untyped params keep the override compatible with DBAL 3 (untyped parent) and DBAL 4.
+     *
      * @phpstan-ignore-next-line return.type argument.type
      */
     public function addForeignKeyConstraint(
-        string $foreignTable,
+        $foreignTable,
         array $localColumnNames,
         array $foreignColumnNames,
         $name = null,

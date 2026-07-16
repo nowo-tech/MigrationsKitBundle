@@ -87,6 +87,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **DBAL 3 CI** — Reverted native types on `TableOptionsFirstFk` / `TableNameFirstFk` stubs in `SchemaDefinitionParserTest` (must stay untyped to override DBAL 3’s untyped `Table::addForeignKeyConstraint`). Excluded that file from Rector so `typeDeclarations` does not reintroduce the break.
+
 ---
 
 ## [2.0.16] - 2026-07-16
