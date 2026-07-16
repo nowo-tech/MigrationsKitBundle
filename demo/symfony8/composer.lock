@@ -98,12 +98,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/doctrine/dbal.git",
-                "reference": "ce6fefb1c845206ccbc65eafa3289b9914367de0"
+                "reference": "b41da9926b96dd56006205962d88036dcec6d7de"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/doctrine/dbal/zipball/ce6fefb1c845206ccbc65eafa3289b9914367de0",
-                "reference": "ce6fefb1c845206ccbc65eafa3289b9914367de0",
+                "url": "https://api.github.com/repos/doctrine/dbal/zipball/b41da9926b96dd56006205962d88036dcec6d7de",
+                "reference": "b41da9926b96dd56006205962d88036dcec6d7de",
                 "shasum": ""
             },
             "require": {
@@ -196,7 +196,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-08T13:52:17+00:00"
+            "time": "2026-07-15T00:34:58+00:00"
         },
         {
             "name": "doctrine/deprecations",
@@ -252,12 +252,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/doctrine/DoctrineBundle.git",
-                "reference": "d49017908e73547a35449da6e2e76c1a9ce0ff9b"
+                "reference": "2fdd0d6cbeb65d8821a47f22240b67aa58a7d6d3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/doctrine/DoctrineBundle/zipball/d49017908e73547a35449da6e2e76c1a9ce0ff9b",
-                "reference": "d49017908e73547a35449da6e2e76c1a9ce0ff9b",
+                "url": "https://api.github.com/repos/doctrine/DoctrineBundle/zipball/2fdd0d6cbeb65d8821a47f22240b67aa58a7d6d3",
+                "reference": "2fdd0d6cbeb65d8821a47f22240b67aa58a7d6d3",
                 "shasum": ""
             },
             "require": {
@@ -265,6 +265,7 @@
                 "doctrine/deprecations": "^1.0",
                 "doctrine/persistence": "^4",
                 "doctrine/sql-formatter": "^1.0.1",
+                "ext-mbstring": "*",
                 "php": "^8.4",
                 "symfony/cache": "^6.4 || ^7.0 || ^8.0",
                 "symfony/config": "^6.4 || ^7.0 || ^8.0",
@@ -360,7 +361,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-08T14:21:19+00:00"
+            "time": "2026-07-11T08:40:22+00:00"
         },
         {
             "name": "doctrine/doctrine-migrations-bundle",
@@ -1129,7 +1130,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/migrations-kit-bundle",
-                "reference": "c317480d688d927d53bcd899e7d662818b9d4d61"
+                "reference": "8f1c27a01da37f54c132b10a98a0cadc5bd19307"
             },
             "require": {
                 "doctrine/dbal": "^2.13 || ^3.0 || ^4.0",
@@ -1708,12 +1709,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/console.git",
-                "reference": "6d531ca8f1f7016e155f060f8ad20b30f7c61ae0"
+                "reference": "9df1ce79867b238f61acf009787b970180c1c0c2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/6d531ca8f1f7016e155f060f8ad20b30f7c61ae0",
-                "reference": "6d531ca8f1f7016e155f060f8ad20b30f7c61ae0",
+                "url": "https://api.github.com/repos/symfony/console/zipball/9df1ce79867b238f61acf009787b970180c1c0c2",
+                "reference": "9df1ce79867b238f61acf009787b970180c1c0c2",
                 "shasum": ""
             },
             "require": {
@@ -1801,7 +1802,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-05T10:12:59+00:00"
+            "time": "2026-07-10T09:33:47+00:00"
         },
         {
             "name": "symfony/dependency-injection",
@@ -2534,12 +2535,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/framework-bundle.git",
-                "reference": "c8bb11c93c966001c97a3f88fde634cb061c19d2"
+                "reference": "a1a11787780a9187029b20711129ecd9df395719"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/framework-bundle/zipball/c8bb11c93c966001c97a3f88fde634cb061c19d2",
-                "reference": "c8bb11c93c966001c97a3f88fde634cb061c19d2",
+                "url": "https://api.github.com/repos/symfony/framework-bundle/zipball/a1a11787780a9187029b20711129ecd9df395719",
+                "reference": "a1a11787780a9187029b20711129ecd9df395719",
                 "shasum": ""
             },
             "require": {
@@ -2670,7 +2671,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-05T11:39:20+00:00"
+            "time": "2026-07-09T23:43:41+00:00"
         },
         {
             "name": "symfony/http-foundation",
@@ -4313,12 +4314,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/twigphp/Twig.git",
-                "reference": "209a98402bb561b5c92b30500dd72a1a55d6c9c5"
+                "reference": "da8bd407000b6ef1adfce829ac9921f12b544617"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/twigphp/Twig/zipball/209a98402bb561b5c92b30500dd72a1a55d6c9c5",
-                "reference": "209a98402bb561b5c92b30500dd72a1a55d6c9c5",
+                "url": "https://api.github.com/repos/twigphp/Twig/zipball/da8bd407000b6ef1adfce829ac9921f12b544617",
+                "reference": "da8bd407000b6ef1adfce829ac9921f12b544617",
                 "shasum": ""
             },
             "require": {
@@ -4386,7 +4387,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-08T20:23:12+00:00"
+            "time": "2026-07-13T10:17:57+00:00"
         }
     ],
     "packages-dev": [
