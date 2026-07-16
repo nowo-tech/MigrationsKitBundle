@@ -1,4 +1,5 @@
 # CI: tests on PHP 8.2–8.5 × Symfony 7.0, 7.4, 8.0, 8.1 (exclusions for incompatible pairs).
+# Symfony 8.1 + PHP 8.4 uses platform.php 8.4.1 (Symfony 8.1 requires >=8.4.1).
 # DBAL 3|4 × Symfony 7.0; DBAL 4 × Symfony 8.0 (DBAL 3 + SF8 is not installable: doctrine-bundle 3 requires DBAL 4).
 # Coverage with PCOV; release updated via release.yml on tag push.
 name: CI
@@ -73,16 +74,21 @@ jobs:
 
       - name: Pin Symfony version
         run: |
-          composer config platform.php ${{ matrix.php }}.0
+          PLATFORM="${{ matrix.php }}.0"
+          # Symfony 8.1 requires PHP >= 8.4.1; Composer treats platform "8.4.0" as too low.
+          if [ "${{ matrix.symfony }}" = "8.1" ] && [ "${{ matrix.php }}" = "8.4" ]; then
+            PLATFORM="8.4.1"
+          fi
+          composer config platform.php "$PLATFORM"
           composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/yaml:^${{ matrix.symfony }} --no-interaction --no-update
 
       - name: Pin doctrine-bundle for Symfony 8
-        if: matrix.symfony == '8.0'
+        if: matrix.symfony == '8.0' || matrix.symfony == '8.1'
         run: composer require doctrine/doctrine-bundle:^3.0 --no-interaction --no-update
 
       - name: Update dependencies
         run: |
-          if [ "${{ matrix.symfony }}" = "8.0" ]; then
+          if [ "${{ matrix.symfony }}" = "8.0" ] || [ "${{ matrix.symfony }}" = "8.1" ]; then
             composer update doctrine/doctrine-bundle symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
           else
             composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
@@ -155,11 +161,15 @@ jobs:
 
       - name: Pin PHP and Symfony
         run: |
-          composer config platform.php ${{ matrix.php }}.0
+          PLATFORM="${{ matrix.php }}.0"
+          if [ "${{ matrix.symfony }}" = "8.1" ] && [ "${{ matrix.php }}" = "8.4" ]; then
+            PLATFORM="8.4.1"
+          fi
+          composer config platform.php "$PLATFORM"
           composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/yaml:^${{ matrix.symfony }} --no-interaction --no-update
 
       - name: Pin doctrine-bundle for Symfony 8
-        if: matrix.symfony == '8.0'
+        if: matrix.symfony == '8.0' || matrix.symfony == '8.1'
         run: composer require doctrine/doctrine-bundle:^3.0 --no-interaction --no-update
 
       - name: Pin Doctrine DBAL ${{ matrix.dbal }}
@@ -167,7 +177,7 @@ jobs:
 
       - name: Update dependencies
         run: |
-          if [ "${{ matrix.symfony }}" = "8.0" ]; then
+          if [ "${{ matrix.symfony }}" = "8.0" ] || [ "${{ matrix.symfony }}" = "8.1" ]; then
             composer update doctrine/doctrine-bundle doctrine/dbal symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
           else
             composer update doctrine/dbal symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
