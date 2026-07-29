@@ -2,26 +2,28 @@
 
 [![CI](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/migrations-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/migrations-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/migrations-kit-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/MigrationsKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.03%25-brightgreen)](#tests-and-coverage)
 
-![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
-
-FrankenPHP worker mode: supported (PHPStan FrankenPHP rules + Symfony 8 demo with `FRANKENPHP_MODE=worker`).
+> ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/MigrationsKitBundle) so more developers can find it.
 
 **Symfony bundle that provides helpers for Doctrine Migrations**: schema checks (table/column/index exist) and array-based migration definitions, so you can write idempotent migrations without repeating SQL and with safe checks. For **Symfony 6, 7 or 8** · PHP 8.1+ · **Doctrine DBAL** 2.x–4.x and **doctrine/migrations** 3.x–4.x.
 
-> ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/MigrationsKitBundle) so more developers can find it.
+![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
+
+This bundle is **FrankenPHP worker mode friendly**.
 
 ## Table of contents
 
 - [Quick search terms](#quick-search-terms)
 - [Features](#features)
 - [Installation](#installation)
+- [Requirements](#requirements)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [Documentation](#documentation)
-- [Requirements](#requirements)
 - [Demo](#demo)
 - [Development](#development)
-- [License & author](#license--author)
+- [Documentation](#documentation)
+- [Tests and coverage](#tests-and-coverage)
+- [License](#license)
+- [Author](#author)
 
 ## Quick search terms
 
@@ -59,6 +61,18 @@ return [
   Nowo\MigrationsKitBundle\NowoMigrationsKitBundle::class => ['all' => true],
 ];
 ```
+
+## Requirements
+
+- PHP >= 8.1
+- **Symfony 6, 7 or 8** (^6.0 \|\| ^7.0 \|\| ^8.0)
+- doctrine/doctrine-bundle ^2.8 \|\| ^3.0
+- doctrine/dbal ^2.13 \|\| ^3.0 \|\| ^4.0
+- doctrine/migrations ^3.5 \|\| ^4.0
+
+**Databases:** the bundle is compatible with **SQLite**, **MySQL** and **PostgreSQL**. Use the same migrations and helpers; platform-specific SQL is handled by Doctrine DBAL.
+
+See [docs/INSTALLATION.md](docs/INSTALLATION.md#requirements) and [docs/UPGRADING.md](docs/UPGRADING.md) for compatibility notes.
 
 ## Configuration
 
@@ -106,6 +120,14 @@ foreach ($service->apply($schema, $definition) as $sql) {
 
 More examples: [docs/USAGE.md](docs/USAGE.md) and [docs/EXAMPLE.md](docs/EXAMPLE.md).
 
+## Demo
+
+The Symfony 8 demo is in `demo/symfony8`. It runs with **FrankenPHP** (PHP **8.5**) in Docker. Runtime mode is controlled by **`FRANKENPHP_MODE`** in `.env` (`classic` \| `worker`, default **`worker`** — recreate with `docker compose up -d` after changing; see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)). The demo includes example migrations using **CreateTablesService** and the MDK format, plus a **field dictionary** for reusable audit columns. From the bundle root: `make up-symfony8` / `make demo-smoke`. **Always check SQL before applying:** use `make migrate-dry-run` (or `doctrine:migrations:migrate --dry-run -vvv`). See [docs/USAGE.md](docs/USAGE.md) and [demo/README.md](demo/README.md).
+
+## Development
+
+Run tests and QA with Docker: `docker compose up -d --build && docker compose exec php composer install && docker compose exec php composer test` (or `composer test-coverage`, `composer qa`). Without Docker: `composer install && composer test`. See [Makefile](Makefile) for all targets (`make update-deps` refreshes bundle and demo dependencies).
+
 ## Documentation
 
 - [GitHub Actions CI requirements](docs/GITHUB_CI.md)
@@ -131,26 +153,6 @@ More examples: [docs/USAGE.md](docs/USAGE.md) and [docs/EXAMPLE.md](docs/EXAMPLE
 - [Demo migrations reference](docs/DEMO_MIGRATIONS_REFERENCE.md)
 - [Demo](demo/README.md)
 - [Flow diagrams](docs/FLOWCHARTS.md)
-
-## Requirements
-
-- PHP >= 8.1
-- **Symfony 6, 7 or 8** (^6.0 \|\| ^7.0 \|\| ^8.0)
-- doctrine/doctrine-bundle ^2.8 \|\| ^3.0
-- doctrine/dbal ^2.13 \|\| ^3.0 \|\| ^4.0
-- doctrine/migrations ^3.5 \|\| ^4.0
-
-**Databases:** the bundle is compatible with **SQLite**, **MySQL** and **PostgreSQL**. Use the same migrations and helpers; platform-specific SQL is handled by Doctrine DBAL.
-
-See [docs/INSTALLATION.md](docs/INSTALLATION.md#requirements) and [docs/UPGRADING.md](docs/UPGRADING.md) for compatibility notes.
-
-## Demo
-
-The Symfony 8 demo is in `demo/symfony8`. It runs with **FrankenPHP** (PHP **8.5**) in Docker. Runtime mode is controlled by **`FRANKENPHP_MODE`** in `.env` (`classic` \| `worker`, default **`worker`** — recreate with `docker compose up -d` after changing; see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)). The demo includes example migrations using **CreateTablesService** and the MDK format, plus a **field dictionary** for reusable audit columns. From the bundle root: `make up-symfony8` / `make demo-smoke`. **Always check SQL before applying:** use `make migrate-dry-run` (or `doctrine:migrations:migrate --dry-run -vvv`). See [docs/USAGE.md](docs/USAGE.md) and [demo/README.md](demo/README.md).
-
-## Development
-
-Run tests and QA with Docker: `docker compose up -d --build && docker compose exec php composer install && docker compose exec php composer test` (or `composer test-coverage`, `composer qa`). Without Docker: `composer install && composer test`. See [Makefile](Makefile) for all targets (`make update-deps` refreshes bundle and demo dependencies).
 
 ## Tests and coverage
 
