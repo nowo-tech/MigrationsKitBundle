@@ -7,7 +7,10 @@ namespace Nowo\MigrationsKitBundle\Tests\Migration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Comparator;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\SchemaDiff;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
@@ -25,7 +28,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
         $platform ??= new MySQLPlatform();
         $schemaManager = $this->createMock(AbstractSchemaManager::class);
         $schemaManager->method('createComparator')->willReturn(
-            new \Doctrine\DBAL\Schema\Comparator($platform),
+            new Comparator($platform),
         );
         $connection = $this->createMock(Connection::class);
         $connection->method('getDatabasePlatform')->willReturn($platform);
@@ -377,7 +380,7 @@ class CreateTablesServiceMySQLPlatformTest extends TestCase
 
 final class ThrowingForeignKeyMySQLPlatform extends MySQLPlatform
 {
-    public function getCreateForeignKeySQL(\Doctrine\DBAL\Schema\ForeignKeyConstraint $foreignKey, $table): string
+    public function getCreateForeignKeySQL(ForeignKeyConstraint $foreignKey, $table): string
     {
         throw new RuntimeException('forced create FK failure');
     }
@@ -388,7 +391,7 @@ final class DuplicateAlterSchemaSqlMySQLPlatform extends MySQLPlatform
     /**
      * @return array<int, string>
      */
-    public function getAlterSchemaSQL(\Doctrine\DBAL\Schema\SchemaDiff $diff): array
+    public function getAlterSchemaSQL(SchemaDiff $diff): array
     {
         return [
             'ALTER TABLE users DROP COLUMN name',

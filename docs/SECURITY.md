@@ -98,6 +98,17 @@ Before tagging a release, confirm all items below:
 | Cryptography/secrets | No hardcoded secrets; host app secret management remains external. |
 | Permissions/exposure | Migration execution permissions and runtime context reviewed. |
 | Limits/DoS | Migration plan reviewed for heavy operations and lock/timeout impact. |
+| **AI security audit (REQ-SEC-004)** | Grade **Pass (good)** / risk **Low** (2026-07-29). Recorded in the Nowo monorepo `BUNDLES_SECURITY_ANALYSIS.md`. |
 
 Record the checklist confirmation in the release PR or tag notes.
+
+## AI security audit
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-07-29 |
+| Grade | Pass (good) |
+| Risk | Low |
+| Method | Cursor security-review / campaign static pass (`src/`, Flex recipe, demo, SECURITY docs) |
+| Open residuals | No Critical/High. Accepted Low residual: validate identifier names in custom migration definitions; no HTTP admin surface in the bundle. |
 

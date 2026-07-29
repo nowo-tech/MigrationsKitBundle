@@ -2,16 +2,23 @@
 # Development and QA targets run inside the Docker container
 #
 COMPOSE_FILE := docker-compose.yml
-COMPOSE := docker compose -f $(COMPOSE_FILE)
+# Prefer Compose V2 plugin; fall back to docker-compose V1 (REQ-MAKE-010).
+# Use absolute docker path so Make does not resolve a local ./docker/ directory (EACCES).
+DOCKER_BIN := $(shell command -v docker 2>/dev/null)
+ifeq ($(DOCKER_BIN),)
+DOCKER_BIN := docker
+endif
+COMPOSE_BIN := $(shell $(DOCKER_BIN) compose version >/dev/null 2>&1 && echo "$(DOCKER_BIN) compose" || echo "docker-compose")
+COMPOSE := $(COMPOSE_BIN) -f $(COMPOSE_FILE)
 SERVICE_PHP := php
 RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos composer-sync rector rector-dry phpstan check-no-cursor-coauthor strip-cursor-coauthor-from-history setup-hooks
+.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan check-no-cursor-coauthor strip-cursor-coauthor-from-history setup-hooks
 .PHONY: demo-up-symfony8 demo-migrate-symfony8
-.PHONY: up down up-symfony8 build shell demo-install demo-down
+.PHONY: up down down-dev up-symfony8 build shell demo-install demo-down
 
 # Default target
 help:
@@ -20,8 +27,9 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Targets:"
-	@echo "  up             Start root container (docker-compose at bundle root)"
+	@echo "  up             Start root container ($(COMPOSE) at bundle root)"
 	@echo "  down           Stop root container"
+	@echo "  down-dev       Stop root $(COMPOSE) (dev) and remove orphans"
 	@echo "  build          Rebuild root Docker image (no cache)"
 	@echo "  shell          Open shell in root container"
 	@echo "  install        Install Composer dependencies"
@@ -35,6 +43,7 @@ help:
 	@echo "  phpstan        Run PHPStan static analysis"
 	@echo "  qa             Run all QA (cs-check + test)"
 	@echo "  release-check  Pre-release: git hygiene, cs-fix, cs-check, rector-dry, phpstan, test-coverage, demo healthchecks"
+	@echo "  demo-smoke     REQ-TEST-011: boot demo + HTTP 200 (make -C demo demo-smoke)"
 	@echo "  composer-sync  Validate composer.json and align composer.lock (no install)"
 	@echo "  clean          Remove vendor, cache, coverage"
 	@echo "  update         Update composer.lock (composer update)"
@@ -94,6 +103,9 @@ release-check: check-no-cursor-coauthor ensure-up composer-sync cs-fix cs-check 
 release-check-demos:
 	@$(MAKE) -C demo release-check
 
+demo-smoke:
+	@if [ -f demo/Makefile ]; then $(MAKE) -C demo demo-smoke; else echo "No demo/Makefile — skip demo-smoke"; fi
+
 composer-sync: ensure-up
 	$(RUN) composer update --no-install
 	$(RUN) composer validate --strict
@@ -120,7 +132,7 @@ demo-up-symfony8:
 demo-migrate-symfony8:
 	cd demo/symfony8 && mkdir -p var && $(COMPOSER) migrate
 
-# Root docker-compose (bundle dev: install, test, cs-check, etc.)
+# Root $(COMPOSE) (bundle dev: install, test, cs-check, etc.)
 up:
 	$(COMPOSE) build
 	$(COMPOSE) up -d
@@ -131,6 +143,9 @@ up:
 
 down:
 	$(COMPOSE) down
+
+down-dev:
+	$(COMPOSE) down --remove-orphans
 
 shell:
 	$(COMPOSE) exec $(SERVICE_PHP) sh
@@ -157,7 +172,8 @@ setup-hooks:
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk
+# Optional: monorepo helper absent on standalone GitHub Actions checkout (REQ-MAKE-009).
+-include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk
 check-no-cursor-coauthor:
 	@chmod +x .scripts/check-no-cursor-coauthor.sh
 	@./.scripts/check-no-cursor-coauthor.sh HEAD

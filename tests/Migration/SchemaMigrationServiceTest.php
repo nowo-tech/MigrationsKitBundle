@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Migration;
 
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use InvalidArgumentException;
@@ -235,7 +236,7 @@ class SchemaMigrationServiceTest extends TestCase
     /** Change PK on existing table: drop current PK + add new PK (via comparator). */
     public function testApplyTableEditsChangePrimaryKey(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite does not support changing primary key via simple ALTER');
         }
         $schema = new Schema();
@@ -258,7 +259,7 @@ class SchemaMigrationServiceTest extends TestCase
 
     public function testApplyTableEditsDropPrimaryKey(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP PRIMARY KEY');
         }
         $schema = $this->schemaWithUsersTable();
@@ -302,7 +303,7 @@ class SchemaMigrationServiceTest extends TestCase
 
     public function testApplyTableEditsDropForeignKey(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP FOREIGN KEY');
         }
         $schema = new Schema();
@@ -411,7 +412,7 @@ class SchemaMigrationServiceTest extends TestCase
     /** CreateTablesService drops FKs via DROP_FOREIGN_KEYS. */
     public function testApplyTableEditsDropForeignKeyViaItemWithDropTrue(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP FOREIGN KEY');
         }
         $schema = new Schema();
@@ -807,7 +808,7 @@ class SchemaMigrationServiceTest extends TestCase
         self::assertNotNull($idxAddColumn, 'Expected one SQL to add column role_id (ALTER TABLE ... role_id without INDEX/FK)');
         self::assertNotNull($idxIndex, 'Expected one SQL to create index');
         self::assertGreaterThanOrEqual(2, count($sqls), 'At least ADD COLUMN and INDEX SQL must be emitted');
-        if (!$this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if (!$this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::assertNotNull($idxFk, 'Expected one SQL to add FK');
         }
     }
@@ -896,7 +897,7 @@ class SchemaMigrationServiceTest extends TestCase
 
     public function testApplyDropPrimaryKeyWithDecimalAndCommentColumnsCoversColumnToOptions(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite does not support simple DROP PRIMARY KEY');
         }
         $schema = $this->schemaWithTableWithDecimalAndComment();
@@ -1123,7 +1124,7 @@ class SchemaMigrationServiceTest extends TestCase
     /** Empty string in DROP_FOREIGN_KEYS is skipped; valid FK name still produces DROP (only on platforms that support it). */
     public function testApplyDropForeignKeySkipsEmptyName(): void
     {
-        if ($this->service->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+        if ($this->service->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite does not support DROP FOREIGN KEY');
         }
         $schema = new Schema();

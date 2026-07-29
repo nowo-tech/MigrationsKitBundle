@@ -6,12 +6,14 @@ namespace Nowo\MigrationsKitBundle\Migration;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Type;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
@@ -490,7 +492,7 @@ final readonly class CreateTablesService
                         }
                     } catch (Throwable $e) {
                         // e.g. SQLite / DBAL 3: add FK on new columns not supported in same run
-                        if (!$platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform) {
+                        if (!$platform instanceof SQLitePlatform) {
                             throw $e;
                         }
                     }
@@ -820,7 +822,7 @@ final readonly class CreateTablesService
      */
     private function getTypeName(object $type): string
     {
-        if ($type instanceof \Doctrine\DBAL\Types\Type && method_exists($type, 'getName')) {
+        if ($type instanceof Type && method_exists($type, 'getName')) {
             return $type->getName();
         }
 
@@ -1228,7 +1230,7 @@ final readonly class CreateTablesService
 
     private function isSqlitePlatform(object $platform): bool
     {
-        return $platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform;
+        return $platform instanceof SQLitePlatform;
     }
 
     private function normalizeIdentifier(mixed $name): string

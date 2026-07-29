@@ -17,6 +17,8 @@ use function is_array;
 /**
  * Builds a DBAL Table from an array definition (columns + primary key).
  *
+ * Not marked `final`: PHPUnit doubles subclass it to cover DBAL 3/4 foreign-key signature branches.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */

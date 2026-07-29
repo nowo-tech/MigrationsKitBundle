@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Migration;
 
+use Doctrine\DBAL\Schema\AbstractAsset;
 use ReflectionObject;
 use Throwable;
 
@@ -15,7 +16,7 @@ use function property_exists;
  * Helper to get the name from DBAL schema assets (Table, Column, Index, ForeignKey) in a way
  * compatible with DBAL 3, 4 and 5.
  *
- * In DBAL 4, {@see \Doctrine\DBAL\Schema\AbstractAsset::getName()} is deprecated; in DBAL 5 it is removed.
+ * In DBAL 4, {@see AbstractAsset::getName()} is deprecated; in DBAL 5 it is removed.
  * This helper reads the asset's name via reflection when possible to avoid triggering the deprecation,
  * then falls back to getName() for older DBAL, and to the public property when available (DBAL 5).
  *

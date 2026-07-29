@@ -7,6 +7,7 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.18](#upgrading-to-2018)
 - [Upgrading to 2.0.17](#upgrading-to-2017)
 - [Upgrading to 2.0.16](#upgrading-to-2016)
 - [Upgrading to 2.0.15](#upgrading-to-2015)
@@ -57,6 +58,15 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## Upgrading to 2.0.18
+
+- **No migration SQL or config changes.** Runtime helpers behave the same.
+- **Minor API hardening** — `NowoMigrationsKitBundle` and `MigrationsKitExtension` are now `final`. If you subclassed either (unusual), switch to composition or decorating the container services instead.
+- **Contributors** — Demo uses FrankenPHP **PHP 8.5** and `FRANKENPHP_MODE` (`classic`/`worker`). Prefer `make demo-smoke` for a quick HTTP healthcheck. PHPStan may load FrankenPHP rulesets from `nowo-tech/phpstan-frankenphp` (dev dependency).
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

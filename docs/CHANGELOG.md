@@ -8,86 +8,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.18] - 2026-07-29](#2018---2026-07-29)
+  - [Added](#added)
+  - [Changed](#changed)
+  - [Documentation](#documentation)
+  - [Security](#security)
 - [[2.0.17] - 2026-07-16](#2017---2026-07-16)
   - [Fixed](#fixed)
 - [[2.0.16] - 2026-07-16](#2016---2026-07-16)
   - [Removed](#removed)
-  - [Changed](#changed)
-  - [Documentation](#documentation)
-- [[2.0.15] - 2026-07-16](#2015---2026-07-16)
-  - [Added](#added)
   - [Changed](#changed-1)
   - [Documentation](#documentation-1)
-- [[2.0.14] - 2026-07-09](#2014---2026-07-09)
+- [[2.0.15] - 2026-07-16](#2015---2026-07-16)
   - [Added](#added-1)
   - [Changed](#changed-2)
   - [Documentation](#documentation-2)
-  - [Fixed](#fixed-1)
-- [[2.0.13] - 2026-07-02](#2013---2026-07-02)
+- [[2.0.14] - 2026-07-09](#2014---2026-07-09)
   - [Added](#added-2)
   - [Changed](#changed-3)
   - [Documentation](#documentation-3)
+  - [Fixed](#fixed-1)
+- [[2.0.13] - 2026-07-02](#2013---2026-07-02)
+  - [Added](#added-3)
+  - [Changed](#changed-4)
+  - [Documentation](#documentation-4)
 - [[2.0.12] - 2026-06-17](#2012---2026-06-17)
   - [Fixed](#fixed-2)
 - [[2.0.11] - 2026-06-17](#2011---2026-06-17)
-  - [Changed](#changed-4)
+  - [Changed](#changed-5)
   - [Fixed](#fixed-3)
 - [[2.0.10] - 2026-06-17](#2010---2026-06-17)
-  - [Changed](#changed-5)
+  - [Changed](#changed-6)
   - [Fixed](#fixed-4)
 - [[2.0.9] - 2026-06-17](#209---2026-06-17)
-  - [Added](#added-3)
+  - [Added](#added-4)
   - [Fixed](#fixed-5)
 - [[2.0.8] - 2026-04-15](#208---2026-04-15)
-  - [Added](#added-4)
-  - [Changed](#changed-6)
-  - [Fixed](#fixed-6)
-  - [Documentation](#documentation-4)
-- [[2.0.7] - 2026-03-16](#207---2026-03-16)
   - [Added](#added-5)
   - [Changed](#changed-7)
-  - [Fixed](#fixed-7)
-- [[2.0.6] - 2025-02-27](#206---2025-02-27)
+  - [Fixed](#fixed-6)
+  - [Documentation](#documentation-5)
+- [[2.0.7] - 2026-03-16](#207---2026-03-16)
   - [Added](#added-6)
   - [Changed](#changed-8)
-  - [Fixed](#fixed-8)
-- [[2.0.5] - 2025-02-27](#205---2025-02-27)
+  - [Fixed](#fixed-7)
+- [[2.0.6] - 2025-02-27](#206---2025-02-27)
   - [Added](#added-7)
   - [Changed](#changed-9)
-  - [Removed](#removed-1)
-- [[2.0.4] - 2025-02-27](#204---2025-02-27)
+  - [Fixed](#fixed-8)
+- [[2.0.5] - 2025-02-27](#205---2025-02-27)
   - [Added](#added-8)
   - [Changed](#changed-10)
-  - [Fixed](#fixed-9)
-- [[2.0.3] - 2025-02-27](#203---2025-02-27)
+  - [Removed](#removed-1)
+- [[2.0.4] - 2025-02-27](#204---2025-02-27)
   - [Added](#added-9)
   - [Changed](#changed-11)
-  - [Fixed](#fixed-10)
-- [[2.0.2] - 2025-02-25](#202---2025-02-25)
+  - [Fixed](#fixed-9)
+- [[2.0.3] - 2025-02-27](#203---2025-02-27)
   - [Added](#added-10)
   - [Changed](#changed-12)
+  - [Fixed](#fixed-10)
+- [[2.0.2] - 2025-02-25](#202---2025-02-25)
+  - [Added](#added-11)
+  - [Changed](#changed-13)
   - [Fixed](#fixed-11)
 - [[2.0.1] - 2025-02-25](#201---2025-02-25)
-  - [Changed](#changed-13)
+  - [Changed](#changed-14)
 - [[2.0.0] - 2025-02-25](#200---2025-02-25)
   - [Breaking changes](#breaking-changes)
-  - [Added](#added-11)
-  - [Changed](#changed-14)
+  - [Added](#added-12)
+  - [Changed](#changed-15)
   - [Fixed](#fixed-12)
 - [[1.2.1] - 2026-02-22](#121---2026-02-22)
   - [Fixed](#fixed-13)
-  - [Changed](#changed-15)
-- [[1.2.0] - 2026-02-20](#120---2026-02-20)
-  - [Added](#added-12)
   - [Changed](#changed-16)
+- [[1.2.0] - 2026-02-20](#120---2026-02-20)
+  - [Added](#added-13)
+  - [Changed](#changed-17)
   - [Fixed](#fixed-14)
 - [[1.1.0] - 2026-02-20](#110---2026-02-20)
-  - [Added](#added-13)
+  - [Added](#added-14)
   - [Fixed](#fixed-15)
 - [[1.0.0] - 2026-02-20](#100---2026-02-20)
-  - [Added](#added-14)
+  - [Added](#added-15)
 
 ## [Unreleased]
+
+---
+
+## [2.0.18] - 2026-07-29
+
+### Added
+
+- **FrankenPHP Friendly** banner in README (`docs/images/frankenphp-friendly.png`) and worker-mode note (REQ-DOCS-017).
+- **`make demo-smoke`** / **`make down-dev`** — demo HTTP smoke check (REQ-TEST-011) and root Compose teardown with orphans (REQ-MAKE-007).
+- **PHPUnit** `SYMFONY_DEPRECATIONS_HELPER=max[direct]=0` (REQ-SF-005).
+- **`FRANKENPHP_MODE`** (`classic` \| `worker`) on the Symfony 8 demo; **PHPStan FrankenPHP** rulesets via `nowo-tech/phpstan-frankenphp` (REQ-DEMO-010, REQ-CS-005).
+
+### Changed
+
+- **Demo Symfony 8** — FrankenPHP image **PHP 8.5**; pin `twig/twig` ^3.21 + `prefer-stable` (avoid Twig 4.x-dev breaking TwigInspector).
+- **Public PHP API** — `final` on `NowoMigrationsKitBundle` and `MigrationsKitExtension`; migration services already `final`/`readonly` (REQ-PHP-001). Schema helpers stay open for DBAL compatibility test doubles.
+- **Makefile** — Compose V2 plugin with `docker-compose` fallback (REQ-MAKE-010); absolute `docker` path so Make does not hit a local `./docker/` directory; optional `-include` of monorepo `.scripts` helpers so standalone CI checkouts do not fail (REQ-MAKE-009).
+- **PHP-CS-Fixer** — `fully_qualified_strict_types.import_symbols` enabled; FQCN imports cleaned in `src/` / tests.
+- **CI** — `actions/checkout` bumped to v7.
+
+### Documentation
+
+- **README.md**, **DEMO-FRANKENPHP.md** — `FRANKENPHP_MODE`, PHP 8.5 demo image, `demo-smoke`.
+- **GitHub About** guidance: plain description, Packagist homepage, topics (REQ-DOCS-018).
+
+### Security
+
+- **SECURITY.md** — AI security audit record (2026-07-29): Pass (good) / Low risk (REQ-SEC-004).
 
 ---
 

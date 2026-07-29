@@ -7,6 +7,7 @@ namespace Nowo\MigrationsKitBundle\Migration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Index;
 use Throwable;
 
 use function strlen;
@@ -85,7 +86,7 @@ final readonly class SchemaChecker
             }
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
 
-            return $table->getPrimaryKey() instanceof \Doctrine\DBAL\Schema\Index;
+            return $table->getPrimaryKey() instanceof Index;
         } catch (Throwable) {
             return false;
         }

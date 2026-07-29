@@ -6,6 +6,9 @@
          cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
 >
+    <php>
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="max[direct]=0"/>
+    </php>
     <testsuites>
         <testsuite name="MigrationsKitBundle Test Suite">
             <directory>tests</directory>

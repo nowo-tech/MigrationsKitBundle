@@ -7,6 +7,7 @@ namespace DoctrineMigrations;
 use App\Entity\KitExample;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use RuntimeException;
 
 /**
@@ -22,7 +23,7 @@ final class Version20250223100010_validation extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $checker = new \Nowo\MigrationsKitBundle\Migration\SchemaChecker($this->connection);
+        $checker = new SchemaChecker($this->connection);
         if (!$checker->tableExists(KitExample::TABLE_NAME)) {
             return;
         }

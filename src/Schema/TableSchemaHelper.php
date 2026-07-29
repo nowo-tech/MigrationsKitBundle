@@ -15,6 +15,8 @@ use Throwable;
 /**
  * DBAL version-compatible helpers for schema operations used by the migrations kit.
  *
+ * Not marked `final`: PHPUnit doubles subclass it to force DBAL 2/3 legacy primary-key paths.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */

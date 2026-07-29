@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\DependencyInjection;
 
+use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -16,7 +17,7 @@ use Symfony\Component\DependencyInjection\Reference;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-class MigrationsKitExtension extends Extension
+final class MigrationsKitExtension extends Extension
 {
     /**
      * {@inheritdoc}
@@ -32,8 +33,8 @@ class MigrationsKitExtension extends Extension
         $loader->load('services.yaml');
 
         $connectionId = 'doctrine.dbal.' . $config['connection'] . '_connection';
-        if ($container->hasDefinition(\Nowo\MigrationsKitBundle\Migration\CreateTablesService::class)) {
-            $container->getDefinition(\Nowo\MigrationsKitBundle\Migration\CreateTablesService::class)
+        if ($container->hasDefinition(CreateTablesService::class)) {
+            $container->getDefinition(CreateTablesService::class)
                 ->setArgument('$connection', new Reference($connectionId));
         }
     }

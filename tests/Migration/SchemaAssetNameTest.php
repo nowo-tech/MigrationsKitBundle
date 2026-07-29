@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Tests\Migration;
 
+use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\SchemaAssetName;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -12,7 +13,7 @@ class SchemaAssetNameTest extends TestCase
 {
     public function testGetReturnsNameFromReflectionWhenAssetHasNameProperty(): void
     {
-        $table = new \Doctrine\DBAL\Schema\Table('users');
+        $table = new Table('users');
         self::assertSame('users', SchemaAssetName::get($table));
     }
 

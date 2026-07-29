@@ -2,7 +2,7 @@
 # From bundle root: make demo-up-symfony8 / make demo-migrate-symfony8
 # From demo/: make up-symfony8 / make migrate-symfony8 (no Docker), or make docker-up-symfony8 (Docker)
 
-.PHONY: help up-all migrate-all clean-all release-verify update-bundle-all
+.PHONY: help up-all migrate-all clean-all release-verify demo-smoke update-bundle-all
 .PHONY: up-symfony8 migrate-symfony8
 .PHONY: docker-up-symfony8 docker-down-symfony8
 .PHONY: docker-restart-symfony8 docker-build-symfony8
@@ -32,7 +32,8 @@ help:
 	@echo "  up-all         Install dependencies in all demos (no Docker)"
 	@echo "  migrate-all    Run migrations in all demos (no Docker)"
 	@echo "  clean-all      Remove vendor/ and var/ in all demos"
-	@echo "  release-verify Start each demo, healthcheck (HTTP 200), then stop (for release-check)"
+	@echo "  demo-smoke     REQ-TEST-011: up -> HTTP 200 -> down"
+	@echo "  release-verify Alias of demo-smoke"
 	@echo ""
 
 up-all:
@@ -54,19 +55,18 @@ update-bundle-all:
 	@for d in $(DEMOS); do $(MAKE) -C $$d update-bundle || exit 1; done
 	@echo "All demos updated with latest bundle code."
 
-release-verify:
-	@for d in $(DEMOS); do \
-		port=$$(grep '^PORT=' $$d/.env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
-		[ -z "$$port" ] && port=$$(case $$d in symfony8) echo 8008;; *) echo 8000;; esac); \
-		echo "🔍 Release verify: $$d (port $$port)..."; \
-		$(MAKE) docker-up-$$d; \
-		echo "⏳ Waiting for $$d to be ready..."; sleep 15; \
-		code=$$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$$port 2>/dev/null || echo "000"); \
-		$(MAKE) docker-down-$$d 2>/dev/null || true; \
-		if [ "$$code" != "200" ]; then echo "❌ $$d healthcheck failed (HTTP $$code)"; exit 1; fi; \
-		echo "✅ $$d OK (HTTP $$code)"; \
-	done
-	@echo "✅ All demos passed release-verify."
+release-verify: demo-smoke
+
+# REQ-TEST-011: boot demo stack and expect HTTP 200
+demo-smoke:
+	@PORT=$$(grep "^PORT=" symfony8/.env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	[ -z "$$PORT" ] && PORT=8008; \
+	echo "Demo smoke: symfony8 (http://127.0.0.1:$$PORT)"; \
+	$(MAKE) docker-up-symfony8; sleep 12; \
+	code=$$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT" 2>/dev/null || echo "000"); \
+	$(MAKE) docker-down-symfony8 2>/dev/null || true; \
+	if [ "$$code" != "200" ]; then echo "symfony8 failed with HTTP $$code"; exit 1; fi; \
+	echo "symfony8 OK (HTTP $$code)"
 
 up-symfony8:
 	$(MAKE) -C .. demo-up-symfony8
@@ -98,4 +98,5 @@ docker-update-bundle-symfony8:
 
 # REQ-MAKE-008: update-deps-all (REQ-MAKE-008)
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
-include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-aggregate-update-deps.mk
+# Optional: monorepo helper absent on standalone GitHub Actions checkout (REQ-MAKE-009).
+-include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-aggregate-update-deps.mk

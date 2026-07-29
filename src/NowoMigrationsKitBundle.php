@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-class NowoMigrationsKitBundle extends Bundle
+final class NowoMigrationsKitBundle extends Bundle
 {
     /**
      * {@inheritdoc}
