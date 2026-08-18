@@ -3,8 +3,8 @@
 declare(strict_types=1);
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
-use Nowo\MigrationsKitBundle\NowoMigrationsKitBundle;
 use Nowo\HotReloadBundle\NowoHotReloadBundle;
+use Nowo\MigrationsKitBundle\NowoMigrationsKitBundle;
 use Nowo\TwigInspectorBundle\NowoTwigInspectorBundle;
 use Symfony\Bundle\DebugBundle\DebugBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -20,7 +20,7 @@ return [
     DoctrineBundle::class           => ['all' => true],
     DoctrineMigrationsBundle::class => ['all' => true],
     NowoMigrationsKitBundle::class  => ['all' => true],
-    NowoHotReloadBundle::class  => ['dev' => true, 'test' => true],
+    NowoHotReloadBundle::class      => ['dev' => true, 'test' => true],
     NowoTwigInspectorBundle::class  => ['dev' => true, 'test' => true],
-    TwigExtraBundle::class => ['all' => true],
+    TwigExtraBundle::class          => ['all' => true],
 ];
