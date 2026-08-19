@@ -90,12 +90,12 @@ jobs:
         run: |
           if [ "${{ matrix.symfony }}" = "8.0" ] || [ "${{ matrix.symfony }}" = "8.1" ]; then
             composer update doctrine/doctrine-bundle symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
-      - name: Composer audit (Critical/High)
-        run: composer audit --locked
-
           else
             composer update --with-all-dependencies --no-interaction --prefer-dist --no-progress
           fi
+
+      - name: Composer audit (Critical/High)
+        run: composer audit --locked
 
       - name: Run tests
         run: |
