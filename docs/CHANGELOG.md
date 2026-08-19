@@ -95,6 +95,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.20] - 2026-08-19
+
+### Fixed
+
+- **CI:** restore Symfony 8 dependency `if/fi` block broken by the composer audit rollout.
+
+### Security
+
+- **CI:** run `composer audit --locked` after dependency install (REQ-SEC / P3).
+
 ## [2.0.19] - 2026-08-18
 
 ### Changed

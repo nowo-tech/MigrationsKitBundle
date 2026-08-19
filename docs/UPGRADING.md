@@ -61,6 +61,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ---
 
+## Upgrading to 2.0.20
+
+No application upgrade steps.
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
+
 ## Upgrading to 2.0.19
 
 No application upgrade steps. **Demos only:** Hot Reload Bundle `^1.4` (FrankenPHP Mercure/`hot_reload`, `dev`/`test`). Continue requiring `nowo-tech/migrations-kit-bundle` as before.
