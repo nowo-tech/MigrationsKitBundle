@@ -6,6 +6,8 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 ## Table of contents
 
+
+- [From 2.0.20 to 2.0.21](#from-2020-to-2021)
 - [General upgrade process](#general-upgrade-process)
 - [Upgrading to 2.0.18](#upgrading-to-2018)
 - [Upgrading to 2.0.17](#upgrading-to-2017)
