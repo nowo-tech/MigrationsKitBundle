@@ -483,4 +483,5 @@ So the bundle is prepared for DBAL 5. If you write custom code that introspects 
 - [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md) — definition format and MDK
 - [DEMO_MIGRATIONS_REFERENCE.md](DEMO_MIGRATIONS_REFERENCE.md) — use cases matrix, expected SQL per migration, safety
 - [demo/README.md](../demo/README.md) — demos, Make targets, and **field dictionary** (AuditFields)
+- [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md) — FrankenPHP worker / `FRANKENPHP_RESET_KERNEL` unset/false
 - Demo migrations in `demo/symfony8`

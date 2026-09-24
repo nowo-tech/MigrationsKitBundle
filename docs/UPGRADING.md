@@ -7,8 +7,11 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 ## Table of contents
 
 
+- [From 2.0.21 to 2.0.22](#from-2021-to-2022)
 - [From 2.0.20 to 2.0.21](#from-2020-to-2021)
 - [General upgrade process](#general-upgrade-process)
+- [Upgrading to 2.0.20](#upgrading-to-2020)
+- [Upgrading to 2.0.19](#upgrading-to-2019)
 - [Upgrading to 2.0.18](#upgrading-to-2018)
 - [Upgrading to 2.0.17](#upgrading-to-2017)
 - [Upgrading to 2.0.16](#upgrading-to-2016)
@@ -60,6 +63,14 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 
 6. **Test**  
    Run your migrations (e.g. in a test environment) to verify everything still works.
+
+---
+
+## From 2.0.21 to 2.0.22
+
+- **No breaking changes.** Runtime behaviour, migration SQL, and the public API are unchanged.
+- **FrankenPHP** — Documented as Compatible with worker kernel reuse (`FRANKENPHP_RESET_KERNEL` unset or `0`). See [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md). No application action required.
+- **Upgrade:** Run `composer update nowo-tech/migrations-kit-bundle` and clear cache if needed.
 
 ---
 

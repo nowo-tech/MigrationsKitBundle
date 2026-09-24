@@ -4,7 +4,8 @@
 includes:
     - phpstan-baseline.neon
     - vendor/nowo-tech/phpstan-frankenphp/ruleset-classic.neon
-    - vendor/nowo-tech/phpstan-frankenphp/ruleset-worker.neon
+    # worker-strict includes ruleset-worker.neon (do not also include worker — duplicate include error).
+    - vendor/nowo-tech/phpstan-frankenphp/ruleset-worker-strict.neon
 
 parameters:
     level: 8

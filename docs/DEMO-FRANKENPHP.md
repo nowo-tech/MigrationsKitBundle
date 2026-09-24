@@ -9,8 +9,10 @@ This document describes how the bundle's demo applications run under **FrankenPH
 - [Development configuration](#development-configuration)
 - [Production configuration](#production-configuration)
 - [Switching classic vs worker (`FRANKENPHP_MODE`)](#switching-classic-vs-worker-frankenphp_mode)
+- [Kernel reuse (`FRANKENPHP_RESET_KERNEL`)](#kernel-reuse-frankenphp_reset_kernel)
 - [Reproducing in another bundle](#reproducing-in-another-bundle)
 - [Troubleshooting](#troubleshooting)
+- [Worker audit](#worker-audit)
 
 ---
 
@@ -116,6 +118,17 @@ After changing env or Caddyfile, restart: `docker-compose restart` or `make -C d
 
 ---
 
+## Kernel reuse (`FRANKENPHP_RESET_KERNEL`)
+
+Symfony Runtime’s FrankenPHP worker **reuses the kernel** by default (`FRANKENPHP_RESET_KERNEL` unset or `0`). That is the target of this bundle’s worker audit: no per-request mutable state in shipped helpers, so the app does not need kernel reboot between requests for Migrations Kit correctness.
+
+- Leave `FRANKENPHP_RESET_KERNEL` unset (or `0`) for normal worker throughput.
+- Set `FRANKENPHP_RESET_KERNEL=1` only as an escape hatch (clones the application after each request; lower throughput).
+
+Full checklist: [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md).
+
+---
+
 ## Reproducing in another bundle
 
 See [TwigInspectorBundle DEMO-FRANKENPHP](https://github.com/nowo-tech/TwigInspectorBundle/blob/main/docs/DEMO-FRANKENPHP.md) section "Reproducing in another bundle" for the full checklist.
@@ -127,3 +140,9 @@ See [TwigInspectorBundle DEMO-FRANKENPHP](https://github.com/nowo-tech/TwigInspe
 - **Changes not visible:** Ensure worker mode is off in dev (Caddyfile.dev has no `worker`), add dev twig.yaml and php-dev.ini, restart container, hard-refresh browser.
 - **Web Profiler not visible:** Check `APP_ENV=dev` and `APP_DEBUG=1`, and that WebProfilerBundle is enabled for `dev` in bundles.php.
 - **Demo times out:** Check port is free, container logs (`docker-compose logs php`), and required env vars (e.g. APP_SECRET).
+
+---
+
+## Worker audit
+
+Migrations Kit Bundle is **compatible** with FrankenPHP worker when the kernel is not reset between requests. See [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md).
