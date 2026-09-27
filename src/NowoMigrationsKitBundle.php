@@ -26,6 +26,7 @@ final class NowoMigrationsKitBundle extends Bundle
      */
     public function getContainerExtension(): ?ExtensionInterface
     {
+        // @igor-ignore - Symfony bundle extension lazy-init at boot; not request state
         $this->extension ??= new MigrationsKitExtension();
 
         return $this->extension instanceof ExtensionInterface ? $this->extension : null;

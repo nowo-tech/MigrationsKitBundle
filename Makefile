@@ -16,7 +16,7 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan check-no-cursor-coauthor strip-cursor-coauthor-from-history setup-hooks
+.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor check-no-cursor-coauthor strip-cursor-coauthor-from-history setup-hooks
 .PHONY: demo-up-symfony8 demo-migrate-symfony8
 .PHONY: up down down-dev up-symfony8 build shell demo-install demo-down
 
@@ -41,6 +41,7 @@ help:
 	@echo "  rector         Apply Rector refactoring"
 	@echo "  rector-dry     Run Rector in dry-run mode"
 	@echo "  phpstan        Run PHPStan static analysis"
+	@echo "  igor          Run Igor worker-state audit (REQ-CS-008)"
 	@echo "  qa             Run all QA (cs-check + test)"
 	@echo "  release-check  Pre-release: git hygiene, cs-fix, cs-check, rector-dry, phpstan, test-coverage, demo healthchecks"
 	@echo "  demo-smoke     REQ-TEST-011: boot demo + HTTP 200 (make -C demo demo-smoke)"
@@ -98,7 +99,11 @@ phpstan: install
 qa: install
 	$(RUN) composer qa
 
-release-check: check-no-cursor-coauthor ensure-up composer-sync cs-fix cs-check rector-dry phpstan test-coverage release-check-demos
+
+# Run Igor worker-state audit (REQ-CS-008)
+igor: ensure-up
+	$(COMPOSE) exec -T php composer igor
+release-check: check-no-cursor-coauthor ensure-up composer-sync cs-fix cs-check rector-dry phpstan igor test-coverage release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check

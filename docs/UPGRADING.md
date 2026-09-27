@@ -1,5 +1,19 @@
 # Upgrade Guide
 
+
+## Unreleased
+
+## To 2.0.23
+
+From **2.0.22** — REQ-CS-008 Igor FrankenPHP worker audit (igor-php require-dev, igor.json, make igor).
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+php bin/console cache:clear
+```
+
+- No application upgrade steps for require-dev Igor tooling (REQ-CS-008). Consumers do not pull `igor-php/igor-php` transitively.
+
 This guide explains how to upgrade Migrations Kit Bundle between versions. For a list of changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 
 **Current API:** The bundle provides **SchemaChecker** (table/column/index/FK checks, `listTableColumns`, `getConnection`, `getSchemaManager`) and **CreateTablesService** (declarative definitions in MDK format). Use **introspected** schema: `$schema = $this->connection->createSchemaManager()->introspectSchema()`, then call `$service->apply($schema, $definition)` and add each returned SQL with `$this->addSql($sql)` in a loop. Build the service with `new CreateTablesService($this->connection, new SchemaDefinitionParser())`. Supporting classes: **MigrationDefinitionKeys** (MDK constants), **SchemaDefinitionParser**. See [USAGE.md](USAGE.md) and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md).
