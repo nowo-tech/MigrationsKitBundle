@@ -3,6 +3,16 @@
 
 ## Unreleased
 
+## To 2.0.24
+
+From **2.0.23** — dependency refresh only.
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
+
+- No breaking changes. No application upgrade steps.
+
 ## To 2.0.23
 
 From **2.0.22** — REQ-CS-008 Igor FrankenPHP worker audit (igor-php require-dev, igor.json, make igor).

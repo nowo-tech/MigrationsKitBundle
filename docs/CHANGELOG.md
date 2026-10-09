@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.24] - 2026-10-09](#2024---2026-10-09)
+  - [Dependencies](#dependencies)
 - [[2.0.23] - 2026-09-27](#2023---2026-09-27)
 - [[2.0.22] - 2026-09-24](#2022---2026-09-24)
   - [Added](#added)
@@ -101,6 +103,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Added](#added-16)
 
 ## [Unreleased]
+
+## [2.0.24] - 2026-10-09
+
+### Dependencies
+
+- Dependabot: `doctrine/dbal` 4.5.0, `igor-php/igor-php` `^0.10.0` (dev), `nowo-tech/phpstan-frankenphp` 1.2.1, `phpstan/phpstan-phpunit`.
+- Composer refresh: `doctrine/migrations` 3.9.8, Symfony 7.4.20 components (lockfile); dev tooling `phpstan/phpstan` 2.3.1, `phpstan/phpstan-symfony` 2.1.0, `rector/rector` 2.7.0, `igor-php/igor-php` 0.10.1.
+- Demo: Symfony 8.1.8, `doctrine/orm` 3.7.4, `doctrine/dbal` 4.5.0, `twig/twig` 3.30.0; regenerated `config/reference.php`.
+
+[2.0.24]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.0.24
 
 ## [2.0.23] - 2026-09-27
 
