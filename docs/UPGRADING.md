@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## To 2.1.0
+
+From **2.0.25** — services registered with the configured connection; schema checks no longer hide errors; DBAL >=3.5.
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
+
+- `SchemaChecker` now throws on connection/permission errors instead of returning false or `[]`.
+- DBAL 2.x and DBAL < 3.5 are no longer installable (they never worked with this code).
+- `CreateTablesService` and `SchemaChecker` are now services bound to the configured `connection`.
+
 ## To 2.0.25
 
 From **2.0.24** — dependency refresh and repository maintenance.

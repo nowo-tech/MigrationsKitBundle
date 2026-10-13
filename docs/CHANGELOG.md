@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.1.0] - 2026-10-13](#210---2026-10-13)
 - [[2.0.25] - 2026-10-13](#2025---2026-10-13)
 - [[2.0.24] - 2026-10-09](#2024---2026-10-09)
   - [Dependencies](#dependencies)
@@ -105,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-13
+
 ### Fixed
 
 - **`connection` option had no effect**: `services.yaml` registered no services, so `CreateTablesService` and `SchemaChecker` could not be injected and the configured connection was never applied. Both are now registered (with `SchemaDefinitionParser`) and bound to `doctrine.dbal.<connection>_connection`.
@@ -113,6 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`doctrine/dbal` constraint is now `^3.5 || ^4.0`** (was `^2.13 || ^3.0 || ^4.0`): the code relies on `createSchemaManager()`, `introspectTable()` and `createComparator()`, which DBAL 2.x and early 3.x do not provide. README/INSTALLATION/USAGE updated.
+
+[2.1.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.1.0
 
 ## [2.0.25] - 2026-10-13
 
