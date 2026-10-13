@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
-- [[2.1.0] - 2026-10-13](#210---2026-10-13)
 - [[2.2.0] - 2026-10-13](#220---2026-10-13)
 - [[2.0.25] - 2026-10-13](#2025---2026-10-13)
 - [[2.0.24] - 2026-10-09](#2024---2026-10-09)
@@ -109,28 +108,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.0] - 2026-10-13
 
-### Changed
-
-- Requirements: `symfony/config`, `symfony/dependency-injection`, `symfony/http-kernel` and `symfony/yaml` now require `^7.4 || ^8.0` (was `^6.0 || ^7.0 || ^8.0`) so the lowest allowed version is the one tested in CI. The CI matrix drops the Symfony 7.0 cell and uses 7.4 as its floor (coverage and DBAL jobs included). README/INSTALLATION/badge aligned; PHP requirement in docs corrected to 8.2+.
-
 ### Fixed
 
 - Tests: `SchemaCheckerTest::testTableExistsNormalizesQuotedNames` now configures the `tablesExist()` mock return value. On DBAL 3 that method has no native return type, so the unconfigured mock returned `null` and `SchemaChecker::tableExists(): bool` raised a `TypeError` (CI jobs "DBAL 3" and "Code Coverage (DBAL 3)"). Runtime behaviour is unchanged on DBAL 3 and DBAL 4.
-
-[2.2.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.2.0
-
-## [2.1.0] - 2026-10-13
-
-### Fixed
-
 - **`connection` option had no effect**: `services.yaml` registered no services, so `CreateTablesService` and `SchemaChecker` could not be injected and the configured connection was never applied. Both are now registered (with `SchemaDefinitionParser`) and bound to `doctrine.dbal.<connection>_connection`.
 - **`SchemaChecker` hid database errors**: every `Throwable` returned `false` / `[]`, so a connection or permission error read as "table missing". Only a missing table (`TableDoesNotExist`) now yields `false` / `[]`; other errors are rethrown.
 
 ### Changed
 
+- Requirements: `symfony/config`, `symfony/dependency-injection`, `symfony/http-kernel` and `symfony/yaml` now require `^7.4 || ^8.0` (was `^6.0 || ^7.0 || ^8.0`) so the lowest allowed version is the one tested in CI. The CI matrix drops the Symfony 7.0 cell and uses 7.4 as its floor (coverage and DBAL jobs included). README/INSTALLATION/badge aligned; PHP requirement in docs corrected to 8.2+.
 - **`doctrine/dbal` constraint is now `^3.5 || ^4.0`** (was `^2.13 || ^3.0 || ^4.0`): the code relies on `createSchemaManager()`, `introspectTable()` and `createComparator()`, which DBAL 2.x and early 3.x do not provide. README/INSTALLATION/USAGE updated.
 
-[2.1.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.1.0
+[2.2.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.2.0
 
 ## [2.0.25] - 2026-10-13
 
