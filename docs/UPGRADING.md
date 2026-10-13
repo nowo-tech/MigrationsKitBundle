@@ -1,5 +1,43 @@
 # Upgrade Guide
 
+## Table of contents
+
+- [Unreleased](#unreleased)
+- [To 2.2.0](#to-220)
+- [To 2.0.25](#to-2025)
+- [To 2.0.24](#to-2024)
+- [To 2.0.23](#to-2023)
+- [General upgrade process](#general-upgrade-process)
+- [From 2.0.21 to 2.0.22](#from-2021-to-2022)
+- [Upgrading to 2.0.20](#upgrading-to-2020)
+- [Upgrading to 2.0.19](#upgrading-to-2019)
+- [Upgrading to 2.0.18](#upgrading-to-2018)
+- [Upgrading to 2.0.17](#upgrading-to-2017)
+- [Upgrading to 2.0.16](#upgrading-to-2016)
+- [Upgrading to 2.0.15](#upgrading-to-2015)
+- [Upgrading to 2.0.14](#upgrading-to-2014)
+- [Upgrading to 2.0.13](#upgrading-to-2013)
+- [Upgrading to 2.0.12](#upgrading-to-2012)
+- [Upgrading to 2.0.11](#upgrading-to-2011)
+- [Upgrading to 2.0.10](#upgrading-to-2010)
+- [Upgrading to 2.0.9](#upgrading-to-209)
+- [Upgrading to 2.0.8](#upgrading-to-208)
+- [Upgrading to 2.0.7](#upgrading-to-207)
+- [Upgrading to 2.0.6](#upgrading-to-206)
+- [Upgrading to 2.0.5](#upgrading-to-205)
+- [Upgrading to 2.0.4](#upgrading-to-204)
+- [Upgrading to 2.0.3](#upgrading-to-203)
+- [Upgrading to 2.0.2](#upgrading-to-202)
+- [Upgrading to 2.0.1](#upgrading-to-201)
+- [Upgrading to 2.0.0](#upgrading-to-200)
+  - [What was removed](#what-was-removed)
+  - [What stays the same](#what-stays-the-same)
+  - [Upgrade steps](#upgrade-steps)
+- [Upgrading to 1.2.1](#upgrading-to-121)
+- [Upgrading to 1.2.0](#upgrading-to-120)
+- [Upgrading to 1.1.0](#upgrading-to-110)
+- [Upgrading to 1.0.0](#upgrading-to-100)
+
 ## Unreleased
 
 ## To 2.2.0
@@ -49,40 +87,6 @@ php bin/console cache:clear
 This guide explains how to upgrade Migrations Kit Bundle between versions. For a list of changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 
 **Current API:** The bundle provides **SchemaChecker** (table/column/index/FK checks, `listTableColumns`, `getConnection`, `getSchemaManager`) and **CreateTablesService** (declarative definitions in MDK format). Use **introspected** schema: `$schema = $this->connection->createSchemaManager()->introspectSchema()`, then call `$service->apply($schema, $definition)` and add each returned SQL with `$this->addSql($sql)` in a loop. Build the service with `new CreateTablesService($this->connection, new SchemaDefinitionParser())`. Supporting classes: **MigrationDefinitionKeys** (MDK constants), **SchemaDefinitionParser**. See [USAGE.md](USAGE.md) and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md).
-
-## Table of contents
-
-- [From 2.0.21 to 2.0.22](#from-2021-to-2022)
-- [From 2.0.20 to 2.0.21](#from-2020-to-2021)
-- [General upgrade process](#general-upgrade-process)
-- [Upgrading to 2.0.20](#upgrading-to-2020)
-- [Upgrading to 2.0.19](#upgrading-to-2019)
-- [Upgrading to 2.0.18](#upgrading-to-2018)
-- [Upgrading to 2.0.17](#upgrading-to-2017)
-- [Upgrading to 2.0.16](#upgrading-to-2016)
-- [Upgrading to 2.0.15](#upgrading-to-2015)
-- [Upgrading to 2.0.14](#upgrading-to-2014)
-- [Upgrading to 2.0.13](#upgrading-to-2013)
-- [Upgrading to 2.0.12](#upgrading-to-2012)
-- [Upgrading to 2.0.11](#upgrading-to-2011)
-- [Upgrading to 2.0.10](#upgrading-to-2010)
-- [Upgrading to 2.0.9](#upgrading-to-209)
-- [Upgrading to 2.0.8](#upgrading-to-208)
-- [Upgrading to 2.0.7](#upgrading-to-207)
-- [Upgrading to 2.0.6](#upgrading-to-206)
-- [Upgrading to 2.0.5](#upgrading-to-205)
-- [Upgrading to 2.0.4](#upgrading-to-204)
-- [Upgrading to 2.0.3](#upgrading-to-203)
-- [Upgrading to 2.0.2](#upgrading-to-202)
-- [Upgrading to 2.0.1](#upgrading-to-201)
-- [Upgrading to 2.0.0](#upgrading-to-200)
-  - [What was removed](#what-was-removed)
-  - [What stays the same](#what-stays-the-same)
-  - [Upgrade steps](#upgrade-steps)
-- [Upgrading to 1.2.1](#upgrading-to-121)
-- [Upgrading to 1.2.0](#upgrading-to-120)
-- [Upgrading to 1.1.0](#upgrading-to-110)
-- [Upgrading to 1.0.0](#upgrading-to-100)
 
 ## General upgrade process
 
