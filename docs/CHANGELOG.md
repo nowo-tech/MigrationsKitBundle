@@ -106,6 +106,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Requirements: `symfony/config`, `symfony/dependency-injection`, `symfony/http-kernel` and `symfony/yaml` now require `^7.4 || ^8.0` (was `^6.0 || ^7.0 || ^8.0`) so the lowest allowed version is the one tested in CI. The CI matrix drops the Symfony 7.0 cell and uses 7.4 as its floor (coverage and DBAL jobs included). README/INSTALLATION/badge aligned; PHP requirement in docs corrected to 8.2+.
+
 ## [2.1.0] - 2026-10-13
 
 ### Fixed

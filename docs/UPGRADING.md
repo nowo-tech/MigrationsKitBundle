@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Symfony requirement raised to `^7.4 || ^8.0`.** Symfony 6.x and 7.0–7.3 were allowed by `composer.json` but never tested in CI; they are no longer installable. Upgrade the host app to Symfony 7.4 LTS or 8.x before updating the bundle. On older Symfony, Composer keeps resolving 2.1.x. No configuration or API changes.
+
 ## To 2.1.0
 
 From **2.0.25** — services registered with the configured connection; schema checks no longer hide errors; DBAL >=3.5.

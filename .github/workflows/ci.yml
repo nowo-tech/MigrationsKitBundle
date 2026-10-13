@@ -1,6 +1,6 @@
-# CI: tests on PHP 8.2–8.5 × Symfony 7.0, 7.4, 8.0, 8.1 (exclusions for incompatible pairs).
+# CI: tests on PHP 8.2–8.5 × Symfony 7.4, 8.0, 8.1 (exclusions for incompatible pairs).
 # Symfony 8.1 + PHP 8.4 uses platform.php 8.4.1 (Symfony 8.1 requires >=8.4.1).
-# DBAL 3|4 × Symfony 7.0; DBAL 4 × Symfony 8.0 (DBAL 3 + SF8 is not installable: doctrine-bundle 3 requires DBAL 4).
+# DBAL 3|4 × Symfony 7.4; DBAL 4 × Symfony 8.0 (DBAL 3 + SF8 is not installable: doctrine-bundle 3 requires DBAL 4).
 # Coverage with PCOV; release updated via release.yml on tag push.
 name: CI
 
@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
-        symfony: ['7.0', '7.4', '8.0', '8.1']
+        symfony: ['7.4', '8.0', '8.1']
         exclude:
           - php: '8.2'
             symfony: '8.0'
@@ -107,8 +107,8 @@ jobs:
           fi
           echo "✅ All tests passed successfully"
 
-      - name: Run tests with coverage (PHP 8.2 + Symfony 7.0 only)
-        if: matrix.php == '8.2' && matrix.symfony == '7.0'
+      - name: Run tests with coverage (PHP 8.2 + Symfony 7.4 only)
+        if: matrix.php == '8.2' && matrix.symfony == '7.4'
         run: |
           echo "📊 Generating coverage report..."
           composer test-coverage
@@ -126,10 +126,10 @@ jobs:
       matrix:
         include:
           - dbal: '3'
-            symfony: '7.0'
+            symfony: '7.4'
             php: '8.2'
           - dbal: '4'
-            symfony: '7.0'
+            symfony: '7.4'
             php: '8.2'
           - dbal: '4'
             symfony: '8.0'
@@ -277,9 +277,9 @@ jobs:
           coverage: pcov
           tools: composer:v2
 
-      - name: Install dependencies (Symfony 7.0)
+      - name: Install dependencies (Symfony 7.4)
         run: |
-          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/http-kernel:^7.0 symfony/yaml:^7.0 --no-interaction --no-update
+          composer require symfony/config:^7.4 symfony/dependency-injection:^7.4 symfony/http-kernel:^7.4 symfony/yaml:^7.4 --no-interaction --no-update
           composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
       - name: Run tests with coverage
@@ -323,10 +323,10 @@ jobs:
           coverage: pcov
           tools: composer:v2
 
-      - name: Pin Symfony 7.0 and Doctrine DBAL 3
+      - name: Pin Symfony 7.4 and Doctrine DBAL 3
         run: |
           composer config platform.php 8.2.0
-          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/http-kernel:^7.0 symfony/yaml:^7.0 --no-interaction --no-update
+          composer require symfony/config:^7.4 symfony/dependency-injection:^7.4 symfony/http-kernel:^7.4 symfony/yaml:^7.4 --no-interaction --no-update
           composer require doctrine/dbal:^3.0 --no-interaction --no-update
 
       - name: Update dependencies
