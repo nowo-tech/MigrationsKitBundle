@@ -8,10 +8,12 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
 use Exception;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -125,10 +127,10 @@ class SchemaCheckerTest extends TestCase
         self::assertFalse($checker->indexExists('users', 'idx_other'));
     }
 
-    public function testIndexExistsReturnsFalseOnException(): void
+    public function testIndexExistsReturnsFalseWhenTableDisappearsBeforeIntrospection(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('introspect error'));
+        $this->schemaManager->method('introspectTable')->willThrowException(TableDoesNotExist::new('users'));
 
         $checker = new SchemaChecker($this->connection);
         self::assertFalse($checker->indexExists('users', 'idx_x'));
@@ -165,10 +167,10 @@ class SchemaCheckerTest extends TestCase
         self::assertFalse($checker->hasPrimaryKey('missing'));
     }
 
-    public function testHasPrimaryKeyReturnsFalseOnException(): void
+    public function testHasPrimaryKeyReturnsFalseWhenTableDisappearsBeforeIntrospection(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('DB error'));
+        $this->schemaManager->method('introspectTable')->willThrowException(TableDoesNotExist::new('users'));
 
         $checker = new SchemaChecker($this->connection);
         self::assertFalse($checker->hasPrimaryKey('users'));
@@ -204,21 +206,49 @@ class SchemaCheckerTest extends TestCase
         self::assertFalse($checker->foreignKeyExists('missing', 'fk_x'));
     }
 
-    public function testForeignKeyExistsReturnsFalseOnException(): void
+    public function testForeignKeyExistsReturnsFalseWhenTableDisappearsBeforeIntrospection(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('error'));
+        $this->schemaManager->method('introspectTable')->willThrowException(TableDoesNotExist::new('users'));
 
         $checker = new SchemaChecker($this->connection);
         self::assertFalse($checker->foreignKeyExists('orders', 'fk_x'));
     }
 
-    public function testTableExistsReturnsFalseOnException(): void
+    /** Regression: a connection error must not read as "table missing" (e.g. a migration re-creating a table). */
+    public function testTableExistsRethrowsConnectionErrors(): void
     {
-        $this->schemaManager->method('tablesExist')->willThrowException(new Exception('introspect error'));
+        $this->schemaManager->method('tablesExist')->willThrowException(new Exception('SQLSTATE[HY000] [2002] Connection refused'));
 
-        $checker = new SchemaChecker($this->connection);
-        self::assertFalse($checker->tableExists('any'));
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Connection refused');
+        (new SchemaChecker($this->connection))->tableExists('any');
+    }
+
+    /** Regression: introspection errors other than "table does not exist" propagate. */
+    #[DataProvider('introspectingChecksProvider')]
+    public function testIntrospectingChecksRethrowDatabaseErrors(string $method): void
+    {
+        $this->schemaManager->method('tablesExist')->willReturn(true);
+        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('SQLSTATE[42000] Access denied'));
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Access denied');
+        match ($method) {
+            'listTableColumns' => (new SchemaChecker($this->connection))->listTableColumns('users'),
+            'hasPrimaryKey'    => (new SchemaChecker($this->connection))->hasPrimaryKey('users'),
+            default            => (new SchemaChecker($this->connection))->{$method}('users', 'name'),
+        };
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function introspectingChecksProvider(): iterable
+    {
+        foreach (['columnExists', 'indexExists', 'hasPrimaryKey', 'foreignKeyExists', 'listTableColumns'] as $method) {
+            yield $method => [$method];
+        }
     }
 
     public function testColumnExistsNormalizesQuotedColumnName(): void
@@ -232,10 +262,10 @@ class SchemaCheckerTest extends TestCase
         self::assertTrue($checker->columnExists('users', '`email`'));
     }
 
-    public function testColumnExistsReturnsFalseOnException(): void
+    public function testColumnExistsReturnsFalseWhenTableDisappearsBeforeIntrospection(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('introspect error'));
+        $this->schemaManager->method('introspectTable')->willThrowException(TableDoesNotExist::new('users'));
 
         $checker = new SchemaChecker($this->connection);
         self::assertFalse($checker->columnExists('users', 'email'));
@@ -294,10 +324,10 @@ class SchemaCheckerTest extends TestCase
         self::assertSame([], $checker->listTableColumns('missing'));
     }
 
-    public function testListTableColumnsReturnsEmptyOnException(): void
+    public function testListTableColumnsReturnsEmptyWhenTableDisappearsBeforeIntrospection(): void
     {
         $this->schemaManager->method('tablesExist')->willReturn(true);
-        $this->schemaManager->method('introspectTable')->willThrowException(new Exception('introspect error'));
+        $this->schemaManager->method('introspectTable')->willThrowException(TableDoesNotExist::new('users'));
 
         $checker = new SchemaChecker($this->connection);
         self::assertSame([], $checker->listTableColumns('users'));

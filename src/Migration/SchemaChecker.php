@@ -7,13 +7,15 @@ namespace Nowo\MigrationsKitBundle\Migration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
 use Doctrine\DBAL\Schema\Index;
-use Throwable;
 
 use function strlen;
 
 /**
  * Helper to check if tables, columns, indexes, primary keys or foreign keys exist.
+ *
+ * Only a missing table yields false / []; connection and other database errors propagate.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -38,15 +40,12 @@ final readonly class SchemaChecker
         return $this->connection->createSchemaManager();
     }
 
+    /**
+     * Connection and other database errors are rethrown: they must not read as "table missing".
+     */
     public function tableExists(string $tableName): bool
     {
-        try {
-            $normalized = $this->normalizeIdentifier($tableName);
-
-            return $this->getSchemaManager()->tablesExist([$normalized]);
-        } catch (Throwable) {
-            return false;
-        }
+        return $this->getSchemaManager()->tablesExist([$this->normalizeIdentifier($tableName)]);
     }
 
     public function columnExists(string $tableName, string $columnName): bool
@@ -59,7 +58,8 @@ final readonly class SchemaChecker
             $col   = $this->normalizeIdentifier($columnName);
 
             return $table->hasColumn($col);
-        } catch (Throwable) {
+        } catch (TableDoesNotExist) {
+            // Dropped between tableExists() and introspection; any other error is rethrown.
             return false;
         }
     }
@@ -73,7 +73,8 @@ final readonly class SchemaChecker
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
 
             return $table->hasIndex($this->normalizeIdentifier($indexName));
-        } catch (Throwable) {
+        } catch (TableDoesNotExist) {
+            // Dropped between tableExists() and introspection; any other error is rethrown.
             return false;
         }
     }
@@ -87,7 +88,8 @@ final readonly class SchemaChecker
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
 
             return $table->getPrimaryKey() instanceof Index;
-        } catch (Throwable) {
+        } catch (TableDoesNotExist) {
+            // Dropped between tableExists() and introspection; any other error is rethrown.
             return false;
         }
     }
@@ -101,7 +103,8 @@ final readonly class SchemaChecker
             $table = $this->getSchemaManager()->introspectTable($this->normalizeIdentifier($tableName));
 
             return $table->hasForeignKey($this->normalizeIdentifier($foreignKeyName));
-        } catch (Throwable) {
+        } catch (TableDoesNotExist) {
+            // Dropped between tableExists() and introspection; any other error is rethrown.
             return false;
         }
     }
@@ -122,7 +125,8 @@ final readonly class SchemaChecker
             }
 
             return $names;
-        } catch (Throwable) {
+        } catch (TableDoesNotExist) {
+            // Dropped between tableExists() and introspection; any other error is rethrown.
             return [];
         }
     }
