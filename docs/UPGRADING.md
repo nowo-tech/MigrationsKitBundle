@@ -1,7 +1,16 @@
 # Upgrade Guide
 
-
 ## Unreleased
+
+## To 2.0.25
+
+From **2.0.24** — dependency refresh and repository maintenance.
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
+
+- No breaking changes. No application upgrade steps.
 
 ## To 2.0.24
 
@@ -29,7 +38,6 @@ This guide explains how to upgrade Migrations Kit Bundle between versions. For a
 **Current API:** The bundle provides **SchemaChecker** (table/column/index/FK checks, `listTableColumns`, `getConnection`, `getSchemaManager`) and **CreateTablesService** (declarative definitions in MDK format). Use **introspected** schema: `$schema = $this->connection->createSchemaManager()->introspectSchema()`, then call `$service->apply($schema, $definition)` and add each returned SQL with `$this->addSql($sql)` in a loop. Build the service with `new CreateTablesService($this->connection, new SchemaDefinitionParser())`. Supporting classes: **MigrationDefinitionKeys** (MDK constants), **SchemaDefinitionParser**. See [USAGE.md](USAGE.md) and [DECLARATIVE_SCHEMA.md](DECLARATIVE_SCHEMA.md).
 
 ## Table of contents
-
 
 - [From 2.0.21 to 2.0.22](#from-2021-to-2022)
 - [From 2.0.20 to 2.0.21](#from-2020-to-2021)

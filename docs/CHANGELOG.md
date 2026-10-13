@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.25] - 2026-10-13](#2025---2026-10-13)
 - [[2.0.24] - 2026-10-09](#2024---2026-10-09)
   - [Dependencies](#dependencies)
 - [[2.0.23] - 2026-09-27](#2023---2026-09-27)
@@ -104,9 +105,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.25] - 2026-10-13
+
 ### Changed
 
 - Development: `composer.json` pins `config.platform.php` to 8.2.0 so the committed lock stays installable on the minimum PHP; CI overrides the platform per matrix cell.
+
+[2.0.25]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.0.25
 
 ## [2.0.24] - 2026-10-09
 
