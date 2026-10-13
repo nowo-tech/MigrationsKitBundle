@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\DependencyInjection;
 
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
+use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -32,10 +33,10 @@ final class MigrationsKitExtension extends Extension
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
 
-        $connectionId = 'doctrine.dbal.' . $config['connection'] . '_connection';
-        if ($container->hasDefinition(CreateTablesService::class)) {
-            $container->getDefinition(CreateTablesService::class)
-                ->setArgument('$connection', new Reference($connectionId));
+        // Both services are defined in services.yaml; bind them to the configured DBAL connection.
+        $connection = new Reference('doctrine.dbal.' . $config['connection'] . '_connection');
+        foreach ([CreateTablesService::class, SchemaChecker::class] as $serviceId) {
+            $container->getDefinition($serviceId)->setArgument('$connection', $connection);
         }
     }
 

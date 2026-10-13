@@ -6,10 +6,10 @@ namespace Nowo\MigrationsKitBundle\Tests\DependencyInjection;
 
 use Nowo\MigrationsKitBundle\DependencyInjection\MigrationsKitExtension;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
+use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
 class MigrationsKitExtensionTest extends TestCase
@@ -33,21 +33,18 @@ class MigrationsKitExtensionTest extends TestCase
         self::assertSame('tenant_conn', $container->getParameter('nowo_migrations_kit.connection'));
     }
 
-    /** When CreateTablesService is registered (e.g. by app), extension injects the configured connection. */
-    public function testLoadInjectsConnectionIntoCreateTablesServiceWhenRegistered(): void
+    /** Regression: the services are registered by the bundle and bound to the configured connection. */
+    public function testLoadRegistersServicesBoundToConfiguredConnection(): void
     {
         $container = new ContainerBuilder();
-        $container->register('doctrine.dbal.default_connection');
-        $container->register(CreateTablesService::class)
-            ->setArguments([new Reference('doctrine.dbal.default_connection'), new Definition(SchemaDefinitionParser::class)]);
-        $extension = new MigrationsKitExtension();
-        $extension->load([['connection' => 'default']], $container);
+        (new MigrationsKitExtension())->load([['connection' => 'legacy']], $container);
 
-        $def           = $container->getDefinition(CreateTablesService::class);
-        $args          = $def->getArguments();
-        $connectionRef = $args['$connection'] ?? $args[0] ?? null;
-        self::assertNotNull($connectionRef);
-        self::assertEquals('doctrine.dbal.default_connection', (string) $connectionRef);
+        self::assertTrue($container->hasDefinition(SchemaDefinitionParser::class));
+        foreach ([CreateTablesService::class, SchemaChecker::class] as $serviceId) {
+            $connection = $container->getDefinition($serviceId)->getArgument('$connection');
+            self::assertInstanceOf(Reference::class, $connection);
+            self::assertSame('doctrine.dbal.legacy_connection', (string) $connection);
+        }
     }
 
     public function testGetAlias(): void

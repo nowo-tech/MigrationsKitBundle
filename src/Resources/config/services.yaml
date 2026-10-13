@@ -8,3 +8,10 @@ services:
     autowire: true
     autoconfigure: true
     public: true
+
+  Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser: ~
+
+  # $connection is set by MigrationsKitExtension to doctrine.dbal.<nowo_migrations_kit.connection>_connection.
+  Nowo\MigrationsKitBundle\Migration\CreateTablesService: ~
+
+  Nowo\MigrationsKitBundle\Migration\SchemaChecker: ~

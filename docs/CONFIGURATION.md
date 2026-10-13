@@ -1,6 +1,6 @@
 # Configuration
 
-The bundle is configured under the root key `nowo_migrations_kit`. The only option is **`connection`**, which defines which Doctrine DBAL connection the **CreateTablesService** uses when it is injected as a service (e.g. from the container). In migrations you typically instantiate `new CreateTablesService($this->connection, ...)` with the migration’s connection, so this config is only relevant if you use the service from the container.
+The bundle is configured under the root key `nowo_migrations_kit`. The only option is **`connection`**, which defines which Doctrine DBAL connection the **CreateTablesService** and **SchemaChecker** services use when it is injected as a service (e.g. from the container). In migrations you typically instantiate `new CreateTablesService($this->connection, ...)` with the migration’s connection, so this config is only relevant if you use the service from the container.
 
 ## Table of contents
 
@@ -13,7 +13,7 @@ The bundle is configured under the root key `nowo_migrations_kit`. The only opti
 
 | Option       | Type     | Default   | Description                                                                 |
 |-------------|----------|-----------|-----------------------------------------------------------------------------|
-| `connection` | `string` | `default` | Doctrine connection name used by the `CreateTablesService` when injected from the container. |
+| `connection` | `string` | `default` | Doctrine connection name injected into the `CreateTablesService` and `SchemaChecker` services (`doctrine.dbal.<connection>_connection`) when they are taken from the container. |
 
 ## Example
 
