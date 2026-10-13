@@ -4,7 +4,7 @@
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/MigrationsKitBundle) so more developers can find it.
 
-**Symfony bundle that provides helpers for Doctrine Migrations**: schema checks (table/column/index exist) and array-based migration definitions, so you can write idempotent migrations without repeating SQL and with safe checks. For **Symfony 6, 7 or 8** · PHP 8.2+ · **Doctrine DBAL** 2.x–4.x and **doctrine/migrations** 3.x–4.x.
+**Symfony bundle that provides helpers for Doctrine Migrations**: schema checks (table/column/index exist) and array-based migration definitions, so you can write idempotent migrations without repeating SQL and with safe checks. For **Symfony 6, 7 or 8** · PHP 8.2+ · **Doctrine DBAL** 3.5+ / 4.x and **doctrine/migrations** 3.x–4.x.
 
 ![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
 
@@ -36,7 +36,7 @@ Looking for **Doctrine migrations helpers**, **table exists migration**, **colum
 - ✅ **MigrationDefinitionKeys (MDK)** — constants for definition keys (`tables`, `columns`, `primary_key`, `indexes`, `foreign_keys`, `drop_columns`, etc.); use alias **MDK** in code; see [DECLARATIVE_SCHEMA.md](docs/DECLARATIVE_SCHEMA.md)
 - ✅ **Array of associative arrays** — columns, indexes, FKs defined as arrays of items (each with `name`/`columns`, `type`, `drop`, `rename`, etc.); no raw SQL for schema changes
 - ✅ **Recommended practice** — use separate migrations: first add column, then add index, then add foreign key; when dropping, first drop indexes then drop columns (see [docs/USAGE.md](docs/USAGE.md#recommended-independent-well-ordered-migrations)). The bundle **always applies operations in the correct order** (drops: FK → index → column; adds: columns → PK → indexes → FKs), but phased migrations are more stable
-- ✅ Compatible with **Doctrine DBAL 2.x, 3.x, 4.x** and **doctrine/migrations 3.x, 4.x**
+- ✅ Compatible with **Doctrine DBAL 3.5+ and 4.x** and **doctrine/migrations 3.x, 4.x**
 - ✅ **SQLite, MySQL and PostgreSQL** — schema checks and migrations work with all three
 - ✅ **Symfony Flex** recipe (register bundle + config; see [docs/INSTALLATION.md](docs/INSTALLATION.md))
 - ✅ **Demo** for Symfony 8 with example migrations (create table, add/rename/drop columns, indexes, FKs); Make targets to view migration SQL (`migrate-verbose`, `migrate-dry-run`, `migrate-write-sql`)
@@ -67,7 +67,7 @@ return [
 - PHP >= 8.1
 - **Symfony 6, 7 or 8** (^6.0 \|\| ^7.0 \|\| ^8.0)
 - doctrine/doctrine-bundle ^2.8 \|\| ^3.0
-- doctrine/dbal ^2.13 \|\| ^3.0 \|\| ^4.0
+- doctrine/dbal ^3.5 \|\| ^4.0 (uses `createSchemaManager()`, `introspectTable()`, `createComparator()`)
 - doctrine/migrations ^3.5 \|\| ^4.0
 
 **Databases:** the bundle is compatible with **SQLite**, **MySQL** and **PostgreSQL**. Use the same migrations and helpers; platform-specific SQL is handled by Doctrine DBAL.

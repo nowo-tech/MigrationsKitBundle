@@ -105,6 +105,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`connection` option had no effect**: `services.yaml` registered no services, so `CreateTablesService` and `SchemaChecker` could not be injected and the configured connection was never applied. Both are now registered (with `SchemaDefinitionParser`) and bound to `doctrine.dbal.<connection>_connection`.
+- **`SchemaChecker` hid database errors**: every `Throwable` returned `false` / `[]`, so a connection or permission error read as "table missing". Only a missing table (`TableDoesNotExist`) now yields `false` / `[]`; other errors are rethrown.
+
+### Changed
+
+- **`doctrine/dbal` constraint is now `^3.5 || ^4.0`** (was `^2.13 || ^3.0 || ^4.0`): the code relies on `createSchemaManager()`, `introspectTable()` and `createComparator()`, which DBAL 2.x and early 3.x do not provide. README/INSTALLATION/USAGE updated.
+
 ## [2.0.25] - 2026-10-13
 
 ### Changed

@@ -37,7 +37,7 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 
 ## SchemaChecker
 
-Service that checks whether tables, columns, indexes and foreign keys exist. Compatible with DBAL 2.x (deprecated methods) and 3.x/4.x.
+Service that checks whether tables, columns, indexes and foreign keys exist. Requires DBAL 3.5+ or 4.x. Only a missing table yields `false` / `[]`; connection and other database errors are rethrown (they no longer read as "table missing").
 
 ### In the migration with `$this->connection`
 
