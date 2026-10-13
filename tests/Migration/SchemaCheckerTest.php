@@ -55,12 +55,15 @@ class SchemaCheckerTest extends TestCase
 
     public function testTableExistsNormalizesQuotedNames(): void
     {
+        // The return value must be configured explicitly: DBAL 3 declares tablesExist() without a
+        // native return type, so an unconfigured mock returns null there (false on DBAL 4).
         $this->schemaManager->expects(self::once())
             ->method('tablesExist')
-            ->with(['users']);
+            ->with(['users'])
+            ->willReturn(true);
 
         $checker = new SchemaChecker($this->connection);
-        $checker->tableExists('`users`');
+        self::assertTrue($checker->tableExists('`users`'));
     }
 
     public function testColumnExistsReturnsFalseWhenTableDoesNotExist(): void
