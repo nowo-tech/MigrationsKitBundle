@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [[Unreleased]](#unreleased)
 - [[2.1.0] - 2026-10-13](#210---2026-10-13)
+- [[2.2.0] - 2026-10-13](#220---2026-10-13)
 - [[2.0.25] - 2026-10-13](#2025---2026-10-13)
 - [[2.0.24] - 2026-10-09](#2024---2026-10-09)
   - [Dependencies](#dependencies)
@@ -106,9 +107,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-13
+
 ### Changed
 
 - Requirements: `symfony/config`, `symfony/dependency-injection`, `symfony/http-kernel` and `symfony/yaml` now require `^7.4 || ^8.0` (was `^6.0 || ^7.0 || ^8.0`) so the lowest allowed version is the one tested in CI. The CI matrix drops the Symfony 7.0 cell and uses 7.4 as its floor (coverage and DBAL jobs included). README/INSTALLATION/badge aligned; PHP requirement in docs corrected to 8.2+.
+
+[2.2.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.2.0
 
 ## [2.1.0] - 2026-10-13
 
