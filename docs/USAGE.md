@@ -17,7 +17,7 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 ## Table of contents
 
 - [SchemaChecker](#schemachecker)
-  - [In the migration with `$this->connection`](#in-the-migration-with-thisconnection)
+  - [In the migration with `$this->connection`](#in-the-migration-with-this-connection)
   - [Example: full migration using only SchemaChecker](#example-full-migration-using-only-schemachecker)
   - [Example: list columns and add only the missing ones](#example-list-columns-and-add-only-the-missing-ones)
   - [Available methods](#available-methods)

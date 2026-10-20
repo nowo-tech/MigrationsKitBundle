@@ -2,6 +2,12 @@
 
 Doctrine Migrations executes classes in **alphabetical class-name order**. The `_validation` suffix ensures each validation runs **right after** its corresponding migration.
 
+## Table of contents
+
+- [Execution order (28 steps)](#execution-order-28-steps)
+- [Summary: does each validation check the intended behavior?](#summary-does-each-validation-check-the-intended-behavior)
+- [Migration dependencies (correct order)](#migration-dependencies-correct-order)
+
 ## Execution order (28 steps)
 
 | # | Class | Type | Description |

@@ -8,6 +8,17 @@
 | Method | Manual review of every file under `src/` (DI extension, configuration, `Resources/config/services.yaml`, migration helpers, schema parser, field dictionary) + PHPStan FrankenPHP classic / worker / worker-strict rulesets |
 | **Verdict** | ✅ **Compatible** with FrankenPHP worker when the kernel is **not** reset between requests (`FRANKENPHP_RESET_KERNEL` unset or `0`). The bundle registers no HTTP-runtime services; helpers are `final readonly` (or pure static) and hold no per-request state. Safe under scenario B (no reliance on `services_resetter`). |
 
+## Table of contents
+
+- [Execution model assumed](#execution-model-assumed)
+- [Why HTTP worker impact is minimal](#why-http-worker-impact-is-minimal)
+- [Summary](#summary)
+- [Services / classes reviewed](#services--classes-reviewed)
+- [Findings](#findings)
+  - [W-01 — `connection` option has no effect with the shipped service config (Info)](#w-01--connection-option-has-no-effect-with-the-shipped-service-config-info)
+- [Usage recommendations in worker mode](#usage-recommendations-in-worker-mode)
+- [Re-audit triggers](#re-audit-triggers)
+
 ## Execution model assumed
 
 FrankenPHP worker mode boots the Symfony kernel once per worker and serves many requests with the same container. Symfony Runtime default is **kernel reused** (`FRANKENPHP_RESET_KERNEL` unset/false). Setting `FRANKENPHP_RESET_KERNEL=1` clones the application after each request (escape hatch; lower throughput). This audit targets the **strict** default:

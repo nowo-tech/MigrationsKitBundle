@@ -2,6 +2,21 @@
 
 This document describes the security posture of `nowo-tech/migrations-kit-bundle`, including threat model, mitigations, and release controls.
 
+## Table of contents
+
+- [Scope](#scope)
+- [Reporting a vulnerability](#reporting-a-vulnerability)
+- [Attack surface](#attack-surface)
+- [Threat model and risks](#threat-model-and-risks)
+- [Controls and mitigations](#controls-and-mitigations)
+- [Cryptography and secrets](#cryptography-and-secrets)
+- [Logging and sensitive data](#logging-and-sensitive-data)
+- [Dependencies and update policy](#dependencies-and-update-policy)
+- [Permissions and exposure](#permissions-and-exposure)
+- [Availability and limits](#availability-and-limits)
+- [Release security checklist (12.4.1)](#release-security-checklist-1241)
+- [AI security audit](#ai-security-audit)
+
 ## Scope
 
 This bundle provides migration helpers for Doctrine DBAL and Doctrine Migrations:

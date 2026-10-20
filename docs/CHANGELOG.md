@@ -42,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation: wave-1 REQ compliance — README documentation list (extra links under Additional documentation), tables of contents in long docs (SECURITY, SPEC-DRIVEN-DEVELOPMENT, GITHUB_CI, FRANKENPHP-WORKER-AUDIT, …), CONTRIBUTING Cursor Agent settings (REQ-IDE-006).
+
 ## [2.2.0] - 2026-10-13
 
 ### Fixed
