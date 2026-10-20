@@ -1,5 +1,5 @@
 # CI: tests on PHP 8.2–8.5 × Symfony 7.4, 8.0, 8.1 (exclusions for incompatible pairs).
-# Symfony 8.1 + PHP 8.4 uses platform.php 8.4.1 (Symfony 8.1 requires >=8.4.1).
+# Symfony 8.x + PHP 8.4 uses platform.php 8.4.1 (Symfony 8.1 requires >=8.4.1; 8.0 cells resolve to 8.1).
 # DBAL 3|4 × Symfony 7.4; DBAL 4 × Symfony 8.0 (DBAL 3 + SF8 is not installable: doctrine-bundle 3 requires DBAL 4).
 # Coverage with PCOV; release updated via release.yml on tag push.
 name: CI
@@ -76,7 +76,8 @@ jobs:
         run: |
           PLATFORM="${{ matrix.php }}.0"
           # Symfony 8.1 requires PHP >= 8.4.1; Composer treats platform "8.4.0" as too low.
-          if [ "${{ matrix.symfony }}" = "8.1" ] && [ "${{ matrix.php }}" = "8.4" ]; then
+          # The 8.0 cells also resolve to 8.1 (every 8.0.x release has security advisories).
+          if [ "${{ matrix.php }}" = "8.4" ] && [ "${{ startsWith(matrix.symfony, '8.') }}" = "true" ]; then
             PLATFORM="8.4.1"
           fi
           composer config platform.php "$PLATFORM"
@@ -165,7 +166,7 @@ jobs:
       - name: Pin PHP and Symfony
         run: |
           PLATFORM="${{ matrix.php }}.0"
-          if [ "${{ matrix.symfony }}" = "8.1" ] && [ "${{ matrix.php }}" = "8.4" ]; then
+          if [ "${{ matrix.php }}" = "8.4" ] && [ "${{ startsWith(matrix.symfony, '8.') }}" = "true" ]; then
             PLATFORM="8.4.1"
           fi
           composer config platform.php "$PLATFORM"
