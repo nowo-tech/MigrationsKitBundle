@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.2.1] - 2026-10-21](#221---2026-10-21)
 - [[2.2.0] - 2026-10-13](#220---2026-10-13)
 - [[2.0.25] - 2026-10-13](#2025---2026-10-13)
 - [[2.0.24] - 2026-10-09](#2024---2026-10-09)
@@ -42,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-10-21
+
+Wave-2 REQ compliance: full release-check chain, demo smoke in CI, demo database host and clean-boot fixes, flattened Flex recipe. See [UPGRADING](UPGRADING.md#to-221).
+
 ### Changed
 
 - `release-check` starts with `ensure-up` and runs `check-open-prs` (new `.scripts/check-open-prs.sh`) (REQ-MAKE-002, REQ-REL-003).
@@ -53,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependencies refreshed (Composer and pnpm/npm lock files of the bundle and its demos, campaign 2026-10-19).
 - `.php-cs-fixer.dist.php`: `new ParallelConfig(2)` (REQ-CS-001).
 - Documentation: wave-1 REQ compliance — README documentation list (extra links under Additional documentation), tables of contents in long docs (SECURITY, SPEC-DRIVEN-DEVELOPMENT, GITHUB_CI, FRANKENPHP-WORKER-AUDIT, …), CONTRIBUTING Cursor Agent settings (REQ-IDE-006).
+
+[2.2.1]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.2.1
 
 ## [2.2.0] - 2026-10-13
 
