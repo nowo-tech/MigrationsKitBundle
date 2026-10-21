@@ -62,6 +62,9 @@ up:
 		echo "No composer.lock found. Generating it in a one-off container (needs ~4GB Docker memory)."; \
 		$(COMPOSE) run --rm --entrypoint "" -e COMPOSER_MEMORY_LIMIT=-1 $(SERVICE_PHP) composer update --no-install --no-interaction --no-scripts --prefer-dist || (echo "► If exit 137: give Docker 4GB+ RAM (Docker Desktop → Settings → Resources), then run: make lock"; exit 1); \
 	fi
+	@# The entrypoint runs composer install on a clean checkout: wait for it instead of racing it (two concurrent
+	@# installs into the same vendor/ corrupt the extracted archives).
+	@$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'i=0; while [ ! -f vendor/autoload_runtime.php ] && [ $$i -lt 300 ]; do sleep 2; i=$$((i+2)); done'
 	@echo "Installing dependencies..."
 	@$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 $(SERVICE_PHP) composer install --no-interaction
 	@$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'mkdir -p var'

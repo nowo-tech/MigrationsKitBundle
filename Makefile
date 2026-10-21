@@ -16,7 +16,7 @@ RUN := $(COMPOSE) exec -T $(SERVICE_PHP)
 # For demo targets that run on the host (demo-up-*, demo-migrate-*)
 COMPOSER ?= composer
 
-.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor check-no-cursor-coauthor strip-cursor-coauthor-from-history setup-hooks
+.PHONY: help install test test-coverage coverage-php-percent cs-check cs-fix qa clean ensure-up update update-deps update-deps-demos validate assets release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history setup-hooks
 .PHONY: demo-up-symfony8 demo-migrate-symfony8
 .PHONY: up down down-dev up-symfony8 build shell demo-install demo-down
 
@@ -43,7 +43,8 @@ help:
 	@echo "  phpstan        Run PHPStan static analysis"
 	@echo "  igor          Run Igor worker-state audit (REQ-CS-008)"
 	@echo "  qa             Run all QA (cs-check + test)"
-	@echo "  release-check  Pre-release: git hygiene, cs-fix, cs-check, rector-dry, phpstan, test-coverage, demo healthchecks"
+	@echo "  release-check  Pre-release (REQ-MAKE-002): git hygiene, open PRs, cs-fix, cs-check, rector-dry, phpstan, igor, test-coverage, demo healthchecks"
+	@echo "  check-open-prs Fail if unresolved open GitHub PRs remain (REQ-REL-003)"
 	@echo "  demo-smoke     REQ-TEST-011: boot demo + HTTP 200 (make -C demo demo-smoke)"
 	@echo "  composer-sync  Validate composer.json and align composer.lock (no install)"
 	@echo "  clean          Remove vendor, cache, coverage"
@@ -103,7 +104,11 @@ qa: install
 # Run Igor worker-state audit (REQ-CS-008)
 igor: ensure-up
 	$(COMPOSE) exec -T php composer igor
-release-check: check-no-cursor-coauthor ensure-up composer-sync cs-fix cs-check rector-dry phpstan igor test-coverage release-check-demos
+# REQ-MAKE-002 order.
+release-check: ensure-up check-no-cursor-coauthor check-open-prs composer-sync cs-fix cs-check rector-dry phpstan igor test-coverage release-check-demos
+
+check-open-prs:
+	@bash .scripts/check-open-prs.sh
 
 release-check-demos:
 	@$(MAKE) -C demo release-check

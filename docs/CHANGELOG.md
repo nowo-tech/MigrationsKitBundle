@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `release-check` starts with `ensure-up` and runs `check-open-prs` (new `.scripts/check-open-prs.sh`) (REQ-MAKE-002, REQ-REL-003).
+- `.github/workflows/demo-smoke.yml` runs `make demo-smoke` weekly, on tags and on demand (REQ-TEST-011).
+- Demo: Compose default `DATABASE_URL` and `.env.test` point at the `mysql` service (were a non-existent `db` host); php `depends_on` mysql; `make up` waits for the entrypoint's `composer install` instead of racing it (clean checkouts failed with corrupted archives) (REQ-DEMO-011).
+- Flex recipe flattened to `.symfony/recipe/nowo-tech/migrations-kit-bundle/1.0/` (was nested `1.0/1.0/`) (REQ-RECIPE-001).
+- PHPStan runs without the empty `phpstan-baseline.neon` (REQ-CS-006); Rector capped at 2 parallel workers; README coverage 99.02% as measured (REQ-TEST-003/007).
+- `.scripts/check-no-cursor-coauthor.sh` accepts git worktrees (REQ-GIT-001).
 - Dependencies refreshed (Composer and pnpm/npm lock files of the bundle and its demos, campaign 2026-10-19).
 - `.php-cs-fixer.dist.php`: `new ParallelConfig(2)` (REQ-CS-001).
 - Documentation: wave-1 REQ compliance — README documentation list (extra links under Additional documentation), tables of contents in long docs (SECURITY, SPEC-DRIVEN-DEVELOPMENT, GITHUB_CI, FRANKENPHP-WORKER-AUDIT, …), CONTRIBUTING Cursor Agent settings (REQ-IDE-006).
