@@ -117,7 +117,7 @@ demo-smoke:
 	@if [ -f demo/Makefile ]; then $(MAKE) -C demo demo-smoke; else echo "No demo/Makefile — skip demo-smoke"; fi
 
 composer-sync: ensure-up
-	$(RUN) composer update --no-install
+	$(RUN) composer install --no-interaction --prefer-dist
 	$(RUN) composer validate --strict
 
 clean: ensure-up
