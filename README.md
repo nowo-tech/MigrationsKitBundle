@@ -1,6 +1,6 @@
 # Migrations Kit Bundle
 
-[![CI](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/migrations-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/migrations-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/MigrationsKitBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/MigrationsKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.02%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/MigrationsKitBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/migrations-kit-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/migrations-kit-bundle.svg)](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/MigrationsKitBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/MigrationsKitBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.26%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/migrations-kit-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/MigrationsKitBundle) so more developers can find it.
 
@@ -36,6 +36,7 @@ Looking for **Doctrine migrations helpers**, **table exists migration**, **colum
 - ✅ **MigrationDefinitionKeys (MDK)** — constants for definition keys (`tables`, `columns`, `primary_key`, `indexes`, `foreign_keys`, `drop_columns`, etc.); use alias **MDK** in code; see [DECLARATIVE_SCHEMA.md](docs/DECLARATIVE_SCHEMA.md)
 - ✅ **Array of associative arrays** — columns, indexes, FKs defined as arrays of items (each with `name`/`columns`, `type`, `drop`, `rename`, etc.); no raw SQL for schema changes
 - ✅ **Recommended practice** — use separate migrations: first add column, then add index, then add foreign key; when dropping, first drop indexes then drop columns (see [docs/USAGE.md](docs/USAGE.md#recommended-independent-well-ordered-migrations)). The bundle **always applies operations in the correct order** (drops: FK → index → column; adds: columns → PK → indexes → FKs), but phased migrations are more stable
+- ✅ **`nowo:migrations:check-collations`** — CI gate: exit 1 when a table or string column is not in the expected collation (MySQL / MariaDB tables + columns, PostgreSQL explicit column collations; optional database default), expected value from config or Doctrine `default_table_options`, `ignore_tables` / `ignore_columns` for objects still to convert; see [docs/USAGE.md](docs/USAGE.md#collation-gate-nowomigrationscheck-collations)
 - ✅ Compatible with **Doctrine DBAL 3.5+ and 4.x** and **doctrine/migrations 3.x, 4.x**
 - ✅ **SQLite, MySQL and PostgreSQL** — schema checks and migrations work with all three
 - ✅ **Symfony Flex** recipe (register bundle + config; see [docs/INSTALLATION.md](docs/INSTALLATION.md))
@@ -159,7 +160,7 @@ Run tests and QA with Docker: `docker compose up -d --build && docker compose ex
 ## Tests and coverage
 
 - Tests: PHPUnit (PHP)
-- PHP: 99.02%
+- PHP: 99.26%
 - TS/JS: N/A
 - Python: N/A
 

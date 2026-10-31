@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`nowo:migrations:check-collations`** — CI gate (exit 1) when a base table or string column is not in the expected collation: MySQL / MariaDB tables and columns, PostgreSQL columns with an explicit `COLLATE`, optionally the database default (`check_database`); SQLite and other platforms print `SKIP` and exit 0; exit 2 when no expected collation is known. Expected collation from `--expected`, `collation_check.expected_collation` or the connection's `default_table_options.collation`; `ignore_tables` / `ignore_columns` / `--ignore-table` (fnmatch) for objects still to convert. Services `Collation\CollationChecker` / `CollationReport`. See [USAGE](USAGE.md#collation-gate-nowomigrationscheck-collations).
+- Config **`collation_check`** (`connection`, `expected_collation`, `expected_charset`, `check_columns`, `check_database`, `ignore_tables`, `ignore_columns`).
+- `symfony/console` and `doctrine/persistence` declared as direct requirements (already installed through DoctrineBundle).
+
 ## [2.2.1] - 2026-10-21
 
 Wave-2 REQ compliance: full release-check chain, demo smoke in CI, demo database host and clean-boot fixes, flattened Flex recipe. See [UPGRADING](UPGRADING.md#to-221).

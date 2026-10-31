@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\DependencyInjection;
 
+use Nowo\MigrationsKitBundle\Collation\CollationChecker;
+use Nowo\MigrationsKitBundle\Command\CheckCollationsCommand;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Symfony\Component\Config\FileLocator;
@@ -38,6 +40,19 @@ final class MigrationsKitExtension extends Extension
         foreach ([CreateTablesService::class, SchemaChecker::class] as $serviceId) {
             $container->getDefinition($serviceId)->setArgument('$connection', $connection);
         }
+
+        /** @var array{connection: string|null, expected_collation: string|null, expected_charset: string|null, check_columns: bool, check_database: bool, ignore_tables: list<string>, ignore_columns: list<string>} $collation */
+        $collation = $config['collation_check'];
+        $container->getDefinition(CollationChecker::class)
+            ->setArgument('$expectedCollation', $collation['expected_collation'])
+            ->setArgument('$expectedCharset', $collation['expected_charset'])
+            ->setArgument('$checkColumns', $collation['check_columns'])
+            ->setArgument('$checkDatabase', $collation['check_database'])
+            ->setArgument('$ignoreTables', $collation['ignore_tables'])
+            ->setArgument('$ignoreColumns', $collation['ignore_columns']);
+        $container->getDefinition(CheckCollationsCommand::class)
+            ->setArgument('$connections', new Reference('doctrine'))
+            ->setArgument('$defaultConnection', $collation['connection'] ?? $config['connection']);
     }
 
     /**
