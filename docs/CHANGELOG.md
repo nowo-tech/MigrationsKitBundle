@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.3.0] - 2026-10-31](#230---2026-10-31)
 - [[2.2.1] - 2026-10-21](#221---2026-10-21)
 - [[2.2.0] - 2026-10-13](#220---2026-10-13)
 - [[2.0.25] - 2026-10-13](#2025---2026-10-13)
@@ -43,11 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-31
+
+nowo:migrations:check-collations: database collation/charset gate for CI (MySQL/MariaDB, PostgreSQL). See [UPGRADING](UPGRADING.md#to-230).
+
 ### Added
 
 - **`nowo:migrations:check-collations`** — CI gate (exit 1) when a base table or string column is not in the expected collation: MySQL / MariaDB tables and columns, PostgreSQL columns with an explicit `COLLATE`, optionally the database default (`check_database`); SQLite and other platforms print `SKIP` and exit 0; exit 2 when no expected collation is known. Expected collation from `--expected`, `collation_check.expected_collation` or the connection's `default_table_options.collation`; `ignore_tables` / `ignore_columns` / `--ignore-table` (fnmatch) for objects still to convert. Service `Collation\CollationChecker` (returns a `CollationReport` value object). See [USAGE](USAGE.md#collation-gate-nowomigrationscheck-collations).
 - Config **`collation_check`** (`connection`, `expected_collation`, `expected_charset`, `check_columns`, `check_database`, `ignore_tables`, `ignore_columns`).
 - `symfony/console` and `doctrine/persistence` declared as direct requirements (already installed through DoctrineBundle).
+
+[2.3.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.3.0
 
 ## [2.2.1] - 2026-10-21
 
