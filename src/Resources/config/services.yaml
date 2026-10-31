@@ -15,3 +15,9 @@ services:
   Nowo\MigrationsKitBundle\Migration\CreateTablesService: ~
 
   Nowo\MigrationsKitBundle\Migration\SchemaChecker: ~
+
+  # Arguments set by MigrationsKitExtension from nowo_migrations_kit.collation_check.
+  Nowo\MigrationsKitBundle\Collation\CollationChecker: ~
+
+  Nowo\MigrationsKitBundle\Command\CheckCollationsCommand:
+    public: false

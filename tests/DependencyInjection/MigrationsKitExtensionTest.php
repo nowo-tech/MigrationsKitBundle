@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Tests\DependencyInjection;
 
+use Nowo\MigrationsKitBundle\Collation\CollationChecker;
+use Nowo\MigrationsKitBundle\Command\CheckCollationsCommand;
 use Nowo\MigrationsKitBundle\DependencyInjection\MigrationsKitExtension;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
@@ -51,5 +53,30 @@ class MigrationsKitExtensionTest extends TestCase
     {
         $extension = new MigrationsKitExtension();
         self::assertSame('nowo_migrations_kit', $extension->getAlias());
+    }
+
+    public function testCollationCheckArguments(): void
+    {
+        $container = new ContainerBuilder();
+        (new MigrationsKitExtension())->load([['connection' => 'legacy', 'collation_check' => [
+            'expected_collation' => 'utf8mb4_unicode_ci',
+            'ignore_tables'      => ['uptime_*'],
+        ]]], $container);
+
+        $checker = $container->getDefinition(CollationChecker::class);
+        self::assertSame('utf8mb4_unicode_ci', $checker->getArgument('$expectedCollation'));
+        self::assertNull($checker->getArgument('$expectedCharset'));
+        self::assertTrue($checker->getArgument('$checkColumns'));
+        self::assertFalse($checker->getArgument('$checkDatabase'));
+        self::assertSame(['uptime_*'], $checker->getArgument('$ignoreTables'));
+        self::assertSame([], $checker->getArgument('$ignoreColumns'));
+
+        $command = $container->getDefinition(CheckCollationsCommand::class);
+        self::assertSame('legacy', $command->getArgument('$defaultConnection'));
+        self::assertSame('doctrine', (string) $command->getArgument('$connections'));
+
+        $container = new ContainerBuilder();
+        (new MigrationsKitExtension())->load([['collation_check' => ['connection' => 'reporting']]], $container);
+        self::assertSame('reporting', $container->getDefinition(CheckCollationsCommand::class)->getArgument('$defaultConnection'));
     }
 }

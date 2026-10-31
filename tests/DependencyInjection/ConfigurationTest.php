@@ -14,6 +14,29 @@ class ConfigurationTest extends TestCase
     {
         $config = $this->processConfiguration([]);
         self::assertSame('default', $config['connection']);
+        self::assertSame([
+            'connection'         => null,
+            'expected_collation' => null,
+            'expected_charset'   => null,
+            'check_columns'      => true,
+            'check_database'     => false,
+            'ignore_tables'      => [],
+            'ignore_columns'     => [],
+        ], $config['collation_check']);
+    }
+
+    public function testCollationCheck(): void
+    {
+        $config = $this->processConfiguration([['collation_check' => [
+            'expected_collation' => 'utf8mb4_unicode_ci',
+            'ignore_tables'      => ['uptime_*'],
+            'ignore_columns'     => ['users.token'],
+            'check_database'     => true,
+        ]]]);
+        self::assertSame('utf8mb4_unicode_ci', $config['collation_check']['expected_collation']);
+        self::assertSame(['uptime_*'], $config['collation_check']['ignore_tables']);
+        self::assertSame(['users.token'], $config['collation_check']['ignore_columns']);
+        self::assertTrue($config['collation_check']['check_database']);
     }
 
     public function testCustomConnection(): void

@@ -26,6 +26,7 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 - [Renaming a column that has an index](#renaming-a-column-that-has-an-index)
 - [CreateTablesService (declarative definitions)](#createtablesservice-declarative-definitions)
 - [Reusable audit columns (field dictionary)](#reusable-audit-columns-field-dictionary)
+- [Collation gate (`nowo:migrations:check-collations`)](#collation-gate-nowomigrationscheck-collations)
 - [Multiple connections](#multiple-connections)
 - [Doctrine migrations versions](#doctrine-migrations-versions)
 - [Viewing SQL before running migrations](#viewing-sql-before-running-migrations)
@@ -322,6 +323,52 @@ To avoid repeating the same audit column definitions (timestamps, user reference
 Add to your app: create `migrations/FieldDictionary/AuditFields.php` (or copy from the demo) and register the namespace in `composer.json` autoload: `"DoctrineMigrations\\FieldDictionary\\": "migrations/FieldDictionary/"`. See [demo/README.md](../demo/README.md#field-dictionary-migrationsfielddictionary) for the full API and usage.
 
 ---
+
+## Collation gate (`nowo:migrations:check-collations`)
+
+A table created with the server default (e.g. `utf8mb4_0900_ai_ci` on MySQL 8+) next to `utf8mb4_unicode_ci` tables
+breaks joins and comparisons on string columns with MySQL error 1267 *Illegal mix of collations*. The command compares
+the database with **one** expected collation and exits non-zero for CI:
+
+```bash
+php bin/console nowo:migrations:check-collations                          # configured connection / collation
+php bin/console nowo:migrations:check-collations --expected=utf8mb4_unicode_ci
+php bin/console nowo:migrations:check-collations --connection=legacy --ignore-table='archive_*'
+php bin/console nowo:migrations:check-collations -v                       # also lists the ignored objects
+```
+
+```text
+  table tasks: collation utf8mb4_0900_ai_ci (expected utf8mb4_unicode_ci)
+  column orders.note: collation latin1_swedish_ci (expected utf8mb4_unicode_ci)
+FAIL: 2 object(s) not in utf8mb4_unicode_ci on mysql.
+```
+
+| Platform | Checked |
+|----------|---------|
+| MySQL / MariaDB | every base table (`information_schema.TABLES.TABLE_COLLATION`) and, with `check_columns`, every string column (views excluded); with `check_database`, the database default collation and character set |
+| PostgreSQL | columns with an explicit `COLLATE` (tables have no collation); with `check_database`, `datcollate` and the encoding (`expected_charset`, e.g. `UTF8`) |
+| SQLite and others | nothing: `SKIP` line, exit 0 |
+
+- **Expected collation**: `--expected`, else `collation_check.expected_collation`, else the connection's
+  `doctrine.dbal.default_table_options.collation`. None on MySQL / PostgreSQL → exit 2.
+- **Ignored objects** (`ignore_tables`, `ignore_columns`, `--ignore-table`; names or `fnmatch()` patterns) *may* differ,
+  they are not required to: a stack that already converted them passes too. They are counted as "still to convert" in
+  the OK line. Keep the list short — it is meant for large tables waiting for an online schema change, or a column that
+  is deliberately `utf8mb4_bin`.
+- **Exit codes**: `0` OK or unsupported platform, `1` at least one difference, `2` no expected collation or the
+  database cannot be read.
+
+Run it after `doctrine:migrations:migrate` in CI (or in a release phase) against the real database engine:
+
+```yaml
+# .github/workflows/ci.yml (fragment, MySQL service)
+- run: php bin/console doctrine:migrations:migrate --no-interaction
+- run: php bin/console nowo:migrations:check-collations
+```
+
+Fix a failing table in a migration, e.g. `ALTER TABLE tasks CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+(it rebuilds the table and blocks its writes; use an online schema change for large tables), and create new tables with
+the expected options (`default_table_options` in `doctrine.yaml`).
 
 ## Multiple connections
 

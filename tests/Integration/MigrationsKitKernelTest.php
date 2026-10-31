@@ -10,6 +10,8 @@ use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Tests\Integration\Kernel\MigrationsKitTestKernel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -77,6 +79,18 @@ final class MigrationsKitKernelTest extends TestCase
         $default = $container->get('doctrine.dbal.default_connection');
         self::assertInstanceOf(Connection::class, $default);
         self::assertFalse((new SchemaChecker($default))->tableExists('kit_settings'));
+    }
+
+    public function testCheckCollationsCommandIsRegisteredAndSkipsSqlite(): void
+    {
+        $this->bootKernel('legacy');
+        self::assertNotNull($this->kernel);
+        $application = new Application($this->kernel);
+        self::assertTrue($application->has('nowo:migrations:check-collations'));
+
+        $tester = new CommandTester($application->find('nowo:migrations:check-collations'));
+        self::assertSame(0, $tester->execute([]));
+        self::assertStringContainsString('SKIP: no collation check for', $tester->getDisplay());
     }
 
     private function bootKernel(string $connectionName): ContainerInterface
