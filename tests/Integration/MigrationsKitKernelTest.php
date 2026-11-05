@@ -87,6 +87,7 @@ final class MigrationsKitKernelTest extends TestCase
         self::assertNotNull($this->kernel);
         $application = new Application($this->kernel);
         self::assertTrue($application->has('nowo:migrations:check-collations'));
+        self::assertTrue($application->has('nowo:migrations:check-versions'));
 
         $tester = new CommandTester($application->find('nowo:migrations:check-collations'));
         self::assertSame(0, $tester->execute([]));

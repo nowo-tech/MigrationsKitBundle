@@ -27,6 +27,7 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 - [CreateTablesService (declarative definitions)](#createtablesservice-declarative-definitions)
 - [Reusable audit columns (field dictionary)](#reusable-audit-columns-field-dictionary)
 - [Collation gate (`nowo:migrations:check-collations`)](#collation-gate-nowomigrationscheck-collations)
+- [Monotonic versions gate (`nowo:migrations:check-versions`)](#monotonic-versions-gate-nowomigrationscheck-versions)
 - [Multiple connections](#multiple-connections)
 - [Doctrine migrations versions](#doctrine-migrations-versions)
 - [Viewing SQL before running migrations](#viewing-sql-before-running-migrations)
@@ -369,6 +370,55 @@ Run it after `doctrine:migrations:migrate` in CI (or in a release phase) against
 Fix a failing table in a migration, e.g. `ALTER TABLE tasks CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
 (it rebuilds the table and blocks its writes; use an online schema change for large tables), and create new tables with
 the expected options (`default_table_options` in `doctrine.yaml`).
+
+## Monotonic versions gate (`nowo:migrations:check-versions`)
+
+Since **2.4** (KIT-75). Doctrine runs the migrations of a namespace in the alphabetical order of their class names. If
+a release already holds a migration with a future version (`Version20261120170000` on 2026-11-05), a migration
+generated today (`Version20261105…`) sorts **before** it: production, which already ran the later one, runs the new one
+last, while a fresh install runs it early — schema dependencies break.
+
+The gate compares the migrations added since a git ref (default: the latest tag reachable from `HEAD`) with the
+newest migration present at that ref, per directory:
+
+```bash
+php bin/console nowo:migrations:check-versions                  # latest tag, configured paths
+php bin/console nowo:migrations:check-versions --base=origin/main
+php bin/console nowo:migrations:check-versions --path=migrations --path=migrations/tenant
+php bin/console nowo:migrations:check-versions --fix            # rename the new out-of-order migrations
+```
+
+Exit **0** when every added migration sorts after the base (or there is no tag yet), **1** on an out-of-order
+migration, **2** when git or the base ref cannot be read. `--fix` is the safe generator step: right after
+`make:migration` / `doctrine:migrations:generate`, it renames each **new** out-of-order migration (file and class name)
+to the next version after every existing one (`now`, or the newest version + 1 second when that is in the future). It
+never touches migrations of the base ref; do not run it on migrations already applied somewhere.
+
+```yaml
+nowo_migrations_kit:
+    monotonic_versions:
+        paths: [migrations]   # relative to %kernel.project_dir%, one Doctrine namespace each
+        base: ~               # git ref; null = latest tag
+```
+
+The same check as a PHPUnit assertion (no kernel boot), for a fast CI suite:
+
+```php
+use Nowo\MigrationsKitBundle\Test\MonotonicMigrationVersionsTrait;
+
+final class MigrationVersionsTest extends TestCase
+{
+    use MonotonicMigrationVersionsTrait;
+
+    public function testMigrationsAreMonotonic(): void
+    {
+        self::assertMigrationVersionsAreMonotonic(dirname(__DIR__, 2), ['migrations']);
+    }
+}
+```
+
+CI checkouts need the tags (`fetch-depth: 0` / `fetch-tags: true` with `actions/checkout`), else there is no base and
+the gate passes with a note.
 
 ## Multiple connections
 

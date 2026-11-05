@@ -21,3 +21,11 @@ services:
 
   Nowo\MigrationsKitBundle\Command\CheckCollationsCommand:
     public: false
+
+  # 2.4 (KIT-75): arguments set by MigrationsKitExtension from nowo_migrations_kit.monotonic_versions.
+  Nowo\MigrationsKitBundle\Versions\GitMigrationFiles: ~
+
+  Nowo\MigrationsKitBundle\Versions\MonotonicVersionsChecker: ~
+
+  Nowo\MigrationsKitBundle\Command\CheckMigrationVersionsCommand:
+    public: false

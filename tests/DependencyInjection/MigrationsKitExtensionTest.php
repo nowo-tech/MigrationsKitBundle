@@ -6,10 +6,13 @@ namespace Nowo\MigrationsKitBundle\Tests\DependencyInjection;
 
 use Nowo\MigrationsKitBundle\Collation\CollationChecker;
 use Nowo\MigrationsKitBundle\Command\CheckCollationsCommand;
+use Nowo\MigrationsKitBundle\Command\CheckMigrationVersionsCommand;
 use Nowo\MigrationsKitBundle\DependencyInjection\MigrationsKitExtension;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
+use Nowo\MigrationsKitBundle\Versions\GitMigrationFiles;
+use Nowo\MigrationsKitBundle\Versions\MonotonicVersionsChecker;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
@@ -53,6 +56,21 @@ class MigrationsKitExtensionTest extends TestCase
     {
         $extension = new MigrationsKitExtension();
         self::assertSame('nowo_migrations_kit', $extension->getAlias());
+    }
+
+    public function testMonotonicVersionsArguments(): void
+    {
+        $container = new ContainerBuilder();
+        (new MigrationsKitExtension())->load([], $container);
+        self::assertSame(['migrations'], $container->getDefinition(MonotonicVersionsChecker::class)->getArgument('$paths'));
+        self::assertNull($container->getDefinition(MonotonicVersionsChecker::class)->getArgument('$base'));
+        self::assertSame('%kernel.project_dir%', $container->getDefinition(GitMigrationFiles::class)->getArgument('$projectDir'));
+
+        $container = new ContainerBuilder();
+        (new MigrationsKitExtension())->load([['monotonic_versions' => ['paths' => ['migrations', 'migrations/tenant'], 'base' => 'origin/main']]], $container);
+        self::assertSame(['migrations', 'migrations/tenant'], $container->getDefinition(MonotonicVersionsChecker::class)->getArgument('$paths'));
+        self::assertSame('origin/main', $container->getDefinition(MonotonicVersionsChecker::class)->getArgument('$base'));
+        self::assertTrue($container->hasDefinition(CheckMigrationVersionsCommand::class));
     }
 
     public function testCollationCheckArguments(): void
