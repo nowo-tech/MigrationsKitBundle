@@ -67,6 +67,21 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('monotonic_versions')
+                    ->info('nowo:migrations:check-versions (2.4): migrations added since a git ref must sort after the migrations of that ref')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('paths')
+                            ->info('Migrations directories, relative to %kernel.project_dir% (one Doctrine namespace each)')
+                            ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->defaultValue(['migrations'])
+                        ->end()
+                        ->scalarNode('base')
+                            ->info('Git ref compared with; null = the latest tag reachable from HEAD')
+                            ->defaultNull()
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;

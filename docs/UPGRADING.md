@@ -42,6 +42,9 @@
 
 ## Unreleased
 
+No breaking change. To use the new gate, run `nowo:migrations:check-versions` (or the PHPUnit trait) in CI with the
+tags fetched; set `nowo_migrations_kit.monotonic_versions.paths` when migrations are not in `migrations/`.
+
 ## To 2.3.0
 
 From **2.2.1**:

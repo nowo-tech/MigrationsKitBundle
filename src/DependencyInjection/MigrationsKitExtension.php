@@ -8,6 +8,8 @@ use Nowo\MigrationsKitBundle\Collation\CollationChecker;
 use Nowo\MigrationsKitBundle\Command\CheckCollationsCommand;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
+use Nowo\MigrationsKitBundle\Versions\GitMigrationFiles;
+use Nowo\MigrationsKitBundle\Versions\MonotonicVersionsChecker;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -50,6 +52,13 @@ final class MigrationsKitExtension extends Extension
             ->setArgument('$checkDatabase', $collation['check_database'])
             ->setArgument('$ignoreTables', $collation['ignore_tables'])
             ->setArgument('$ignoreColumns', $collation['ignore_columns']);
+        /** @var array{paths: list<string>, base: string|null} $versions */
+        $versions = $config['monotonic_versions'];
+        $container->getDefinition(GitMigrationFiles::class)->setArgument('$projectDir', '%kernel.project_dir%');
+        $container->getDefinition(MonotonicVersionsChecker::class)
+            ->setArgument('$paths', $versions['paths'])
+            ->setArgument('$base', $versions['base']);
+
         $container->getDefinition(CheckCollationsCommand::class)
             ->setArgument('$connections', new Reference('doctrine'))
             ->setArgument('$defaultConnection', $collation['connection'] ?? $config['connection']);

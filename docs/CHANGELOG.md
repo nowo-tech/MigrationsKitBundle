@@ -44,6 +44,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Monotonic migration versions (KIT-75, REQ-DB-002).** `nowo:migrations:check-versions [--base=<ref>] [--path=…]
+  [--fix]`: fails (exit 1) when a migration added since a git ref (default: the latest tag) sorts before the newest
+  migration of that ref (Doctrine runs them alphabetically, so it would run out of order in production); exit 2 when
+  git or the ref cannot be read; `--fix` renames the new out-of-order migrations (file and class) after the newest one.
+  `MonotonicVersionsChecker`, `GitMigrationFiles`, `MigrationVersions` (pure rules, `next()`), PHPUnit helper
+  `Test\MonotonicMigrationVersionsTrait::assertMigrationVersionsAreMonotonic()`, config
+  `nowo_migrations_kit.monotonic_versions` (`paths`, `base`).
+
 ## [2.3.0] - 2026-10-31
 
 nowo:migrations:check-collations: database collation/charset gate for CI (MySQL/MariaDB, PostgreSQL). See [UPGRADING](UPGRADING.md#to-230).
