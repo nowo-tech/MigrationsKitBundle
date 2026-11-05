@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.4.0] - 2026-11-05](#240---2026-11-05)
 - [[2.3.0] - 2026-10-31](#230---2026-10-31)
 - [[2.2.1] - 2026-10-21](#221---2026-10-21)
 - [[2.2.0] - 2026-10-13](#220---2026-10-13)
@@ -44,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-05
+
+Minor release. See [UPGRADING](UPGRADING.md#to-240).
+
 ### Added
 
 - **Monotonic migration versions (KIT-75, REQ-DB-002).** `nowo:migrations:check-versions [--base=<ref>] [--path=…]
@@ -53,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `MonotonicVersionsChecker`, `GitMigrationFiles`, `MigrationVersions` (pure rules, `next()`), PHPUnit helper
   `Test\MonotonicMigrationVersionsTrait::assertMigrationVersionsAreMonotonic()`, config
   `nowo_migrations_kit.monotonic_versions` (`paths`, `base`).
+
+[2.4.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.4.0
 
 ## [2.3.0] - 2026-10-31
 
