@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Test\MonotonicMigrationVersionsTrait::assertMigrationVersionsAreMonotonic()`, config
   `nowo_migrations_kit.monotonic_versions` (`paths`, `base`).
 
+### Documentation
+
+- USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).
+
 ## [2.3.0] - 2026-10-31
 
 nowo:migrations:check-collations: database collation/charset gate for CI (MySQL/MariaDB, PostgreSQL). See [UPGRADING](UPGRADING.md#to-230).

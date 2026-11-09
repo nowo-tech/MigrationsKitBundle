@@ -35,6 +35,7 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 - [Executing and committing after each migration](#executing-and-committing-after-each-migration)
   - [Transaction already committed (deprecation) when using DDL on MySQL](#transaction-already-committed-deprecation-when-using-ddl-on-mysql)
   - [AbstractAsset::getName() deprecated (DBAL 5)](#abstractassetgetname-deprecated-dbal-5)
+- [Using it from a DDD / hexagonal application](#using-it-from-a-ddd--hexagonal-application)
 - [See also](#see-also)
 
 ## SchemaChecker
@@ -570,6 +571,52 @@ Doctrine DBAL 4 deprecates `AbstractAsset::getName()` on schema objects (Table, 
 So the bundle is prepared for DBAL 5. If you write custom code that introspects the schema (e.g. looping over `$table->getColumns()` and reading the column name), prefer a DBAL-agnostic approach or the same pattern: try the new API first, fall back to `getName()` only when the method exists.
 
 ---
+
+## Using it from a DDD / hexagonal application
+
+**Layer:** infrastructure (persistence tooling). The bundle works on the Doctrine **DBAL** schema only: it has no
+entities, no Doctrine ORM dependency, no event listeners and no runtime code path. Nothing in your domain or
+application layer should reference it.
+
+**Where it lives in your project**
+
+- `migrations/` — Doctrine Migrations classes use `SchemaChecker` and `CreateTablesService` to build SQL. Instantiate
+  them directly in the migration, so they depend only on the migration's DBAL connection:
+
+  ```php
+  $checker = new SchemaChecker($this->connection);
+  $service = new CreateTablesService($this->connection, new SchemaDefinitionParser());
+  foreach ($service->apply($this->connection->createSchemaManager()->introspectSchema(), $definition) as $sql) {
+      $this->addSql($sql);
+  }
+  ```
+
+- CI — `nowo:migrations:check-collations` and `nowo:migrations:check-versions` are build gates; or use
+  `MonotonicMigrationVersionsTrait::assertMigrationVersionsAreMonotonic()` in a PHPUnit test.
+
+**Keeping the domain free of the bundle**
+
+- Your domain mapping (ORM XML/attributes on infrastructure entities, or your own repositories) is independent of the
+  migration definitions; the bundle never reads entity metadata.
+- Table and column names in migrations are infrastructure details. If you want one source of truth, keep naming
+  constants in your infrastructure layer and reference them from both the ORM mapping and the `MDK` definitions.
+
+**Programmatic results (no events)**
+
+The checkers return read-only report objects that you can map into your own tooling:
+
+- `CollationChecker::check(Connection $connection, ?string $expectedCollation = null, array $extraIgnoredTables = [])`
+  returns a `CollationReport` (`isOk()`, `failures()`, `ignored()`; each item is a `CollationMismatch`).
+- `MonotonicVersionsChecker::check(?array $paths = null, ?string $base = null)` returns a list of
+  `MonotonicVersionsReport` (`isValid()`, `added`, `violations`, `baseMax`).
+
+The bundle dispatches no events and exposes no SPI interfaces; none are needed for migration use.
+
+**Known limitations**
+
+- Git access for the versions gate goes through the final class `GitMigrationFiles` (runs `git`); there is no interface
+  yet to substitute another source of the base release's migrations.
+- Schema definitions are plain arrays keyed by `MigrationDefinitionKeys`; there are no typed definition objects.
 
 ## See also
 
