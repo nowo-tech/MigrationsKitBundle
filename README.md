@@ -82,7 +82,7 @@ Create `config/packages/nowo_migrations_kit.yaml` (optional; defaults to `connec
 
 ```yaml
 nowo_migrations_kit:
-  connection: default  # Doctrine connection name for CreateTablesService when registered as a service
+  connection: default  # Doctrine connection for the CreateTablesService and SchemaChecker services
 ```
 
 Full options: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).

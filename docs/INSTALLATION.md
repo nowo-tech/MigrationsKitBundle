@@ -55,7 +55,7 @@ return [
 
 ```yaml
 nowo_migrations_kit:
-    connection: default   # Doctrine connection for CreateTablesService when injected from the container
+    connection: default   # Doctrine connection for the CreateTablesService and SchemaChecker services
 ```
 
 If the file is omitted, the bundle uses `connection: default`. See [Configuration](CONFIGURATION.md) for details.
