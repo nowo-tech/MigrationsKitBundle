@@ -28,7 +28,7 @@ final class Configuration implements ConfigurationInterface
         $root
             ->children()
                 ->scalarNode('connection')
-                    ->info('Doctrine connection name used by CreateTablesService when injected from the container')
+                    ->info('Doctrine connection name bound to the CreateTablesService and SchemaChecker services when taken from the container')
                     ->defaultValue('default')
                 ->end()
                 ->arrayNode('collation_check')

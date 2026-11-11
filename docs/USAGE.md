@@ -430,7 +430,7 @@ $otherConnection = $this->registry->getConnection('other');
 $checker = new SchemaChecker($otherConnection);
 ```
 
-The bundle does **not** register **SchemaChecker** as a container service; use `new SchemaChecker($this->connection)` (or `new SchemaChecker($otherConnection)`) in migrations. The **`nowo_migrations_kit.connection`** option applies only to **CreateTablesService** when you register that class as a service (see [CONFIGURATION.md](CONFIGURATION.md)).
+The bundle registers **SchemaChecker** and **CreateTablesService** as public container services, both bound to the DBAL connection named by **`nowo_migrations_kit.connection`** (default `default`; see [CONFIGURATION.md](CONFIGURATION.md)). In a migration, the default is direct construction with the migration's connection: `new SchemaChecker($this->connection)` (or `new SchemaChecker($otherConnection)`). Take the services from the container in other code (commands, tests, or migrations registered as services through a custom migration factory) only when the configured connection is the one you want; a helper injected into a migration must use that migration's connection.
 
 ---
 
@@ -573,6 +573,13 @@ So the bundle is prepared for DBAL 5. If you write custom code that introspects 
 ---
 
 ## Using it from a DDD / hexagonal application
+
+**Standard Symfony project (default)** and **DDD / hexagonal project (opt-in)** use the bundle the same way: in
+migrations, instantiate the helpers with the migration's connection (works in both host kinds); outside migrations, a
+standard project may also take the `SchemaChecker` / `CreateTablesService` services from the container (bound to
+`nowo_migrations_kit.connection`, see [Multiple connections](#multiple-connections)). There are no interfaces to
+type-hint or aliases to decorate: the helpers are `final readonly` infrastructure tools used only from migrations and
+CI, never from domain or application code.
 
 **Layer:** infrastructure (persistence tooling). The bundle works on the Doctrine **DBAL** schema only: it has no
 entities, no Doctrine ORM dependency, no event listeners and no runtime code path. Nothing in your domain or

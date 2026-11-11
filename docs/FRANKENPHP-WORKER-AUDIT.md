@@ -8,6 +8,12 @@
 | Method | Manual review of every file under `src/` (DI extension, configuration, `Resources/config/services.yaml`, migration helpers, schema parser, field dictionary) + PHPStan FrankenPHP classic / worker / worker-strict rulesets |
 | **Verdict** | ✅ **Compatible** with FrankenPHP worker when the kernel is **not** reset between requests (`FRANKENPHP_RESET_KERNEL` unset or `0`). The bundle registers no HTTP-runtime services; helpers are `final readonly` (or pure static) and hold no per-request state. Safe under scenario B (no reliance on `services_resetter`). |
 
+> **Note (2026-11-11):** this record describes the audited revision (2.0.22). Later releases register
+> `CreateTablesService`, `SchemaChecker`, `CollationChecker`, `GitMigrationFiles`, `MonotonicVersionsChecker` and the two
+> CI commands in `services.yaml`, and `MigrationsKitExtension` binds `CreateTablesService` and `SchemaChecker` to
+> `doctrine.dbal.<nowo_migrations_kit.connection>_connection` (see [USAGE](USAGE.md#multiple-connections)). That is a
+> re-audit trigger (below); the statements here about "no shipped services" and W-01 apply to 2.0.22 only.
+
 ## Table of contents
 
 - [Execution model assumed](#execution-model-assumed)
