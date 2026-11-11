@@ -430,7 +430,7 @@ $otherConnection = $this->registry->getConnection('other');
 $checker = new SchemaChecker($otherConnection);
 ```
 
-The bundle registers **SchemaChecker** and **CreateTablesService** as public container services, both bound to the DBAL connection named by **`nowo_migrations_kit.connection`** (default `default`; see [CONFIGURATION.md](CONFIGURATION.md)). Migrations are not services, so in a migration use `new SchemaChecker($this->connection)` (or `new SchemaChecker($otherConnection)`); take the services from the container only in other code (commands, tests) that should use the configured connection.
+The bundle registers **SchemaChecker** and **CreateTablesService** as public container services, both bound to the DBAL connection named by **`nowo_migrations_kit.connection`** (default `default`; see [CONFIGURATION.md](CONFIGURATION.md)). In a migration, the default is direct construction with the migration's connection: `new SchemaChecker($this->connection)` (or `new SchemaChecker($otherConnection)`). Take the services from the container in other code (commands, tests, or migrations registered as services through a custom migration factory) only when the configured connection is the one you want; a helper injected into a migration must use that migration's connection.
 
 ---
 

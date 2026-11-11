@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).
-- Docs: `SchemaChecker` and `CreateTablesService` are both container services bound to `nowo_migrations_kit.connection`; USAGE ("Multiple connections"), README, INSTALLATION, the worker audit and the `connection` config help text said only `CreateTablesService` used it (or that `SchemaChecker` was not a service). The DDD section now states the standard (container) and both-hosts (`new` in a migration) paths.
+- Docs: `SchemaChecker` and `CreateTablesService` are both container services bound to `nowo_migrations_kit.connection`; USAGE ("Multiple connections"), README, INSTALLATION and the `connection` config help text said only `CreateTablesService` used it (or that `SchemaChecker` was not a service). The DDD section now states the standard (container) and both-hosts (`new` in a migration) paths; the 2.0.22 worker audit carries a note that service registration changed since (re-audit trigger).
 
 ## [2.3.0] - 2026-10-31
 
