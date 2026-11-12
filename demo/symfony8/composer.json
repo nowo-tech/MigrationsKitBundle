@@ -10,6 +10,8 @@
         "doctrine/orm": "^3.4",
         "nowo-tech/migrations-kit-bundle": "@dev",
         "php": ">=8.5,<8.6",
+        "nowo-tech/ui-kit-bundle": "^2.49",
+        "symfony/asset": "^8.0",
         "symfony/console": "^8.0",
         "symfony/dotenv": "^8.0",
         "symfony/framework-bundle": "^8.0",
