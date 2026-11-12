@@ -44,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+
+- Kept-alive kernel test (1,200 calls, two tenants, memory bound) and refreshed `docs/FRANKENPHP-WORKER-AUDIT.md` (REQ-RUNTIME-002).
+
 ### Added
 
 - **Monotonic migration versions (KIT-75, REQ-DB-002).** `nowo:migrations:check-versions [--base=<ref>] [--path=…]
