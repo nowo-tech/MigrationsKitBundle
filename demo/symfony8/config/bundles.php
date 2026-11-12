@@ -6,6 +6,7 @@ use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
 use Nowo\HotReloadBundle\NowoHotReloadBundle;
 use Nowo\MigrationsKitBundle\NowoMigrationsKitBundle;
 use Nowo\TwigInspectorBundle\NowoTwigInspectorBundle;
+use Nowo\UiKitBundle\NowoUiKitBundle;
 use Symfony\Bundle\DebugBundle\DebugBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
@@ -20,6 +21,7 @@ return [
     DoctrineBundle::class           => ['all' => true],
     DoctrineMigrationsBundle::class => ['all' => true],
     NowoMigrationsKitBundle::class  => ['all' => true],
+    NowoUiKitBundle::class          => ['all' => true],
     NowoHotReloadBundle::class      => ['dev' => true, 'test' => true],
     NowoTwigInspectorBundle::class  => ['dev' => true, 'test' => true],
     TwigExtraBundle::class          => ['all' => true],

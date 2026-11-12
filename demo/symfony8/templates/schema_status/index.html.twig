@@ -2,41 +2,53 @@
 
 {% block title %}Schema sync status – Migrations Kit Demo{% endblock %}
 
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'Schema sync status',
+        intro: 'This page shows whether entity mappings are in sync with the database schema.',
+    }) }}
+{% endblock %}
+
 {% block body %}
-<h1>Schema sync status</h1>
+    <section class="nowo-ui-card">
+        <div class="nowo-ui-card__body">
+            {% if in_sync %}
+                <p><span class="nowo-ui-badge nowo-ui-badge--success">In sync</span> <strong>Entities are in sync with the database.</strong></p>
+                <p>All migrations have been applied and the Doctrine entities match the current schema.</p>
+            {% else %}
+                <p><span class="nowo-ui-badge nowo-ui-badge--danger">Out of sync</span> <strong>Entities are not in sync with the database.</strong></p>
+                <p>Run migrations to create or update the database schema:</p>
+                <pre class="nowo-ui-code-block"><code>php bin/console doctrine:migrations:migrate --no-interaction</code></pre>
+                <p>Or with Docker: <code>make migrate</code> from the demo directory.</p>
+            {% endif %}
+        </div>
+    </section>
 
-<p>
-    This page shows whether <strong>entity mappings</strong> are in sync with the <strong>database schema</strong>.
-</p>
-
-{% if in_sync %}
-    <p class="ok"><strong>✓ Entities are in sync with the database.</strong></p>
-    <p>All migrations have been applied and the Doctrine entities match the current schema.</p>
-{% else %}
-    <p class="error"><strong>✗ Entities are not in sync with the database.</strong></p>
-    <p>Run migrations to create or update the database schema:</p>
-    <pre><code>php bin/console doctrine:migrations:migrate --no-interaction</code></pre>
-    <p>Or with Docker: <code>make migrate</code> from the demo directory.</p>
-
-    {% if mapping_errors|length > 0 %}
-        <h2>Mapping errors</h2>
-        <ul>
-            {% for error in mapping_errors %}
-                <li><code>{{ error }}</code></li>
-            {% endfor %}
-        </ul>
+    {% if not in_sync and mapping_errors|length > 0 %}
+        <section class="nowo-ui-card">
+            <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Mapping errors</h2></div>
+            <div class="nowo-ui-card__body">
+                <ul>
+                    {% for error in mapping_errors %}
+                        <li><code>{{ error }}</code></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
     {% endif %}
 
-    {% if schema_errors|length > 0 %}
-        <h2>Schema errors (DB vs entities)</h2>
-        <ul>
-            {% for error in schema_errors %}
-                <li><code>{{ error }}</code></li>
-            {% endfor %}
-        </ul>
+    {% if not in_sync and schema_errors|length > 0 %}
+        <section class="nowo-ui-card">
+            <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Schema errors (DB vs entities)</h2></div>
+            <div class="nowo-ui-card__body">
+                <ul>
+                    {% for error in schema_errors %}
+                        <li><code>{{ error }}</code></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
     {% endif %}
-{% endif %}
 
-<hr>
-<p><small>Demo: Migrations Kit Bundle · Symfony 8 · Web Profiler (toolbar at bottom in dev)</small></p>
+    <p class="nowo-ui-muted">Demo: Migrations Kit Bundle · Symfony 8 · Web Profiler (toolbar at bottom in dev)</p>
 {% endblock %}
