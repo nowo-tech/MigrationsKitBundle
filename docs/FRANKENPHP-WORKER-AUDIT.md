@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Package | `nowo-tech/migrations-kit-bundle` (`symfony-bundle`) |
-| Audited revision | post-`v2.0.21` (release **2.0.22**) |
-| Audit date | 2026-09-24 |
+| Audited revision | post-`v2.0.21` (release **2.0.22**); re-checked against `v2.4.0` on 2026-11-12 |
+| Audit date | 2026-09-24, refreshed 2026-11-12 |
 | Method | Manual review of every file under `src/` (DI extension, configuration, `Resources/config/services.yaml`, migration helpers, schema parser, field dictionary) + PHPStan FrankenPHP classic / worker / worker-strict rulesets |
 | **Verdict** | ✅ **Compatible** with FrankenPHP worker when the kernel is **not** reset between requests (`FRANKENPHP_RESET_KERNEL` unset or `0`). The bundle registers no HTTP-runtime services; helpers are `final readonly` (or pure static) and hold no per-request state. Safe under scenario B (no reliance on `services_resetter`). |
 
@@ -68,6 +68,18 @@ A bundle that is safe under **B** is safe under **A**, under `FRANKENPHP_RESET_K
 | `Schema\Definition\SchemaDefinitionParser` | optional / `new` | none (no properties; reflection not cached) | ✅ | ✅ |
 | Static helpers (`SchemaAssetName`, `SchemaNameGenerator`, `TableSchemaHelper`, `MigrationDefinitionKeys`, `FieldDictionary\IdField`) | — | none | ✅ | ✅ |
 | `NowoMigrationsKitBundle`, `MigrationsKitExtension`, `Configuration` | compile-time | none | ✅ | ✅ |
+
+## Kept-alive kernel test
+
+`tests/Integration/Worker/WorkerKeptAliveKernelTest.php::testAlternatingTenantsNeverShareStateAndMemoryStaysFlat` boots
+ONE kernel and calls the container's `CreateTablesService` and `SchemaChecker` 1,200 times alternating two tenants
+(plus the `nowo:migrations:check-collations` command every tenth iteration), never calling `services_resetter` or
+`kernel.reset`. Each answer and each generated SQL carries only its own tenant's tables and columns, and memory growth
+after warm-up stays under 4 MiB. The services registered since 2.1 (`CreateTablesService`, `SchemaChecker`,
+`CollationChecker`, `GitMigrationFiles`, `MonotonicVersionsChecker`, the two CI commands) are stateless
+(`final readonly`, a fresh schema manager per call), so the bundle is **safe with kernel reset false**.
+
+Rule 7: the bundle uses DBAL connections only (no ORM); it never clears or resets the host's default entity manager.
 
 ## Findings
 
