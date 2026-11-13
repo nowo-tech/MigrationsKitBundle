@@ -36,6 +36,10 @@ final readonly class CollationChecker
      * @param string|null $expectedCharset null = the default_table_options charset, else (MySQL) the collation prefix
      * @param list<string> $ignoreTables table names or fnmatch() patterns allowed to differ (never required to)
      * @param list<string> $ignoreColumns "table.column" names or fnmatch() patterns allowed to differ
+     * @param iterable<ExactKeyColumnsInterface> $exactKeyProviders identity / access-key columns declared by the
+     *                                                              installed bundles: they are deliberately in a binary NO PAD collation, so they are never required to
+     *                                                              match the uniform one. Declaring them once removes the need for a parallel ignore_columns list that
+     *                                                              could drift from the declaration. nowo:migrations:check-key-collations is what asserts them.
      */
     public function __construct(
         private ?string $expectedCollation = null,
@@ -44,6 +48,7 @@ final readonly class CollationChecker
         private bool $checkDatabase = false,
         private array $ignoreTables = [],
         private array $ignoreColumns = [],
+        private iterable $exactKeyProviders = [],
     ) {
     }
 
@@ -87,6 +92,7 @@ final readonly class CollationChecker
     private function checkMySql(Connection $connection, string $name, string $collation, string $charset, array $ignoreTables): CollationReport
     {
         $mismatches = [];
+        $declared   = $this->declaredExactKeyColumns();
 
         if ($this->checkDatabase) {
             $row = $connection->fetchAssociative('SELECT DEFAULT_CHARACTER_SET_NAME AS charset_name, DEFAULT_COLLATION_NAME AS collation_name FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = DATABASE()');
@@ -106,7 +112,7 @@ final readonly class CollationChecker
             $rows = $connection->fetchAllAssociative("SELECT c.TABLE_NAME AS table_name, c.COLUMN_NAME AS column_name, c.COLLATION_NAME AS collation_name FROM information_schema.COLUMNS c JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME AND t.TABLE_TYPE = 'BASE TABLE' WHERE c.TABLE_SCHEMA = DATABASE() AND c.COLLATION_NAME IS NOT NULL ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION");
             foreach ($rows as $row) {
                 ++$columns;
-                $this->compareColumn($mismatches, $row, $collation, $ignoreTables);
+                $this->compareColumn($mismatches, $row, $collation, $ignoreTables, $declared);
             }
         }
 
@@ -119,6 +125,7 @@ final readonly class CollationChecker
     private function checkPostgreSql(Connection $connection, string $collation, ?string $charset, array $ignoreTables): CollationReport
     {
         $mismatches = [];
+        $declared   = $this->declaredExactKeyColumns();
 
         if ($this->checkDatabase) {
             $row = $connection->fetchAssociative('SELECT datcollate AS collation_name, pg_encoding_to_char(encoding) AS charset_name FROM pg_database WHERE datname = current_database()');
@@ -135,7 +142,7 @@ final readonly class CollationChecker
             $rows = $connection->fetchAllAssociative("SELECT c.table_name, c.column_name, c.collation_name FROM information_schema.columns c JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name AND t.table_type = 'BASE TABLE' WHERE c.table_schema = ANY (current_schemas(false)) AND c.collation_name IS NOT NULL ORDER BY c.table_name, c.ordinal_position");
             foreach ($rows as $row) {
                 ++$columns;
-                $this->compareColumn($mismatches, $row, $collation, $ignoreTables);
+                $this->compareColumn($mismatches, $row, $collation, $ignoreTables, $declared);
             }
         }
 
@@ -146,8 +153,9 @@ final readonly class CollationChecker
      * @param list<CollationMismatch> $mismatches
      * @param array<string, mixed> $row table_name, column_name, collation_name
      * @param list<string> $ignoreTables
+     * @param array<string, true> $declared lower-cased "table.column" of declared identity / access-key columns
      */
-    private function compareColumn(array &$mismatches, array $row, string $collation, array $ignoreTables): void
+    private function compareColumn(array &$mismatches, array $row, string $collation, array $ignoreTables, array $declared): void
     {
         $table  = (string) $row['table_name'];
         $object = $table . '.' . $row['column_name'];
@@ -159,7 +167,9 @@ final readonly class CollationChecker
             $collation,
             null,
             null,
-            $this->matches($table, $ignoreTables) || $this->matches($object, $this->ignoreColumns),
+            $this->matches($table, $ignoreTables)
+                || $this->matches($object, $this->ignoreColumns)
+                || isset($declared[strtolower($object)]),
         );
     }
 
@@ -189,6 +199,21 @@ final readonly class CollationChecker
         }
 
         return false;
+    }
+
+    /**
+     * @return array<string, true> lower-cased "table.column" of every declared identity / access-key column
+     */
+    private function declaredExactKeyColumns(): array
+    {
+        $declared = [];
+        foreach ($this->exactKeyProviders as $provider) {
+            foreach ($provider->exactKeyColumns() as $column) {
+                $declared[$column->key()] = true;
+            }
+        }
+
+        return $declared;
     }
 
     private function nonEmpty(mixed $value): ?string

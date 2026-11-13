@@ -22,6 +22,15 @@ services:
   Nowo\MigrationsKitBundle\Command\CheckCollationsCommand:
     public: false
 
+  # $providers is set by ExactKeyColumnsPass from the nowo_migrations_kit.exact_key_columns tag (autoconfigured on
+  # every service implementing ExactKeyColumnsInterface, in this application or in any installed bundle).
+  Nowo\MigrationsKitBundle\Collation\ExactKeyChecker:
+    arguments:
+      $providers: []
+
+  Nowo\MigrationsKitBundle\Command\CheckKeyCollationsCommand:
+    public: false
+
   # 2.4 (KIT-75): arguments set by MigrationsKitExtension from nowo_migrations_kit.monotonic_versions.
   Nowo\MigrationsKitBundle\Versions\GitMigrationFiles: ~
 

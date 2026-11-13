@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\DependencyInjection;
 
 use Nowo\MigrationsKitBundle\Collation\CollationChecker;
+use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
+use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
 use Nowo\MigrationsKitBundle\Command\CheckCollationsCommand;
+use Nowo\MigrationsKitBundle\Command\CheckKeyCollationsCommand;
+use Nowo\MigrationsKitBundle\DependencyInjection\Compiler\ExactKeyColumnsPass;
 use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Versions\GitMigrationFiles;
@@ -62,6 +66,16 @@ final class MigrationsKitExtension extends Extension
         $container->getDefinition(CheckCollationsCommand::class)
             ->setArgument('$connections', new Reference('doctrine'))
             ->setArgument('$defaultConnection', $collation['connection'] ?? $config['connection']);
+
+        // Any installed bundle declaring its identity / access-key columns is discovered without host registration.
+        $container->registerForAutoconfiguration(ExactKeyColumnsInterface::class)->addTag(ExactKeyColumnsPass::TAG);
+
+        /** @var array{connection: string|null, ignore_columns: array<string, string>} $keys */
+        $keys = $config['key_collation_check'];
+        $container->getDefinition(ExactKeyChecker::class)->setArgument('$ignoreColumns', $keys['ignore_columns']);
+        $container->getDefinition(CheckKeyCollationsCommand::class)
+            ->setArgument('$connections', new Reference('doctrine'))
+            ->setArgument('$defaultConnection', $keys['connection'] ?? $config['connection']);
     }
 
     /**

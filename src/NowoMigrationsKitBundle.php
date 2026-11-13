@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle;
 
+use Nowo\MigrationsKitBundle\DependencyInjection\Compiler\ExactKeyColumnsPass;
 use Nowo\MigrationsKitBundle\DependencyInjection\MigrationsKitExtension;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -21,6 +23,16 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 final class NowoMigrationsKitBundle extends Bundle
 {
+    /**
+     * {@inheritdoc}
+     */
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+
+        $container->addCompilerPass(new ExactKeyColumnsPass());
+    }
+
     /**
      * {@inheritdoc}
      */
