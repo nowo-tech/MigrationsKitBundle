@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.6.0] - 2026-11-13](#260---2026-11-13)
 - [[2.5.0] - 2026-11-13](#250---2026-11-13)
 - [[2.4.0] - 2026-11-05](#240---2026-11-05)
 - [[2.3.0] - 2026-10-31](#230---2026-10-31)
@@ -45,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [[1.0.0] - 2026-02-20](#100---2026-02-20)
 
 ## [Unreleased]
+
+## [2.6.0] - 2026-11-13
 
 ### Fixed
 
@@ -118,6 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `MonotonicVersionsChecker` (a rename the filesystem refuses, through a stream wrapper).
 - Statement **and** element coverage are at **100 %** (1083/1083 statements), and CI enforces it: the coverage job
   runs `composer test-coverage-100` (REQ-TEST-003).
+
+[2.6.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.6.0
 
 ## [2.5.0] - 2026-11-13
 
