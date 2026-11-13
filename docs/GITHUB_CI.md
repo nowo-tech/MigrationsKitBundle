@@ -225,7 +225,7 @@ A bundle complies when:
 - [ ] README / CONTRIBUTING / RELEASE document the workflow
 - [ ] `make check-no-cursor-coauthor` exits 0 on `HEAD`
 - [ ] `git replace -l` is empty (or removed before strip/push)
-- [ ] Fresh clone of `origin/main` also passes the check
+- [ ] Fresh clone of the default branch (`origin/master` here) also passes the check
 
 ---
 
