@@ -13,6 +13,8 @@ use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Collation\CollationChecker;
 use Nowo\MigrationsKitBundle\Collation\CollationMismatch;
 use Nowo\MigrationsKitBundle\Collation\CollationReport;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumns;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -158,5 +160,30 @@ final class CollationCheckerTest extends TestCase
         self::assertFalse($report->supported);
         self::assertSame('', $report->expectedCollation);
         self::assertTrue($report->isOk());
+    }
+
+    public function testDeclaredIdentityColumnsAreExemptFromTheUniformCollationGate(): void
+    {
+        // A host never restates its bundles' identity columns as ignore_columns: the declaration is the single source,
+        // so the uniform gate and the NO PAD gate cannot disagree.
+        $connection = $this->connection(
+            new MySQLPlatform(),
+            [],
+            [['table_name' => 'audit_entry', 'collation_name' => 'utf8mb4_unicode_ci']],
+            [
+                ['table_name' => 'audit_entry', 'column_name' => 'actor_id', 'collation_name' => 'utf8mb4_0900_bin'],
+                ['table_name' => 'audit_entry', 'column_name' => 'message', 'collation_name' => 'utf8mb4_0900_bin'],
+            ],
+        );
+        $checker = new CollationChecker('utf8mb4_unicode_ci', null, true, false, [], [], [
+            new ExactKeyColumns(new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')),
+        ]);
+        $report = $checker->check($connection);
+
+        $failures = $report->failures();
+        self::assertCount(1, $failures, 'only the undeclared column fails the uniform gate');
+        self::assertSame('audit_entry.message', $failures[0]->object);
+        self::assertCount(1, $report->ignored());
+        self::assertSame('audit_entry.actor_id', $report->ignored()[0]->object);
     }
 }

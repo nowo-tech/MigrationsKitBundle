@@ -27,6 +27,7 @@ You typically introspect the schema and pass it to the service: `$schema = $this
 - [CreateTablesService (declarative definitions)](#createtablesservice-declarative-definitions)
 - [Reusable audit columns (field dictionary)](#reusable-audit-columns-field-dictionary)
 - [Collation gate (`nowo:migrations:check-collations`)](#collation-gate-nowomigrationscheck-collations)
+- [Identity / access-key gate (`nowo:migrations:check-key-collations`)](#identity--access-key-gate-nowomigrationscheck-key-collations)
 - [Monotonic versions gate (`nowo:migrations:check-versions`)](#monotonic-versions-gate-nowomigrationscheck-versions)
 - [Multiple connections](#multiple-connections)
 - [Doctrine migrations versions](#doctrine-migrations-versions)
@@ -371,6 +372,133 @@ Run it after `doctrine:migrations:migrate` in CI (or in a release phase) against
 Fix a failing table in a migration, e.g. `ALTER TABLE tasks CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
 (it rebuilds the table and blocks its writes; use an online schema change for large tables), and create new tables with
 the expected options (`default_table_options` in `doctrine.yaml`).
+
+## Identity / access-key gate (`nowo:migrations:check-key-collations`)
+
+Since **2.5**. The uniform gate above answers "is everything the same collation?". This one answers a different
+question, the one [REQ-SEC-006] asks: **are the columns we compare for equality byte-exact?** A user id, a tenant key,
+a token, a share slug or an API key hash is only ever compared with `=`. It must live in a **binary NO PAD** collation:
+
+| Server | Correct collation |
+|--------|-------------------|
+| MySQL 8.0.17+ and 9.x | `utf8mb4_0900_bin` |
+| MariaDB (10.2+) | `utf8mb4_nopad_bin` |
+| MySQL 5.7 and MySQL 8.0.0–8.0.16 | `utf8mb4_bin` — the documented fallback; it is binary but **PAD SPACE**, so `'abc' = 'abc   '` |
+
+The server default a column with no `COLLATE` inherits (`utf8mb4_0900_ai_ci` on MySQL 8+) is worse still: it folds
+case, accents **and** trailing spaces, so two different users can own the same identity key.
+
+### Why a positive list, and not a scan
+
+A scan for "bad" collations can only find columns somebody already wrote a collation for. **A column nobody ever
+thought about produces no hit at all** and silently takes the server default — which is exactly the dangerous case.
+So each bundle **declares** the columns it treats as identity or access keys, and the gate fails on any declared
+column that is not binary NO PAD. A new identity column is safe only once it is declared, and declaring it is what
+forces the collation decision.
+
+### Declaring columns (bundle authors)
+
+Require `nowo-tech/migrations-kit-contracts` (interfaces and value objects only, no dependencies beyond PHP — a
+declaring bundle does not need this bundle) and implement `ExactKeyColumnsInterface` on a small service of the bundle
+that owns the table. Services implementing it are tagged automatically, so a host that installs the bundle registers
+**nothing**:
+
+```bash
+composer require nowo-tech/migrations-kit-contracts
+```
+
+```php
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
+
+final readonly class WorkflowExactKeyColumns implements ExactKeyColumnsInterface
+{
+    public function __construct(private string $tablePrefix, private bool $ownerTracking) {}
+
+    public function exactKeyColumns(): array
+    {
+        return [
+            // Resolve the table name the way the schema does: never a literal, or a host with a prefix
+            // or a renamed table gets a false failure.
+            new ExactKeyColumn($this->tablePrefix . 'instance', 'owner_id', 'nowo-tech/workflow-bundle', 'host user id, compared with ='),
+            // A column that only exists in an opt-in mode: declared inactive, reported as skipped, never failed.
+            new ExactKeyColumn($this->tablePrefix . 'owner_audit', 'owner_id', 'nowo-tech/workflow-bundle', 'host user id',
+                'nowo_workflow.owner_tracking: true', $this->ownerTracking),
+        ];
+    }
+}
+```
+
+Rules that matter:
+
+- **Resolve the table name at runtime.** Build the declaration from the same configuration the schema is built from
+  (prefix, host-chosen table name). A literal breaks on exactly the hosts that rename things.
+- **Declare, do not omit, a column of a mode that is off.** Pass the setting as `$condition` and `false` as
+  `$active`. The gate then prints `skipped … nowo_workflow.owner_tracking: true` instead of a failure — while a
+  declared **active** column whose table or column is absent *is* a failure, because that is a rename or a drop.
+- `exactKeyColumns()` must not touch the database and must be safe to call repeatedly (worker mode, REQ-RUNTIME-002).
+
+### The bundle's own CI gate
+
+This is the point of the declaration: a new identity column left on the host default must fail **the bundle's own**
+pipeline, long before any host installs it. Extend `ExactKeyColumnsTestCase` against the bundle's test database:
+
+```php
+use Nowo\MigrationsKitBundle\Test\ExactKeyColumnsTestCase;
+
+final class WorkflowExactKeyColumnsTest extends ExactKeyColumnsTestCase
+{
+    protected function exactKeyColumnProviders(): array
+    {
+        return [new WorkflowExactKeyColumns('wf_', true)];
+    }
+
+    protected function createSchema(\Doctrine\DBAL\Connection $connection): void
+    {
+        // create or migrate the declared tables on the test database
+    }
+}
+```
+
+It skips cleanly when `DATABASE_URL` is unset or the platform is PostgreSQL / SQLite, so a unit suite with no
+database is not broken by extending it. It also fails when the bundle declares nothing, or when *every* declared
+column was skipped — a run that checked nothing must not report green.
+
+### The host-side aggregate run
+
+In an application, the command asserts every installed bundle's declaration against the live schema in one pass:
+
+```bash
+php bin/console nowo:migrations:check-key-collations
+php bin/console nowo:migrations:check-key-collations -v     # also lists the passing and skipped columns
+```
+
+```text
+  fail     wf_instance.owner_id: utf8mb4_0900_ai_ci (host user id, compared with =) [nowo-tech/workflow-bundle]
+  ignored  legal_document.slug: utf8mb4_unicode_ci (ignored by host: legacy slugs are matched case-insensitively) [nowo-tech/legal-kit-bundle]
+FAIL: 1 declared identity / access-key column(s) are not binary NO PAD on mysql (expected utf8mb4_0900_bin).
+  ALTER TABLE `wf_instance` MODIFY `owner_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL;
+```
+
+- **Outcomes**: `ok`, `fallback` (binary but PAD SPACE on a server with nothing better — passes, warns), `fail`,
+  `missing` (declared, active, not in the schema — fails), `skipped` (mode off — not a failure), `ignored`.
+- **Host overrides**: `key_collation_check.ignore_columns` maps `table.column` (or an `fnmatch()` pattern) to a
+  **mandatory reason**. An ignored column is still printed, with its reason — an ignore never makes a column the
+  bundle calls an identity key disappear from the output.
+- **Server detection**: the available NO PAD collations are read from `information_schema.COLLATIONS`, never guessed
+  from a version string. That is what keeps it correct on MySQL 9.x, Percona and forks.
+- **No duplicate ignore list**: declared columns are automatically exempt from `nowo:migrations:check-collations`,
+  so a host never restates them in `collation_check.ignore_columns` and the two gates cannot drift apart.
+- **Exit codes**: `0` nothing failed, or the platform has no such notion (PostgreSQL, SQLite: `SKIP`); `1` at least
+  one failure; `2` the database cannot be read.
+
+```yaml
+# .github/workflows/ci.yml (fragment, MySQL service)
+- run: php bin/console doctrine:migrations:migrate --no-interaction
+- run: php bin/console nowo:migrations:check-key-collations
+```
+
+[REQ-SEC-006]: https://github.com/nowo-tech
 
 ## Monotonic versions gate (`nowo:migrations:check-versions`)
 

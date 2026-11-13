@@ -53,6 +53,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Kept-alive kernel test (1,200 calls, two tenants, memory bound) and refreshed `docs/FRANKENPHP-WORKER-AUDIT.md` (REQ-RUNTIME-002).
 
+### Added
+
+- **Identity / access-key collation gate (REQ-SEC-006).** `nowo:migrations:check-key-collations`: fails (exit 1) when a
+  column an installed bundle declares as an identity or access key is not in a **binary NO PAD** collation
+  (`utf8mb4_0900_bin` on MySQL 8.0.17+ and 9.x, `utf8mb4_nopad_bin` on MariaDB; `utf8mb4_bin` is binary but PAD SPACE
+  and is accepted, with a warning, only on a server that offers nothing better). Positive list, not a scan: a column
+  nobody ever gave a `COLLATE` to takes the server default (`utf8mb4_0900_ai_ci`: case- and accent-insensitive *and*
+  PAD SPACE) and produces no grep hit, so only a declaration can catch it.
+  - The declaration itself lives in **`nowo-tech/migrations-kit-contracts`** (`ExactKeyColumnsInterface`,
+    `ExactKeyColumn`, `ExactKeyColumns`, `ExactKeyStatus`; interfaces and value objects, no dependencies beyond PHP),
+    so a declaring bundle requires contracts and **not** this bundle. A bundle declares its own columns with the
+    table name **resolved at runtime** (prefixes, host-chosen names) and an optional `$condition` / `$active` for a
+    column that only exists in an opt-in mode. Services implementing the interface are tagged by autoconfiguration
+    (`ExactKeyColumnsPass`), so a host discovers every installed bundle's declaration with no registration.
+  - `ExactKeyChecker` + `ExactKeyReport` / `ExactKeyFinding` — six outcomes: `ok`, `fallback`,
+    `fail`, `missing` (declared and active but absent: a rename or a drop, which fails), `skipped` (the mode that
+    creates it is off: not a failure) and `ignored` (host override, which keeps the column visible with its reason).
+  - `ExactCollationSupport` — the available NO PAD collations are read from `information_schema.COLLATIONS`, never
+    inferred from a version string, so the check stays correct on MySQL 9.x, Percona, forks and MariaDB.
+  - `Test\ExactKeyColumnsTestCase` — the same gate inside a bundle's own suite, against its test database; skips
+    cleanly without `DATABASE_URL` or on PostgreSQL / SQLite.
+  - Config `nowo_migrations_kit.key_collation_check` (`connection`, `ignore_columns` as `table.column => reason`).
+  - Declared columns are **automatically exempt** from `nowo:migrations:check-collations`, so a host never restates
+    them in `collation_check.ignore_columns` and the two gates cannot disagree.
+
 ### Documentation
 
 - USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).

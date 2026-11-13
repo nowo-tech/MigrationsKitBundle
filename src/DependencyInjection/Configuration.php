@@ -82,6 +82,22 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('key_collation_check')
+                    ->info('nowo:migrations:check-key-collations: CI gate asserting that the identity / access-key columns declared by the installed bundles are in a binary NO PAD collation (REQ-SEC-006)')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('connection')
+                            ->info('Doctrine connection checked; null = nowo_migrations_kit.connection')
+                            ->defaultNull()
+                        ->end()
+                        ->arrayNode('ignore_columns')
+                            ->info('"table.column" (or fnmatch pattern) => why the host deliberately put that declared key column on another collation. The reason is mandatory, and the column stays visible in the report as "ignored by host": an ignore never makes a declared identity column disappear from the output.')
+                            ->useAttributeAsKey('column')
+                            ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->defaultValue([])
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;
