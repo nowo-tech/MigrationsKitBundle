@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.4.0] - 2026-11-05](#240---2026-11-05)
 - [[2.3.0] - 2026-10-31](#230---2026-10-31)
 - [[2.2.1] - 2026-10-21](#221---2026-10-21)
 - [[2.2.0] - 2026-10-13](#220---2026-10-13)
@@ -52,6 +53,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Kept-alive kernel test (1,200 calls, two tenants, memory bound) and refreshed `docs/FRANKENPHP-WORKER-AUDIT.md` (REQ-RUNTIME-002).
 
+### Documentation
+
+- USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).
+- Docs: `SchemaChecker` and `CreateTablesService` are both container services bound to `nowo_migrations_kit.connection`; USAGE ("Multiple connections"), README, INSTALLATION and the `connection` config help text said only `CreateTablesService` used it (or that `SchemaChecker` was not a service). The DDD section now states the standard (container) and both-hosts (`new` in a migration) paths; the 2.0.22 worker audit carries a note that service registration changed since (re-audit trigger).
+
+## [2.4.0] - 2026-11-05
+
+Minor release. See [UPGRADING](UPGRADING.md#to-240).
+
 ### Added
 
 - **Monotonic migration versions (KIT-75, REQ-DB-002).** `nowo:migrations:check-versions [--base=<ref>] [--path=…]
@@ -62,10 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Test\MonotonicMigrationVersionsTrait::assertMigrationVersionsAreMonotonic()`, config
   `nowo_migrations_kit.monotonic_versions` (`paths`, `base`).
 
-### Documentation
-
-- USAGE: new section "Using it from a DDD / hexagonal application" (where the bundle sits in a hexagonal host, the ports, events and DTOs to build an anti-corruption layer on, and the known limitations).
-- Docs: `SchemaChecker` and `CreateTablesService` are both container services bound to `nowo_migrations_kit.connection`; USAGE ("Multiple connections"), README, INSTALLATION and the `connection` config help text said only `CreateTablesService` used it (or that `SchemaChecker` was not a service). The DDD section now states the standard (container) and both-hosts (`new` in a migration) paths; the 2.0.22 worker audit carries a note that service registration changed since (re-audit trigger).
+[2.4.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.4.0
 
 ## [2.3.0] - 2026-10-31
 

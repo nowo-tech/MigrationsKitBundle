@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 2.4.0](#to-240)
 - [To 2.3.0](#to-230)
 - [To 2.2.1](#to-221)
 - [To 2.2.0](#to-220)
@@ -41,6 +42,14 @@
 - [Upgrading to 1.0.0](#upgrading-to-100)
 
 ## Unreleased
+
+## To 2.4.0
+
+From **2.3.0**:
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
 
 No breaking change. To use the new gate, run `nowo:migrations:check-versions` (or the PHPUnit trait) in CI with the
 tags fetched; set `nowo_migrations_kit.monotonic_versions.paths` when migrations are not in `migrations/`.
