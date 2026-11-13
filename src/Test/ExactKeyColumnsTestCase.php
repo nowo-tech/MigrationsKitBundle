@@ -37,6 +37,20 @@ use function sprintf;
  */
 abstract class ExactKeyColumnsTestCase extends TestCase
 {
+    /** DSN schemes the default connection understands; "pdo-mysql://", "mysql://", "mariadb://", … */
+    private const DSN_SCHEMES = [
+        'mysql'      => 'pdo_mysql',
+        'mysql2'     => 'pdo_mysql',
+        'mariadb'    => 'pdo_mysql',
+        'pdo-mysql'  => 'pdo_mysql',
+        'postgres'   => 'pdo_pgsql',
+        'postgresql' => 'pdo_pgsql',
+        'pgsql'      => 'pdo_pgsql',
+        'pdo-pgsql'  => 'pdo_pgsql',
+        'sqlite'     => 'pdo_sqlite',
+        'pdo-sqlite' => 'pdo_sqlite',
+    ];
+
     /**
      * The bundle's own declaration service(s), built exactly as the bundle builds them at runtime.
      *
@@ -103,9 +117,9 @@ abstract class ExactKeyColumnsTestCase extends TestCase
         }
 
         try {
-            $params = class_exists(DsnParser::class) ? (new DsnParser())->parse($url) : ['url' => $url];
             /** @var array<string, mixed> $params */
-            $connection = DriverManager::getConnection($params);
+            $params     = class_exists(DsnParser::class) ? (new DsnParser(self::DSN_SCHEMES))->parse($url) : ['url' => $url];
+            $connection = DriverManager::getConnection($params + ['charset' => 'utf8mb4']);
             $connection->getDatabasePlatform();
 
             return $connection;
