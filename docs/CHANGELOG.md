@@ -47,6 +47,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, and a changed exit code for a failed
+`--fix`).
+
+### Fixed
+
+- **`nowo:migrations:check-versions --fix` is now all or nothing across files (audit PB-M-L2).** It renamed the
+  out-of-order migrations one by one, so a failure on the second of three left the first already renamed and the
+  others not, and the failure escaped the command as an uncaught exception: exit **1** (the "out of order" code, not
+  the documented **2**) and no list of what had moved. Every rewritten migration is now written to a temporary file
+  next to its target (same directory, same permissions) and read back before anything moves; only then are the
+  files moved into place and the originals removed. A failure while preparing removes the temporary files and leaves
+  every original byte-identical, with its permissions; a failure while moving puts back the files already moved
+  (the originals are written back from memory). If that rollback itself fails the error says **ROLLBACK
+  INCOMPLETE** and names every file that needs attention; a migration that cannot be restored keeps its renamed
+  copy, so none is ever lost. Several `--path` directories are one operation. The command reports the failure and
+  exits **2**.
+- **`--fix` no longer renames a migration whose class name differs from its file name (audit PB-M-I5).** The class
+  rewrite did nothing and the file was renamed anyway, which produced the file / class mismatch Doctrine cannot load.
+  Such a migration is now reported and nothing is renamed.
+
+### Added
+
+- `Versions\MonotonicVersionsChecker::fixAll(list<MonotonicVersionsReport>)`: the all-or-nothing rename over several
+  directories that the command uses; `fix()` is `fixAll([$report])`.
+
+### Tests
+
+- `MonotonicVersionsAtomicFixTest`: a failure on the second of three migrations (unreadable source, refused rename,
+  unremovable source), an unwritable directory, a staged copy that cannot be checked, a failed rollback (restore and
+  removal), a class / file mismatch, the same directory twice, and two directories; every failure asserts the
+  directory listing, contents and permissions are unchanged. Driven through a stream wrapper that fails chosen
+  operations (`FaultyStreamWrapper`, no static state). Command: a failed `--fix` exits 2 and moves nothing.
+- `MonotonicVersionsGitTest` used a base migration dated 2026-11-20 with the real clock, so the expected `--fix`
+  names would have changed after that date; the fixture now uses 2099.
+
 ## [2.6.0] - 2026-11-13
 
 ### Fixed

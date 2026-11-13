@@ -45,6 +45,18 @@
 
 ## Unreleased
 
+Target 2.7.0. No code change is required.
+
+- `nowo:migrations:check-versions --fix` that cannot finish now exits **2** (it used to end with an uncaught
+  exception, exit **1**, the same code as "out-of-order migration") and renames nothing. A CI step that treated
+  exit 1 of `--fix` as a failure still fails; one that tells the two codes apart now sees the documented 2.
+- `--fix` refuses a migration whose class name differs from its file name instead of renaming the file alone.
+- `--fix` over several `--path` directories is one operation: a failure in one directory renames nothing in the
+  others. The "Renamed" lines are printed after every directory is done.
+- While it runs, `--fix` writes hidden temporary files (`.<Version>.php.<random>.tmp`) next to the migrations; they
+  are removed on success and on failure. A process killed mid-run can leave one behind: it is not a migration, delete
+  it.
+
 ## To 2.6.0
 
 From **2.5.0**:
