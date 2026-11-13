@@ -619,6 +619,17 @@ class SchemaDefinitionParserTest extends TestCase
 
         self::assertFalse($method->invoke($parser, new Table('orders')));
     }
+
+    public function testForeignKeySignatureProbeSurvivesAMethodThatIsNotThere(): void
+    {
+        // A DBAL version whose Table has no addForeignKeyConstraint() at all: reflection fails, the probe answers
+        // null, and the parser falls back to the DBAL 4 options-as-fourth-parameter call instead of breaking.
+        $parser = new SchemaDefinitionParserMissingFkMethod();
+        $method = new ReflectionMethod(SchemaDefinitionParser::class, 'foreignKeyConstraintParameterNames');
+
+        self::assertNull($method->invoke($parser, new Table('orders')));
+        self::assertFalse((new ReflectionMethod(SchemaDefinitionParser::class, 'tableAddForeignKeyConstraintExpectsNameAsFourthParam'))->invoke($parser, new Table('orders')));
+    }
 }
 
 /**
@@ -715,6 +726,15 @@ final class SchemaDefinitionParserNullFkReflection extends SchemaDefinitionParse
     protected function foreignKeyConstraintParameterNames(Table $table): ?array
     {
         return null;
+    }
+}
+
+/** @internal */
+final class SchemaDefinitionParserMissingFkMethod extends SchemaDefinitionParser
+{
+    protected function addForeignKeyConstraintMethod(): string
+    {
+        return 'noSuchMethodOnThisDbalVersion';
     }
 }
 

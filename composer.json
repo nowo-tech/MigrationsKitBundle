@@ -87,6 +87,10 @@
     "scripts": {
         "test": "vendor/bin/phpunit --color=always",
         "test-coverage": "vendor/bin/phpunit --colors=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text=php://stdout",
+        "test-coverage-100": [
+            "@test-coverage",
+            "php .scripts/check-coverage.php coverage.xml --min-percent=100"
+        ],
         "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs-fix": "vendor/bin/php-cs-fixer fix",
         "phpstan": "phpstan analyse --memory-limit=512M",
@@ -101,6 +105,7 @@
     "scripts-descriptions": {
         "test": "Run PHPUnit tests",
         "test-coverage": "Run PHPUnit with code coverage (optional threshold: php .scripts/check-coverage.php)",
+        "test-coverage-100": "Run test-coverage and fail if statement or element coverage is below 100% (REQ-TEST-003)",
         "cs-check": "Check code style with PHP-CS-Fixer",
         "cs-fix": "Fix code style with PHP-CS-Fixer",
         "phpstan": "Run PHPStan static analysis",

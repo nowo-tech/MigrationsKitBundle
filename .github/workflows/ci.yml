@@ -298,16 +298,16 @@ jobs:
           composer require symfony/config:^7.4 symfony/dependency-injection:^7.4 symfony/http-kernel:^7.4 symfony/yaml:^7.4 --no-interaction --no-update
           composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (100% gate, REQ-TEST-003)
         run: |
           echo "🧪 Running tests with coverage..."
           rm -rf .phpunit.cache
-          composer test-coverage
+          composer test-coverage-100
           if [ $? -ne 0 ]; then
-            echo "❌ ERROR: Tests failed"
+            echo "❌ ERROR: Tests failed or coverage is below 100%"
             exit 1
           fi
-          echo "✅ All tests passed successfully"
+          echo "✅ All tests passed and coverage is at 100%"
 
       - name: Validate coverage file
         run: |

@@ -31,7 +31,7 @@ class TableSchemaHelper
             return;
         }
 
-        if (self::supportsPrimaryKeyConstraints()) {
+        if (static::supportsPrimaryKeyConstraints()) {
             $editor = PrimaryKeyConstraint::editor();
             if ($constraintName !== null && $constraintName !== '') {
                 $editor = $editor->setUnquotedName($constraintName);
@@ -77,7 +77,11 @@ class TableSchemaHelper
         return $comparator;
     }
 
-    private static function supportsPrimaryKeyConstraints(): bool
+    /**
+     * Protected, not private: a private method cannot be overridden, so the PHPUnit double that forces the DBAL 2/3
+     * legacy branch (see the class docblock) would silently have no effect and the branch would never be exercised.
+     */
+    protected static function supportsPrimaryKeyConstraints(): bool
     {
         return class_exists(PrimaryKeyConstraint::class);
     }

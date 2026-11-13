@@ -17,10 +17,12 @@ use Throwable;
 
 use function array_map;
 use function class_exists;
+use function fnmatch;
 use function getenv;
 use function implode;
 use function is_string;
 use function sprintf;
+use function strtolower;
 
 /**
  * Base test case giving a bundle its own REQ-SEC-006 gate, against the bundle's test database.
@@ -67,6 +69,23 @@ abstract class ExactKeyColumnsTestCase extends TestCase
     }
 
     /**
+     * The `nowo_migrations_kit.collation_check.ignore_columns` keys (or fnmatch patterns) that this bundle, or the
+     * host suite running it, keeps for the uniform collation gate. Default: none.
+     *
+     * Override it with the real list, and a declared exact-key column may never also appear in it. Two copies of the
+     * same decision is how the two gates come to disagree: declaring a column already exempts it from the uniform
+     * gate (since 2.5.0), so the ignore entry is redundant on the day it is written - and it outlives the
+     * declaration. Drop the column from the declaration and the leftover entry goes on silently excusing a column
+     * that nothing checks any more.
+     *
+     * @return list<string>
+     */
+    protected function uniformCollationIgnoreColumns(): array
+    {
+        return [];
+    }
+
+    /**
      * Environment variable holding the test database DSN. Override to use another name.
      */
     protected function databaseUrlVariable(): string
@@ -106,6 +125,22 @@ abstract class ExactKeyColumnsTestCase extends TestCase
             [],
             $report->withStatus(ExactKeyStatus::OK, ExactKeyStatus::FALLBACK),
             'Every declared column was skipped or ignored: this run checked nothing. Create the schema for at least one declared mode in createSchema().',
+        );
+
+        $restated = [];
+        foreach ($report->findings as $finding) {
+            foreach ($this->uniformCollationIgnoreColumns() as $pattern) {
+                $pattern = strtolower($pattern);
+                if ($pattern === $finding->column->key() || fnmatch($pattern, $finding->column->key())) {
+                    $restated[] = sprintf('%s (ignore entry "%s")', $finding->column->describe(), $pattern);
+                }
+            }
+        }
+
+        self::assertSame(
+            [],
+            $restated,
+            'These columns are declared exact keys and are also restated in collation_check.ignore_columns. The declaration already exempts them from the uniform collation gate, so the ignore entries add nothing today and outlive the declaration tomorrow: delete them.',
         );
     }
 
