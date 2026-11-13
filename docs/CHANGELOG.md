@@ -46,6 +46,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`nowo:migrations:check-key-collations` could report a false all clear on a server it never managed to ask.**
+  `ExactCollationSupport` swallowed any error from its two `information_schema.COLLATIONS` probes and returned an
+  empty list, which `of([])` reads as "this server has no NO PAD collation" — the MySQL 5.7 / 8.0.0-8.0.16 case. The
+  gate then switched to the documented fallback and **accepted `utf8mb4_bin`**, which is binary but PAD SPACE, so
+  `'abc'` and `'abc   '` are one key. Failure scenario: a MySQL 8.4 server that does offer `utf8mb4_0900_bin`, reached
+  by a connection whose user has no `SELECT` on `information_schema.COLLATIONS` (a restricted CI grant is enough);
+  every declared identity column sitting in `utf8mb4_bin` was reported as `fallback`, the run printed "This server
+  offers no NO PAD collation (MySQL 5.7 or 8.0.0-8.0.16)" — blaming a server version that was not the cause — and
+  **exited 0** over columns whose keys still collide. Degradation is now a claim that has to be proven: a probe
+  answered with zero rows proves it, a probe that errors proves nothing, and when no probe can be read the check
+  raises instead of answering, which the command reports as exit 2 ("the database cannot be read"), as its own help
+  already documented. MySQL 5.7 is unaffected: its first probe errors because there is no `PAD_ATTRIBUTE` column, and
+  its second answers with zero rows, which is still a proven "none offered".
+- **`nowo:migrations:check-versions --fix` could leave a migration the host cannot load.** `fix()` rewrites the class
+  name inside the file and then renames the file. If the rename failed — a read-only mount, a full disk, a filesystem
+  that refuses it — the exception was raised with the file still under its old name and already carrying the new class
+  name, which is a class / file-name mismatch Doctrine cannot resolve, produced by the command whose job is to keep
+  the directory loadable. The original bytes are now restored before the failure is reported, so a `--fix` that could
+  not finish changes nothing.
+- **The DBAL 2/3 legacy primary-key branch of `TableSchemaHelper` was never actually tested.** The documented test
+  seam `supportsPrimaryKeyConstraints()` was `private`, so the `LegacyPrimaryKeyTableSchemaHelper` double could not
+  override it and the two tests named after that branch silently exercised the DBAL 4 path instead — they would have
+  passed with the legacy branch broken or removed. The seam is `protected` and called through `static::`.
+
+### Added
+
+- `Test\ExactKeyColumnsTestCase::uniformCollationIgnoreColumns()`: a declaring bundle or host can hand the gate the
+  `collation_check.ignore_columns` entries it keeps, and the gate fails if any of them restates a column that is
+  already declared. Declaring a column exempts it from the uniform collation gate by itself (2.5.0), so the ignore
+  entry adds nothing on the day it is written and outlives the declaration: drop the column from the declaration and
+  the leftover entry goes on excusing a column nothing checks any more.
+
+### Changed
+
+- `GitMigrationFiles` is no longer `final` and `SchemaDefinitionParser` gained a protected
+  `addForeignKeyConstraintMethod()`: both are documented test seams for failure branches that no input can produce
+  (a `proc_open()` that will not start, a DBAL `Table` without `addForeignKeyConstraint`).
+
+### Tests
+
+- **`CheckKeyCollationsCommand` is covered, 0 % to 100 %** (19 tests, driven through the real `ExactKeyChecker` against
+  a fake `information_schema`). What is pinned is the gate's design and not its exit codes: a clean schema passes with
+  per-status counts; `utf8mb4_bin` on a server that offers NO PAD fails with the `ALTER` that fixes it; the MySQL 8
+  server default `utf8mb4_0900_ai_ci` fails; a column with no collation at all (`binary(16)`, `varbinary`) passes as
+  byte-exact; a declared column absent from an existing table, and one whose table is absent, both fail as `missing`;
+  a host `ignore_columns` entry keeps the column in the output with its reason instead of hiding it; an inactive
+  column is `skipped` and only listed with `-v`; a degraded server accepts `utf8mb4_bin` and says why; PostgreSQL
+  skips; an unreadable database and a non-DBAL connection exit 2. One test exists purely to keep the command a
+  **positive list**: a column in the worst available collation, in a table the gate reads, is not declared and is
+  therefore not checked — if that test ever fails the command has become a scanner, and a scanner can only find the
+  identity columns somebody already thought of.
+- **"Nothing to check" is pinned apart from "everything checked and fine".** Both exit 0, so the message and the
+  counts are all a host has: a run with no declaration prints its own line and neither the `OK:` summary nor `FAIL:`,
+  and a run where every declared column was skipped prints `0 ok, 0 fallback, 0 ignored by host, N skipped`.
+- **`Test\ExactKeyColumnsTestCase` is covered as the host-facing contract it is**, by extending it the way a bundle
+  does (`ExactKeyColumnsGateTest`) and by invoking the deliberately failing variants by hand: a bundle that declares
+  nothing, a run in which every declared column was skipped, a column on the server default, a column that is both
+  declared and restated in `ignore_columns`, PostgreSQL, a missing `DATABASE_URL`, and a DSN that cannot be used.
+- Remaining file-by-file gaps closed: `ExactCollationSupport` (a probe that errors, and both probes erroring),
+  `ExactKeyChecker` (a column that is both ignored by the host and absent), `ExactKeyFinding::describe()`,
+  `ExactKeyColumnsPass` (services not loaded, and the uniform checker being optional), `SchemaDefinitionParser` (the
+  foreign-key signature probe surviving a method that is not there), `TableSchemaHelper` (the legacy branch, now that
+  the seam works), `GitMigrationFiles` (a `--path` value git reads as an option; a `git` that cannot be started) and
+  `MonotonicVersionsChecker` (a rename the filesystem refuses, through a stream wrapper).
+- Statement **and** element coverage are at **100 %** (1083/1083 statements), and CI enforces it: the coverage job
+  runs `composer test-coverage-100` (REQ-TEST-003).
+
 ## [2.5.0] - 2026-11-13
 
 ### Changed

@@ -144,6 +144,25 @@ final class MonotonicVersionsGitTest extends TestCase
         $checker->fix($report, new DateTimeImmutable('2026-11-05 10:00:00'));
     }
 
+    public function testAPathGitReadsAsAnOptionIsReportedRatherThanIgnored(): void
+    {
+        // --path comes from the command line, so "--migrations" reaches git as an unknown option. git fails, and the
+        // failure has to surface: a gate that quietly treated it as "no migrations here" would pass by looking at
+        // nothing. No shell is involved - the arguments are an argv list - so this is a report, not an injection.
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('git ls-tree failed for "--migrations" at "HEAD"');
+
+        (new GitMigrationFiles($this->repo))->atRef('HEAD', '--migrations');
+    }
+
+    public function testGitThatCannotBeStartedIsReportedWithItsOwnMessage(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unknown git ref "HEAD": git could not be started');
+
+        (new UnstartableGitMigrationFiles($this->repo))->atRef('HEAD', 'migrations');
+    }
+
     private function tester(?string $dir = null): CommandTester
     {
         return new CommandTester(new CheckMigrationVersionsCommand(new MonotonicVersionsChecker(new GitMigrationFiles($dir ?? $this->repo))));
@@ -158,5 +177,21 @@ final class MonotonicVersionsGitTest extends TestCase
     {
         exec(sprintf('git -C %s %s 2>&1', escapeshellarg($this->repo), $arguments), $output, $code);
         self::assertSame(0, $code, implode("\n", $output));
+    }
+}
+
+/**
+ * Forces the "git could not be started" branch: no argument list can make proc_open() itself fail.
+ *
+ * @internal
+ */
+final readonly class UnstartableGitMigrationFiles extends GitMigrationFiles
+{
+    /**
+     * {@inheritdoc}
+     */
+    protected function open(array $arguments, ?array &$pipes)
+    {
+        return false;
     }
 }

@@ -10,6 +10,7 @@ use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
+use Throwable;
 
 use function array_keys;
 use function fnmatch;
@@ -46,6 +47,10 @@ final readonly class ExactKeyChecker
     ) {
     }
 
+    /**
+     * @throws Throwable when the live schema or the server's collation catalogue cannot be read: the check reports a
+     *                   misconfiguration (exit 2) rather than a pass it cannot stand behind
+     */
     public function check(Connection $connection): ExactKeyReport
     {
         $platform = $connection->getDatabasePlatform();

@@ -87,8 +87,13 @@ final readonly class MonotonicVersionsChecker
             if ($code === false || is_file($to)) {
                 throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s".', $from, $to));
             }
-            $code = (string) preg_replace('/\bclass\s+' . preg_quote($old, '/') . '\b/', 'class ' . $new, $code, 1);
-            if (file_put_contents($from, $code) === false || !rename($from, $to)) {
+            $renamedCode = (string) preg_replace('/\bclass\s+' . preg_quote($old, '/') . '\b/', 'class ' . $new, $code, 1);
+            if (file_put_contents($from, $renamedCode) === false || !rename($from, $to)) {
+                // The class was rewritten in place before the rename. If the rename did not happen, the file still
+                // carries the old name and a class Doctrine cannot match to it, which is a migration the host can no
+                // longer load. Put the original bytes back before reporting, so a failed --fix changes nothing.
+                file_put_contents($from, $code);
+
                 throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s".', $from, $to));
             }
             $renamed[$old] = $new;

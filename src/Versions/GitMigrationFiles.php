@@ -31,10 +31,13 @@ use function trim;
  * Migration versions of a directory in the working tree and at a git ref (2.4, KIT-75). Runs `git` without a shell
  * (argument list), in the repository that holds the project.
  *
+ * Not marked `final`: a PHPUnit double subclasses it to force the "git could not be started" branch, which no input
+ * to proc_open() can produce.
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
  */
-final readonly class GitMigrationFiles
+readonly class GitMigrationFiles
 {
     public function __construct(
         private string $projectDir,
@@ -130,10 +133,8 @@ final readonly class GitMigrationFiles
      */
     private function git(array $arguments): array
     {
-        // Console command / test helper only (never in a request); git returns promptly on a local repository.
-        // @phpstan-ignore frankenphp.classic.noUnlimitedIoTimeout
-        $process = proc_open(['git', '-C', $this->projectDir, ...$arguments], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        if (!is_resource($process)) {
+        $process = $this->open($arguments, $pipes);
+        if (!is_resource($process) || !isset($pipes[1], $pipes[2])) {
             return [127, '', 'git could not be started'];
         }
         $out   = (string) stream_get_contents($pipes[1]);
@@ -142,5 +143,20 @@ final readonly class GitMigrationFiles
         fclose($pipes[2]);
 
         return [proc_close($process), $out, $error];
+    }
+
+    /**
+     * Starts `git` with the given argument list. Seam (see the class docblock): a PHPUnit double returns false here.
+     *
+     * @param list<string> $arguments
+     * @param array<int, resource>|null $pipes
+     *
+     * @return false|resource
+     */
+    protected function open(array $arguments, ?array &$pipes)
+    {
+        // Console command / test helper only (never in a request); git returns promptly on a local repository.
+        // @phpstan-ignore frankenphp.classic.noUnlimitedIoTimeout
+        return proc_open(['git', '-C', $this->projectDir, ...$arguments], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     }
 }

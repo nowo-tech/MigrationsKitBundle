@@ -18,6 +18,7 @@ use Nowo\MigrationsKitContracts\Collation\ExactKeyColumns;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 use function str_contains;
 
@@ -148,6 +149,31 @@ final class ExactKeyCheckerTest extends TestCase
         self::assertStringContainsString('column does not', $report->failures()[0]->detail);
     }
 
+    public function testAFindingDescribesItselfWithStatusCollationAndContext(): void
+    {
+        $connection = $this->connection(new MySQLPlatform(), ['utf8mb4_0900_bin'], ['api_token'], [$this->column('api_token', 'token_hash', 'utf8mb4_bin')]);
+        $report     = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token', 'bearer token hash'))]))->check($connection);
+
+        // One line per column, the status left-padded so a long report lines up, then what was found and why.
+        self::assertSame('fail     api_token.token_hash: utf8mb4_bin (bearer token hash)', $report->failures()[0]->describe());
+        self::assertSame('ok       t.c', (new ExactKeyFinding(new ExactKeyColumn('t', 'c', 'o'), ExactKeyStatus::OK))->describe());
+    }
+
+    public function testAnIgnoredColumnThatIsAbsentIsReportedAsBothRatherThanFailed(): void
+    {
+        $connection = $this->connection(new MySQLPlatform(), ['utf8mb4_0900_bin'], [], []);
+        $report     = (new ExactKeyChecker(
+            [new ExactKeyColumns(new ExactKeyColumn('legal_document', 'slug', 'legalkit'))],
+            ['legal_*.slug' => 'moved to the host table'],
+        ))->check($connection);
+
+        self::assertTrue($report->isOk(), 'A column the host deliberately moved elsewhere may legitimately be absent.');
+        $ignored = $report->withStatus(ExactKeyStatus::IGNORED);
+        self::assertCount(1, $ignored);
+        self::assertSame('', $ignored[0]->actual);
+        self::assertStringContainsString('ignored by host: moved to the host table; also table not in the schema', $ignored[0]->detail);
+    }
+
     public function testHostIgnoreKeepsTheColumnVisibleInsteadOfHidingIt(): void
     {
         $connection = $this->connection(new MySQLPlatform(), ['utf8mb4_0900_bin'], ['legal_document'], [$this->column('legal_document', 'slug', 'utf8mb4_unicode_ci')]);
@@ -187,6 +213,51 @@ final class ExactKeyCheckerTest extends TestCase
         self::assertFalse($report->supported);
         self::assertTrue($report->isOk());
         self::assertSame([], $report->findings);
+    }
+
+    public function testAServerWithoutPadAttributeIsAskedByCollationNameInstead(): void
+    {
+        // MySQL 5.7 has no PAD_ATTRIBUTE column and MariaDB may not expose it: the first probe errors, the second
+        // answers by name. The error must not be mistaken for "this server offers no NO PAD collation".
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getDatabasePlatform')->willReturn(new MariaDBPlatform());
+        $connection->method('fetchFirstColumn')->willReturnCallback(static function (string $sql): array {
+            if (str_contains($sql, 'PAD_ATTRIBUTE')) {
+                throw new RuntimeException("Unknown column 'PAD_ATTRIBUTE' in 'where clause'");
+            }
+
+            return str_contains($sql, 'COLLATIONS') ? ['utf8mb4_nopad_bin'] : ['vault_grant'];
+        });
+        $connection->method('fetchAllAssociative')->willReturn([$this->column('vault_grant', 'grantee_id', 'utf8mb4_nopad_bin')]);
+
+        $report = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('vault_grant', 'grantee_id', 'vault'))]))->check($connection);
+
+        self::assertFalse($report->degraded, 'The server does offer a NO PAD collation; only the first probe failed.');
+        self::assertSame('utf8mb4_nopad_bin', $report->expectedCollation);
+        self::assertTrue($report->isOk());
+    }
+
+    public function testAnUnreadableCollationCatalogueRaisesInsteadOfAcceptingPadSpace(): void
+    {
+        // Degradation is a claim about the server, and it has to be proven. If no probe can be read (no grant on
+        // information_schema.COLLATIONS, an unreadable catalogue), assuming "no NO PAD collation here" would accept
+        // utf8mb4_bin - binary but PAD SPACE - on a server that offers utf8mb4_0900_bin, and the gate would pass over
+        // identity columns whose keys still collide. The check must refuse to answer instead.
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getDatabasePlatform')->willReturn(new MySQLPlatform());
+        $connection->method('fetchFirstColumn')->willReturnCallback(static function (string $sql): array {
+            if (str_contains($sql, 'COLLATIONS')) {
+                throw new RuntimeException('SELECT command denied to user \'ci\'@\'%\' for table \'COLLATIONS\'');
+            }
+
+            return ['api_token'];
+        });
+        $connection->method('fetchAllAssociative')->willReturn([$this->column('api_token', 'token_hash', 'utf8mb4_bin')]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot read information_schema.COLLATIONS');
+
+        (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token'))]))->check($connection);
     }
 
     public function testNoProvidersMeansNothingDeclaredAndNoFailure(): void

@@ -6,6 +6,7 @@ namespace Nowo\MigrationsKitBundle\Collation;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use RuntimeException;
 use Throwable;
 
 use function implode;
@@ -23,6 +24,12 @@ use function strtolower;
  *
  * Degraded servers (MySQL 5.7, MySQL 8.0.0-8.0.16) have no NO PAD collation at all. There utf8mb4_bin is the correct
  * answer and is accepted, with a warning: it is binary but PAD SPACE, so "abc" = "abc   " still holds.
+ *
+ * Degradation has to be *proven*, never inferred from silence. A probe that the server answers with zero rows proves
+ * there is no NO PAD collation; a probe that errors (no grant on information_schema.COLLATIONS, an unreadable
+ * catalogue) proves nothing. Treating the second as the first would relax the gate to accepting utf8mb4_bin on a
+ * server that offers utf8mb4_0900_bin - a green REQ-SEC-006 run over columns whose keys still collide. When no probe
+ * can be read, {@see forConnection()} therefore raises instead of answering.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -70,6 +77,9 @@ final readonly class ExactCollationSupport
             : new self(true, $noPadBinary, $noPadBinary[0], false);
     }
 
+    /**
+     * @throws RuntimeException when the server offers no readable answer at all: degradation is never assumed
+     */
     public static function forConnection(Connection $connection): self
     {
         if (!$connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
@@ -81,8 +91,17 @@ final readonly class ExactCollationSupport
         $names = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE PAD_ATTRIBUTE = 'NO PAD' AND COLLATION_NAME LIKE '%\\_bin'");
 
         // MySQL 5.7 has no PAD_ATTRIBUTE column (the query errors); MariaDB may not expose it. Fall back to names.
-        if ($names === []) {
-            $names = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME IN ('" . implode("','", self::KNOWN_NO_PAD) . "') AND COLLATION_NAME LIKE '%\\_bin'");
+        if ($names === null || $names === []) {
+            $byName = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME IN ('" . implode("','", self::KNOWN_NO_PAD) . "') AND COLLATION_NAME LIKE '%\\_bin'");
+
+            // Neither probe could be read: the server was never asked. Answering "degraded" here would accept
+            // utf8mb4_bin (binary but PAD SPACE) as the documented fallback on a server that may well offer
+            // utf8mb4_0900_bin, and the check would exit 0 over columns whose keys still collide.
+            if ($byName === null && $names === null) {
+                throw new RuntimeException('Cannot read information_schema.COLLATIONS: the binary NO PAD collations this server offers are unknown, so no identity / access-key collation can be asserted. Grant SELECT on information_schema to the connection used by the check.');
+            }
+
+            $names = $byName ?? [];
         }
 
         return self::of($names);
@@ -107,15 +126,15 @@ final readonly class ExactCollationSupport
     }
 
     /**
-     * @return list<string>
+     * @return list<string>|null null when the probe could not be read at all (distinct from "the server offers none")
      */
-    private static function fetchNames(Connection $connection, string $sql): array
+    private static function fetchNames(Connection $connection, string $sql): ?array
     {
         try {
             /** @var list<mixed> $rows */
             $rows = $connection->fetchFirstColumn($sql);
         } catch (Throwable) {
-            return [];
+            return null;
         }
 
         $names = [];

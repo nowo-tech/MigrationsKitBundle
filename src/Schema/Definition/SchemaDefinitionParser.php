@@ -176,12 +176,21 @@ class SchemaDefinitionParser
     protected function foreignKeyConstraintParameterNames(Table $table): ?array
     {
         try {
-            $method = new ReflectionMethod($table, 'addForeignKeyConstraint');
+            $method = new ReflectionMethod($table, $this->addForeignKeyConstraintMethod());
 
             return array_map(static fn (ReflectionParameter $p): string => $p->getName(), $method->getParameters());
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Name of the Table method whose signature is probed. A seam: a PHPUnit double points it at a method that is not
+     * there, which is the only way to reach the reflection-failure branch on a DBAL version that has the method.
+     */
+    protected function addForeignKeyConstraintMethod(): string
+    {
+        return 'addForeignKeyConstraint';
     }
 
     /**

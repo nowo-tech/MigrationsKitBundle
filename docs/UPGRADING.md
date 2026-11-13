@@ -52,6 +52,27 @@ From **2.4.0**:
 composer update nowo-tech/migrations-kit-bundle
 ```
 
+**Delete your `collation_check.ignore_columns` entries for identity and access-key columns.** From 2.5.0 a column a
+bundle declares through `ExactKeyColumnsInterface` is **automatically exempt** from the uniform collation gate
+(`nowo:migrations:check-key-collations` asserts it is binary NO PAD instead), so a host no longer has to restate it:
+
+```yaml
+# config/packages/nowo_migrations_kit.yaml
+nowo_migrations_kit:
+  collation_check:
+    ignore_columns:
+      # Delete every entry that exists only because the column is an identity or access key:
+      # it is now exempt by construction, and the two lists cannot disagree if there is only one.
+      - audit_entry.actor_id   # <- no longer needed
+```
+
+This is worth doing on the day you upgrade, not later. A hand-kept ignore list is a second copy of the same decision:
+it drifts (SYMFONY-BEACON's list had 45 entries for 42 unique columns — one was listed twice), and a column dropped
+from a bundle's declaration stays silently excused by the leftover entry, so neither gate asks about it again. On that
+host the list went from **45 entries to 5** after the upgrade; the five that remain are real host overrides with a
+reason. If your suite extends `Test\ExactKeyColumnsTestCase`, override `uniformCollationIgnoreColumns()` with the list
+you keep and the gate will fail on any entry that restates a declared column.
+
 ## To 2.4.0
 
 From **2.3.0**:

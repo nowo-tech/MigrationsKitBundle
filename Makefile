@@ -35,7 +35,7 @@ help:
 	@echo "  install        Install Composer dependencies"
 	@echo "  assets         No frontend assets in this bundle (no-op)"
 	@echo "  test           Run PHPUnit tests"
-	@echo "  test-coverage  Run tests with code coverage (PCOV in container)"
+	@echo "  test-coverage  Run tests with code coverage and the 100% gate (PCOV in container)"
 	@echo "  cs-check       Check code style (PHP-CS-Fixer)"
 	@echo "  cs-fix         Fix code style"
 	@echo "  rector         Apply Rector refactoring"
@@ -81,6 +81,7 @@ test: install
 test-coverage: install
 	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
 	./.scripts/php-coverage-percent.sh coverage-php.txt
+	$(RUN) php .scripts/check-coverage.php coverage.xml --min-percent=100
 
 cs-check: install
 	$(RUN) composer cs-check
