@@ -13,8 +13,8 @@ use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Collation\CollationChecker;
 use Nowo\MigrationsKitBundle\Collation\CollationMismatch;
 use Nowo\MigrationsKitBundle\Collation\CollationReport;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumn;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumns;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumns;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

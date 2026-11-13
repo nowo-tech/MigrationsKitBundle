@@ -9,7 +9,7 @@ use Doctrine\Persistence\ConnectionRegistry;
 use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyFinding;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyStatus;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;

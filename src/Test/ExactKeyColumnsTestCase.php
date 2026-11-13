@@ -9,9 +9,9 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Tools\DsnParser;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyFinding;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyStatus;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 

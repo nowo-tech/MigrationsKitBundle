@@ -375,7 +375,7 @@ the expected options (`default_table_options` in `doctrine.yaml`).
 
 ## Identity / access-key gate (`nowo:migrations:check-key-collations`)
 
-Since **2.4**. The uniform gate above answers "is everything the same collation?". This one answers a different
+Since **2.5**. The uniform gate above answers "is everything the same collation?". This one answers a different
 question, the one [REQ-SEC-006] asks: **are the columns we compare for equality byte-exact?** A user id, a tenant key,
 a token, a share slug or an API key hash is only ever compared with `=`. It must live in a **binary NO PAD** collation:
 
@@ -398,12 +398,18 @@ forces the collation decision.
 
 ### Declaring columns (bundle authors)
 
-Implement `ExactKeyColumnsInterface` on a small service of the bundle that owns the table. Services implementing it
-are tagged automatically, so a host that installs the bundle registers **nothing**:
+Require `nowo-tech/migrations-kit-contracts` (interfaces and value objects only, no dependencies beyond PHP — a
+declaring bundle does not need this bundle) and implement `ExactKeyColumnsInterface` on a small service of the bundle
+that owns the table. Services implementing it are tagged automatically, so a host that installs the bundle registers
+**nothing**:
+
+```bash
+composer require nowo-tech/migrations-kit-contracts
+```
 
 ```php
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumn;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 
 final readonly class WorkflowExactKeyColumns implements ExactKeyColumnsInterface
 {

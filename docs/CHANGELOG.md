@@ -60,11 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and is accepted, with a warning, only on a server that offers nothing better). Positive list, not a scan: a column
   nobody ever gave a `COLLATE` to takes the server default (`utf8mb4_0900_ai_ci`: case- and accent-insensitive *and*
   PAD SPACE) and produces no grep hit, so only a declaration can catch it.
-  - `ExactKeyColumnsInterface` + `ExactKeyColumn` — a bundle declares its own columns, with the table name **resolved
-    at runtime** (prefixes, host-chosen names) and an optional `$condition` / `$active` for a column that only exists
-    in an opt-in mode. Services implementing it are tagged by autoconfiguration (`ExactKeyColumnsPass`), so a host
-    discovers every installed bundle's declaration with no registration.
-  - `ExactKeyChecker` + `ExactKeyReport` / `ExactKeyFinding` / `ExactKeyStatus` — six outcomes: `ok`, `fallback`,
+  - The declaration itself lives in **`nowo-tech/migrations-kit-contracts`** (`ExactKeyColumnsInterface`,
+    `ExactKeyColumn`, `ExactKeyColumns`, `ExactKeyStatus`; interfaces and value objects, no dependencies beyond PHP),
+    so a declaring bundle requires contracts and **not** this bundle. A bundle declares its own columns with the
+    table name **resolved at runtime** (prefixes, host-chosen names) and an optional `$condition` / `$active` for a
+    column that only exists in an opt-in mode. Services implementing the interface are tagged by autoconfiguration
+    (`ExactKeyColumnsPass`), so a host discovers every installed bundle's declaration with no registration.
+  - `ExactKeyChecker` + `ExactKeyReport` / `ExactKeyFinding` — six outcomes: `ok`, `fallback`,
     `fail`, `missing` (declared and active but absent: a rename or a drop, which fails), `skipped` (the mode that
     creates it is off: not a failure) and `ignored` (host override, which keeps the column visible with its reason).
   - `ExactCollationSupport` — the available NO PAD collations are read from `information_schema.COLLATIONS`, never

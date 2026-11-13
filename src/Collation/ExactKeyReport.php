@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Collation;
 
+use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
+
 use function array_filter;
 use function array_values;
 use function in_array;

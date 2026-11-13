@@ -6,7 +6,6 @@ namespace Nowo\MigrationsKitBundle\DependencyInjection;
 
 use Nowo\MigrationsKitBundle\Collation\CollationChecker;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
 use Nowo\MigrationsKitBundle\Command\CheckCollationsCommand;
 use Nowo\MigrationsKitBundle\Command\CheckKeyCollationsCommand;
 use Nowo\MigrationsKitBundle\DependencyInjection\Compiler\ExactKeyColumnsPass;
@@ -14,6 +13,7 @@ use Nowo\MigrationsKitBundle\Migration\CreateTablesService;
 use Nowo\MigrationsKitBundle\Migration\SchemaChecker;
 use Nowo\MigrationsKitBundle\Versions\GitMigrationFiles;
 use Nowo\MigrationsKitBundle\Versions\MonotonicVersionsChecker;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;

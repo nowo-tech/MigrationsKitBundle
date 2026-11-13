@@ -9,6 +9,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use InvalidArgumentException;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 
 use function count;
 use function explode;

@@ -11,11 +11,11 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Nowo\MigrationsKitBundle\Collation\ExactCollationSupport;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumn;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumns;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyFinding;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyReport;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyStatus;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumns;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

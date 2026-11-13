@@ -22,7 +22,7 @@
     },
     "authors": [
         {
-            "name": "H\u00e9ctor Franco Aceituno",
+            "name": "Héctor Franco Aceituno",
             "email": "hectorfranco@nowo.tech",
             "homepage": "https://github.com/HecFranco",
             "role": "Developer"
@@ -33,11 +33,12 @@
         }
     ],
     "require": {
-        "php": ">=8.2 <8.6",
         "doctrine/dbal": "^3.5 || ^4.0",
         "doctrine/doctrine-bundle": "^2.8 || ^3.0",
         "doctrine/migrations": "^3.5 || ^4.0",
         "doctrine/persistence": "^3.1 || ^4.0",
+        "nowo-tech/migrations-kit-contracts": "^1.0",
+        "php": ">=8.2 <8.6",
         "symfony/config": "^7.4 || ^8.0",
         "symfony/console": "^7.4 || ^8.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",

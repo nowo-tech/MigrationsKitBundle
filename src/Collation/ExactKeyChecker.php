@@ -7,6 +7,9 @@ namespace Nowo\MigrationsKitBundle\Collation;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 
 use function array_keys;
 use function fnmatch;

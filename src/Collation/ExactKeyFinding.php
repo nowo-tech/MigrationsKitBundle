@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Collation;
 
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
+
 use function sprintf;
 
 /**

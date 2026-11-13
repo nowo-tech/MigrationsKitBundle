@@ -23,8 +23,8 @@ The bundle is configured under the root key `nowo_migrations_kit`. **`connection
 | `collation_check.check_database` | `bool` | `false` | Also compare the database default (what a table created without options gets). |
 | `collation_check.ignore_tables` | `list<string>` | `[]` | Table names or `fnmatch()` patterns allowed to differ (their columns too); counted as still to convert. |
 | `collation_check.ignore_columns` | `list<string>` | `[]` | `table.column` names or patterns allowed to differ (e.g. a deliberate `utf8mb4_bin` token column). |
-| `key_collation_check.connection` | `string\|null` | `null` | (2.4) Connection checked by `nowo:migrations:check-key-collations`; `null` = `connection`. |
-| `key_collation_check.ignore_columns` | `map<string, string>` | `{}` | (2.4) `table.column` (or `fnmatch()` pattern) => why the host deliberately put that declared identity column on another collation. The reason is mandatory and the column stays visible in the report as `ignored`. |
+| `key_collation_check.connection` | `string\|null` | `null` | (2.5) Connection checked by `nowo:migrations:check-key-collations`; `null` = `connection`. |
+| `key_collation_check.ignore_columns` | `map<string, string>` | `{}` | (2.5) `table.column` (or `fnmatch()` pattern) => why the host deliberately put that declared identity column on another collation. The reason is mandatory and the column stays visible in the report as `ignored`. |
 | `monotonic_versions.paths` | `list<string>` | `['migrations']` | (2.4) Migrations directories checked by `nowo:migrations:check-versions`, relative to `%kernel.project_dir%`. `--path` overrides it. |
 | `monotonic_versions.base` | `string\|null` | `null` | (2.4) Git ref compared with; `null` = the latest tag reachable from `HEAD`. `--base` overrides it. |
 
