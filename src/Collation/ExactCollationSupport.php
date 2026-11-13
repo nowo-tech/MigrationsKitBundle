@@ -88,11 +88,11 @@ final readonly class ExactCollationSupport
 
         // MySQL 8.0+ / 9.x: PAD_ATTRIBUTE says it outright. Binary collations end in _bin; the "binary" charset is
         // handled separately because it is not a utf8mb4 collation.
-        $names = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE PAD_ATTRIBUTE = 'NO PAD' AND COLLATION_NAME LIKE '%\\_bin'");
+        $names = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE PAD_ATTRIBUTE = 'NO PAD' AND RIGHT(COLLATION_NAME, 4) = '_bin'");
 
         // MySQL 5.7 has no PAD_ATTRIBUTE column (the query errors); MariaDB may not expose it. Fall back to names.
         if ($names === null || $names === []) {
-            $byName = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME IN ('" . implode("','", self::KNOWN_NO_PAD) . "') AND COLLATION_NAME LIKE '%\\_bin'");
+            $byName = self::fetchNames($connection, "SELECT COLLATION_NAME FROM information_schema.COLLATIONS WHERE COLLATION_NAME IN ('" . implode("','", self::KNOWN_NO_PAD) . "') AND RIGHT(COLLATION_NAME, 4) = '_bin'");
 
             // Neither probe could be read: the server was never asked. Answering "degraded" here would accept
             // utf8mb4_bin (binary but PAD SPACE) as the documented fallback on a server that may well offer

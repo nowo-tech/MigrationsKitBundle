@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The collation probes no longer depend on `sql_mode`.** With `NO_BACKSLASH_ESCAPES` in the session, MySQL 8.4
+  read `LIKE '%\\_bin'` literally, both probes returned no row, and the gate took that as "old server": it accepted
+  `utf8mb4_bin` (PAD SPACE) and exited 0 with a wrong "MySQL 5.7" note. The probes now compare
+  `RIGHT(COLLATION_NAME, 4) = '_bin'`, which no `sql_mode` changes (audit PB-M-L1; also present in 2.5.0).
 - **`nowo:migrations:check-key-collations` could report a false all clear on a server it never managed to ask.**
   `ExactCollationSupport` swallowed any error from its two `information_schema.COLLATIONS` probes and returned an
   empty list, which `of([])` reads as "this server has no NO PAD collation" — the MySQL 5.7 / 8.0.0-8.0.16 case. The
