@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 2.5.0](#to-250)
 - [To 2.4.0](#to-240)
 - [To 2.3.0](#to-230)
 - [To 2.2.1](#to-221)
@@ -42,6 +43,14 @@
 - [Upgrading to 1.0.0](#upgrading-to-100)
 
 ## Unreleased
+
+## To 2.5.0
+
+From **2.4.0**:
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
 
 ## To 2.4.0
 
