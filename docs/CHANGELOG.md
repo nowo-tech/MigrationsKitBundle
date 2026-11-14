@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.7.0] - 2026-11-14](#270---2026-11-14)
 - [[2.6.0] - 2026-11-13](#260---2026-11-13)
 - [[2.5.0] - 2026-11-13](#250---2026-11-13)
 - [[2.4.0] - 2026-11-05](#240---2026-11-05)
@@ -46,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [[1.0.0] - 2026-02-20](#100---2026-02-20)
 
 ## [Unreleased]
+
+## [2.7.0] - 2026-11-14
 
 Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, and a changed exit code for a failed
 `--fix`).
@@ -98,6 +101,8 @@ Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, an
   operations (`FaultyStreamWrapper`, no static state). Command: a failed `--fix` exits 2 and moves nothing.
 - `MonotonicVersionsGitTest` used a base migration dated 2026-11-20 with the real clock, so the expected `--fix`
   names would have changed after that date; the fixture now uses 2099.
+
+[2.7.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.7.0
 
 ## [2.6.0] - 2026-11-13
 
