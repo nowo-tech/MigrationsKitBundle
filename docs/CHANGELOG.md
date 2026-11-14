@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.8.0] - 2026-11-14](#280---2026-11-14)
 - [[2.7.0] - 2026-11-14](#270---2026-11-14)
 - [[2.6.0] - 2026-11-13](#260---2026-11-13)
 - [[2.5.0] - 2026-11-13](#250---2026-11-13)
@@ -47,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [[1.0.0] - 2026-02-20](#100---2026-02-20)
 
 ## [Unreleased]
+
+## [2.8.0] - 2026-11-14
 
 Target **2.8.0** (minor: a new `--strict` option on two commands, new exit-code constants and a new exception class;
 the default exit codes do not change).
@@ -150,6 +153,8 @@ the default exit codes do not change).
   copy was created (removed by the rollback), a lock-release error after a successful run, a target with the same
   bytes published by a concurrent run (kept), and `case Old::X:` / `? new Old :` (renamed). `FaultyStreamWrapper`
   gains `throwAt`, `throwAfter` and `recordModes`.
+
+[2.8.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.8.0
 
 ## [2.7.0] - 2026-11-14
 
