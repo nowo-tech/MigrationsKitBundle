@@ -50,7 +50,9 @@ use const STREAM_META_ACCESS;
  * The faults of a root are set with {@see faults()}; without them every operation goes through.
  *
  * Operations: `rename` (matched on the target), `unlink`, `write` (an fopen() that writes), `chmod`. `throwAt` throws a
- * `ValueError` instead of failing; `recordModes` logs the mode of each file while it is written ({@see MODES}).
+ * `ValueError` instead of failing, `throwAfter` throws one after a `rename`, `unlink`, `chmod` or
+ * `write` (open) took effect;
+ * `recordModes` logs the mode of each file while it is written ({@see MODES}).
  *
  * @internal
  */
@@ -90,6 +92,9 @@ final class FaultyStreamWrapper
         }
         $this->handle = @fopen($this->real($path), $mode);
         $this->url    = $path;
+        if ($this->handle !== false && strpbrk($mode, 'waxc+') !== false) {
+            $this->after('write', $path);
+        }
 
         return $this->handle !== false;
     }
@@ -171,7 +176,12 @@ final class FaultyStreamWrapper
 
     public function unlink(string $path): bool
     {
-        return !$this->fails('unlink', $path) && @unlink($this->real($path));
+        if ($this->fails('unlink', $path) || !@unlink($this->real($path))) {
+            return false;
+        }
+        $this->after('unlink', $path);
+
+        return true;
     }
 
     public function rename(string $from, string $to): bool
@@ -221,7 +231,7 @@ final class FaultyStreamWrapper
      * fail when the path ends with one of the suffixes), `after` (simulates someone else writing while --fix runs: after
      * the Nth successful call of an operation, append text to a real file, creating it if needed).
      *
-     * @param array{failAt?: array<string, int>, throwAt?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, recordModes?: bool} $faults
+     * @param array{failAt?: array<string, int>, throwAt?: array<string, int>, throwAfter?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, recordModes?: bool} $faults
      */
     public static function faults(string $root, array $faults): void
     {
@@ -235,6 +245,10 @@ final class FaultyStreamWrapper
             if ($hook['op'] === $operation && $hook['call'] === ($faults['calls'][$operation] ?? 0)) {
                 file_put_contents($hook['file'], $hook['append'], FILE_APPEND);
             }
+        }
+        if (isset($faults['throwAfter'][$operation]) && $faults['throwAfter'][$operation] === ($faults['calls'][$operation] ?? 0)) {
+            // The operation took effect, then an error escapes (PL-L1).
+            throw new ValueError('Injected error after ' . $operation . ' call ' . $faults['calls'][$operation] . '.');
         }
     }
 
@@ -269,7 +283,7 @@ final class FaultyStreamWrapper
     }
 
     /**
-     * @return array{failAt?: array<string, int>, throwAt?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, recordModes?: bool, calls: array<string, int>}
+     * @return array{failAt?: array<string, int>, throwAt?: array<string, int>, throwAfter?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, recordModes?: bool, calls: array<string, int>}
      */
     private function read(string $root): array
     {
@@ -277,7 +291,7 @@ final class FaultyStreamWrapper
         if (!is_file($file)) {
             return ['calls' => []];
         }
-        /** @var array{failAt?: array<string, int>, throwAt?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, recordModes?: bool, calls: array<string, int>} $faults */
+        /** @var array{failAt?: array<string, int>, throwAt?: array<string, int>, throwAfter?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, recordModes?: bool, calls: array<string, int>} $faults */
         $faults = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
 
         return $faults;

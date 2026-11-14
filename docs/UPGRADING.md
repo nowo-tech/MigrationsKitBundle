@@ -63,15 +63,21 @@ Target 2.8.0. No code change is required; the default exit codes are unchanged.
   `--strict` and fails on any non-zero code; one that wants to tell the cases apart reads 1 / 2 / 3 / 4.
 - `fix()` / `fixAll()` now throw `Versions\FixFailedException`, a subclass of `RuntimeException`: existing
   `catch (RuntimeException)` blocks still catch it. Its `$rollbackIncomplete` says whether files need attention.
-- `--fix` now also renames code references to the class (`Version<old>::class`, `new`, types, the fully qualified
-  name in the file's namespace) and accepts a declaration in another case. Comments and strings are still left as
-  written: review them after a rename if they name the old version.
+- `--fix` now also renames code references to the class (`Version<old>::class` and other `::` accesses, `new`,
+  `instanceof`, types, `\<namespace>\Version<old>`, `namespace\Version<old>`) and accepts a declaration in another
+  case. Nothing else is renamed: comments, strings, heredocs (interpolated keys included), `use` imports, members,
+  function names and calls, named arguments. Review those after a rename if they name the old version.
 - `--path=migrations --path=./migrations` is refused up front ("listed more than once"), as a symbolic link to the
   same directory is; nothing is changed either way.
 - `check-versions` prints `EMPTY <path>` for a directory with no migration at all (exit 0 without `--strict`): a
   misspelt `--path` or `monotonic_versions.paths` entry now shows up in the output.
-- A copy written by `--fix` is 0600 while its bytes are written and gets the source's mode afterwards; nothing to do.
-- Known and kept: a hidden `.<Version>.php.<random>.tmp` can remain if the temporary name cannot be removed after
+- On a local directory, the hidden staged copy is now created 0600 by `tempnam()` and named
+  `.<Version>.php.<6 random characters>` (it was `.<Version>.php.<16 hex>.tmp`); a `.gitignore` rule for the old name
+  should be widened (`.Version*.php.*`). Through a stream wrapper the old name and the old 0600-before-the-first-byte
+  behaviour remain. The final file gets the source's mode; nothing to do.
+- A failed `--fix` is undone from what is on disk: a missing source is written back before its renamed copy is
+  removed, so a rollback never deletes the only copy of a migration.
+- Known and kept: a hidden `.<Version>.php.<random>` can remain if the temporary name cannot be removed after
   publishing (delete it; it is never loaded), and on a mount whose `fsync()` fails `--fix` always fails with exit 2
   and changes nothing (run it on a local checkout).
 
