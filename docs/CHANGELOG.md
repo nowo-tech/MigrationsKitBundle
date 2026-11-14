@@ -47,6 +47,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, and a changed exit code for a failed
+`--fix`).
+
+### Fixed
+
+- **`nowo:migrations:check-versions --fix` is now all or nothing across files (audit PB-M-L2).** It renamed the
+  out-of-order migrations one by one, so a failure on the second of three left the first already renamed and the
+  others not, and the failure escaped the command as an uncaught exception: exit **1** (the "out of order" code, not
+  the documented **2**) and no list of what had moved. Every rewritten migration is now written to a temporary file
+  next to its target (same directory, same permissions) and read back before anything moves; only then are the
+  files moved into place and the originals removed. A failure while preparing removes the temporary files and leaves
+  every original byte-identical, with its permissions; a failure while moving puts back the files already moved
+  (the originals are written back from memory). If that rollback itself fails the error says **ROLLBACK
+  INCOMPLETE** and names every file that needs attention; a migration that cannot be restored keeps its renamed
+  copy, so none is ever lost. A source edited while `--fix` runs is not removed (the run is rolled back), and the
+  renamed file keeps the source's permissions and, when the process may set it, its group. Several `--path`
+  directories are one operation.
+  Hardening from audit PF:
+  - **PF-L1:** the class is renamed by tokens (`token_get_all`). A mention of `class Version…` in a comment, a
+    docblock or a string is neither rewritten nor taken for the declaration, so it can no longer rename the file
+    while the real declaration keeps the old name, nor slip past the class / file mismatch guard.
+  - **PF-L2:** a staged copy is published with `link()`, which never replaces a file that already exists; a target
+    created after the plan makes the run roll back. Where hard links are unavailable, the run holds an exclusive lock
+    file (`.nowo-migrations-fix.lock`, removed afterwards) in the directory and checks the target before `rename()`.
+    The rollback only deletes a target that still holds the bytes this run wrote.
+  - **PF-L3:** staged copies are flushed and `fsync`ed before anything is published, and the directory is
+    `fsync`ed after the moves and after the removals where the platform allows it (best effort).
+  - When a source cannot be written back, the error names the partial file to delete. The command reports the failure and
+  exits **2**.
+- **`--fix` no longer renames a migration whose class name differs from its file name (audit PB-M-I5).** The class
+  rewrite did nothing and the file was renamed anyway, which produced the file / class mismatch Doctrine cannot load.
+  Such a migration is now reported and nothing is renamed.
+
+### Added
+
+- `ext-tokenizer` is now a declared requirement (used by `--fix`; built into most PHP builds, a separate package
+  on some distributions such as Alpine).
+- `Versions\MonotonicVersionsChecker::fixAll(list<MonotonicVersionsReport>)`: the all-or-nothing rename over several
+  directories that the command uses; `fix()` is `fixAll([$report])`.
+
+### Tests
+
+- `MonotonicVersionsAtomicFixTest`: a failure on the second of three migrations (unreadable source, refused rename,
+  unremovable source, source edited during the run), a target created after the plan (never overwritten), a rollback
+  that finds a target someone else changed (kept), a directory that cannot be locked, a class name mentioned in a
+  docblock, comment and string (only the declaration renamed) or only in a comment (refused), an unwritable directory, a staged copy that cannot be checked, a failed rollback (restore and
+  removal), a class / file mismatch, the same directory twice, and two directories; every failure asserts the
+  directory listing, contents and permissions are unchanged. Driven through a stream wrapper that fails chosen
+  operations (`FaultyStreamWrapper`, no static state). Command: a failed `--fix` exits 2 and moves nothing.
+- `MonotonicVersionsGitTest` used a base migration dated 2026-11-20 with the real clock, so the expected `--fix`
+  names would have changed after that date; the fixture now uses 2099.
+
 ## [2.6.0] - 2026-11-13
 
 ### Fixed

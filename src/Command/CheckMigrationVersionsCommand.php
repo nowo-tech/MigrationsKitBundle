@@ -40,8 +40,8 @@ use function sprintf;
           <info>php %command.full_name% --fix</info>                   rename the offending (new) migrations after the newest one
 
         Exit 0 when every added migration sorts after the base (or there is no tag yet), 1 on any out-of-order migration,
-        2 when git or the base ref cannot be read. --fix renames only migrations added since the base (file and class
-        name): run it before they are pushed or applied anywhere.
+        2 when git or the base ref cannot be read or --fix cannot rename. --fix renames only migrations added since the
+        base (file and class name), all or nothing: run it before they are pushed or applied anywhere.
         HELP,
 )]
 final class CheckMigrationVersionsCommand extends Command
@@ -81,15 +81,14 @@ final class CheckMigrationVersionsCommand extends Command
         }
 
         $failed = 0;
+        $toFix  = [];
         foreach ($reports as $report) {
             if ($report->isValid()) {
                 $io->writeln(sprintf('<info>OK</info> %s: %d migration(s) added since %s, all after %s.', $report->path, count($report->added), $report->base, $report->baseMax ?? '(none)'));
                 continue;
             }
             if ($input->getOption('fix') === true) {
-                foreach ($this->checker->fix($report) as $old => $new) {
-                    $io->writeln(sprintf('<comment>Renamed</comment> %s/%s → %s', $report->path, $old, $new));
-                }
+                $toFix[] = $report;
                 continue;
             }
             ++$failed;
@@ -101,6 +100,21 @@ final class CheckMigrationVersionsCommand extends Command
                 $report->base,
                 implode("\n  ", $report->violations),
             ));
+        }
+        if ($toFix !== []) {
+            // One all-or-nothing operation over every directory (PB-M-L2): a failure renames nothing.
+            try {
+                $renamed = $this->checker->fixAll($toFix);
+            } catch (RuntimeException $e) {
+                $io->error($e->getMessage());
+
+                return self::EXIT_MISCONFIGURED;
+            }
+            foreach ($toFix as $index => $report) {
+                foreach ($renamed[$index] as $old => $new) {
+                    $io->writeln(sprintf('<comment>Renamed</comment> %s/%s → %s', $report->path, $old, $new));
+                }
+            }
         }
 
         return $failed === 0 ? Command::SUCCESS : Command::FAILURE;

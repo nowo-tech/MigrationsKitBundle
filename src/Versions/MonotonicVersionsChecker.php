@@ -8,13 +8,45 @@ use DateTimeImmutable;
 use Nowo\MigrationsKitBundle\Test\MonotonicMigrationVersionsTrait;
 use RuntimeException;
 
+use function array_column;
+use function array_unique;
+use function basename;
+use function bin2hex;
+use function chgrp;
+use function chmod;
+use function count;
+use function fclose;
+use function fflush;
+use function file_exists;
 use function file_get_contents;
-use function file_put_contents;
+use function filegroup;
+use function fileperms;
+use function flock;
+use function fopen;
+use function fsync;
+use function fwrite;
+use function implode;
+use function in_array;
+use function is_array;
 use function is_file;
-use function preg_quote;
-use function preg_replace;
+use function link;
+use function random_bytes;
 use function rename;
 use function sprintf;
+use function stream_get_meta_data;
+use function strlen;
+use function token_get_all;
+use function unlink;
+
+use const LOCK_EX;
+use const LOCK_NB;
+use const LOCK_UN;
+use const T_CLASS;
+use const T_COMMENT;
+use const T_DOC_COMMENT;
+use const T_DOUBLE_COLON;
+use const T_STRING;
+use const T_WHITESPACE;
 
 /**
  * Monotonic migration versions (2.4, KIT-75): every migration added since a base ref (default: the latest tag) must
@@ -66,39 +98,249 @@ final readonly class MonotonicVersionsChecker
      * Renames each out-of-order migration of a report (file and class name) to the next version after every other one.
      * Only migrations added since the base are touched: run it before they are pushed or applied anywhere.
      *
-     * @throws RuntimeException when a file cannot be read or renamed
+     * All or nothing, like {@see fixAll()}.
+     *
+     * @throws RuntimeException when the migrations cannot be renamed; nothing was changed unless the message says
+     *                          "ROLLBACK INCOMPLETE"
      *
      * @return array<string, string> old version => new version
      */
     public function fix(MonotonicVersionsReport $report, DateTimeImmutable $now = new DateTimeImmutable()): array
     {
-        $dir      = $this->files->absolute($report->path);
-        $existing = $this->files->current($report->path);
-        if ($report->baseMax !== null) {
-            $existing[] = $report->baseMax;
-        }
-        $renamed = [];
-        foreach ($report->violations as $old) {
-            $new        = MigrationVersions::next($existing, $now);
-            $existing[] = $new;
-            $from       = $dir . '/' . $old . '.php';
-            $to         = $dir . '/' . $new . '.php';
-            $code       = is_file($from) ? file_get_contents($from) : false;
-            if ($code === false || is_file($to)) {
-                throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s".', $from, $to));
-            }
-            $renamedCode = (string) preg_replace('/\bclass\s+' . preg_quote($old, '/') . '\b/', 'class ' . $new, $code, 1);
-            if (file_put_contents($from, $renamedCode) === false || !rename($from, $to)) {
-                // The class was rewritten in place before the rename. If the rename did not happen, the file still
-                // carries the old name and a class Doctrine cannot match to it, which is a migration the host can no
-                // longer load. Put the original bytes back before reporting, so a failed --fix changes nothing.
-                file_put_contents($from, $code);
+        return $this->fixAll([$report], $now)[0];
+    }
 
-                throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s".', $from, $to));
+    /**
+     * Renames the out-of-order migrations of several reports as one all-or-nothing operation (PB-M-L2).
+     *
+     * 1. Plan: read every migration, rewrite its class name in memory and refuse anything that would not produce a
+     *    loadable migration (unreadable source, taken target, no `class <Version>` declaration, a file listed twice).
+     * 2. Stage: write every rewritten migration to a temporary file next to its target, with the source's permissions,
+     *    and read it back.
+     * 3. Commit: move every temporary file to its target, then remove every source.
+     *
+     * Nothing is touched before every file is staged. A failure while staging removes the temporary files; a failure
+     * while committing removes the targets already in place and writes back, from memory, the sources already
+     * removed. If that rollback itself fails, the message says "ROLLBACK INCOMPLETE" and lists every file that needs
+     * attention; a source that cannot be restored keeps its renamed copy, so no migration is ever lost.
+     *
+     * @param list<MonotonicVersionsReport> $reports
+     *
+     * @throws RuntimeException when the migrations cannot be renamed; nothing was changed unless the message says
+     *                          "ROLLBACK INCOMPLETE"
+     *
+     * @return list<array<string, string>> per report, in order: old version => new version
+     */
+    public function fixAll(array $reports, DateTimeImmutable $now = new DateTimeImmutable()): array
+    {
+        $plan    = [];
+        $renamed = [];
+        $seen    = [];
+        foreach ($reports as $report) {
+            $map      = [];
+            $dir      = $this->files->absolute($report->path);
+            $existing = $this->files->current($report->path);
+            if ($report->baseMax !== null) {
+                $existing[] = $report->baseMax;
             }
-            $renamed[$old] = $new;
+            foreach ($report->violations as $old) {
+                $new        = MigrationVersions::next($existing, $now);
+                $existing[] = $new;
+                $from       = $dir . '/' . $old . '.php';
+                $to         = $dir . '/' . $new . '.php';
+                if (isset($seen[$from]) || isset($seen[$to])) {
+                    throw new RuntimeException(sprintf('Cannot rename migration "%s": it is listed more than once (the same directory given twice?). Nothing was changed.', $from));
+                }
+                $seen[$from] = $seen[$to] = true;
+                $code        = is_file($from) ? @file_get_contents($from) : false;
+                $perms       = $code === false ? false : @fileperms($from);
+                if ($code === false || $perms === false || file_exists($to)) {
+                    throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s". Nothing was changed.', $from, $to));
+                }
+                $rewritten = $this->renameClass($code, $old, $new);
+                if ($rewritten === null) {
+                    throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s": it does not declare "class %s", so its file and class names would no longer match. Nothing was changed.', $from, $to, $old));
+                }
+                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'group' => @filegroup($from), 'temp' => null];
+                $map[$old] = $new;
+            }
+            $renamed[] = $map;
+        }
+
+        foreach ($plan as $k => $step) {
+            $temp   = $step['dir'] . '/.' . basename($step['to']) . '.' . bin2hex(random_bytes(8)) . '.tmp';
+            $handle = @fopen($temp, 'x');
+            if ($handle !== false) {
+                fclose($handle);
+                $plan[$k]['temp'] = $temp;
+            }
+            if ($handle === false || !$this->write($temp, $step['rewritten'], $step['perms'], $step['group'])) {
+                throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": the renamed copy could not be written and checked in "%s".', $step['from'], $step['to'], $step['dir']), $plan, 0, 0);
+            }
+        }
+
+        $locks = [];
+        try {
+            foreach ($plan as $k => $step) {
+                $problem = $this->publish($step, $locks);
+                if ($problem !== null) {
+                    throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": %s.', $step['from'], $step['to'], $problem), $plan, $k, 0);
+                }
+            }
+            $this->syncDirectories($plan);
+
+            foreach ($plan as $k => $step) {
+                // A source edited since it was read is not removed: its new bytes would be lost.
+                if (@file_get_contents($step['from']) !== $step['code'] || !@unlink($step['from'])) {
+                    throw $this->failure(sprintf('Cannot remove migration "%s" after writing it as "%s" (it could not be removed, or it changed since --fix read it).', $step['from'], $step['to']), $plan, count($plan), $k);
+                }
+            }
+            $this->syncDirectories($plan);
+        } finally {
+            foreach ($locks as $lockFile => $lock) {
+                @unlink($lockFile);
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
         }
 
         return $renamed;
+    }
+
+    /**
+     * Moves a staged copy to its target without ever replacing a file that is already there (PF-L2).
+     *
+     * link() fails when the target exists, so it publishes atomically and never overwrites. Where hard links are not
+     * available (some mounts, stream wrappers), the fallback holds an exclusive lock file in the directory for the
+     * rest of the run (one per directory, taken on first use) and checks the target before rename(): that excludes a
+     * concurrent --fix, not an editor writing the same name in the same instant.
+     *
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null} $step
+     * @param array<string, resource> $locks lock file => handle, kept until the end of the run
+     *
+     * @return string|null why it failed; null when the target is in place
+     */
+    private function publish(array $step, array &$locks): ?string
+    {
+        $temp = (string) $step['temp'];
+        if (@link($temp, $step['to'])) {
+            @unlink($temp);
+
+            return null;
+        }
+        if (file_exists($step['to'])) {
+            return 'the target already exists (created after --fix planned the rename); it was not replaced';
+        }
+        $lockFile = $step['dir'] . '/.nowo-migrations-fix.lock';
+        if (!isset($locks[$lockFile])) {
+            $lock = @fopen($lockFile, 'c');
+            if ($lock === false || !@flock($lock, LOCK_EX | LOCK_NB)) {
+                return 'the directory could not be locked (another --fix running?)';
+            }
+            $locks[$lockFile] = $lock;
+        }
+
+        return file_exists($step['to']) || !@rename($temp, $step['to']) ? 'the staged copy could not be moved into place' : null;
+    }
+
+    /**
+     * Best effort: flushes the directory entries (new names, removed names) to disk where the platform allows it.
+     *
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
+     */
+    private function syncDirectories(array $plan): void
+    {
+        foreach (array_unique(array_column($plan, 'dir')) as $dir) {
+            $handle = @fopen($dir, 'r');
+            if ($handle !== false) {
+                @fsync($handle);
+                fclose($handle);
+            }
+        }
+    }
+
+    /**
+     * Renames the class declared as `class <old>` to `<new>`, by tokens: a mention of the name in a comment, a
+     * docblock or a string is neither renamed nor taken for the declaration (PF-L1).
+     *
+     * @return string|null null when the code has no such declaration, or more than one
+     */
+    private function renameClass(string $code, string $old, string $new): ?string
+    {
+        $out      = '';
+        $found    = 0;
+        $previous = null;
+        $expect   = false;
+        foreach (token_get_all($code) as $token) {
+            [$id, $text] = is_array($token) ? $token : [null, $token];
+            if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                $out .= $text;
+                continue;
+            }
+            if ($expect && $id === T_STRING && $text === $old) {
+                $text = $new;
+                ++$found;
+            }
+            // `class Name` declares; `Name::class` and `new class` do not.
+            $expect   = $id === T_CLASS && $previous !== T_DOUBLE_COLON;
+            $previous = $id;
+            $out .= $text;
+        }
+
+        return $found === 1 ? $out : null;
+    }
+
+    /**
+     * Undoes a partial commit and builds the exception that reports it.
+     *
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
+     * @param int $placed steps whose target is in place
+     * @param int $removed steps whose source was removed
+     */
+    private function failure(string $message, array $plan, int $placed, int $removed): RuntimeException
+    {
+        $problems = [];
+        foreach ($plan as $k => $step) {
+            if ($k < $removed && !$this->write($step['from'], $step['code'], $step['perms'], $step['group'])) {
+                // The renamed copy is now the only copy of this migration: keep it.
+                $problems[] = sprintf('"%s" could not be restored (if a partial "%s" exists, delete it); its content is in "%s" with the class renamed', $step['from'], basename($step['from']), $step['to']);
+                continue;
+            }
+            if ($k < $placed && @file_get_contents($step['to']) !== $step['rewritten']) {
+                // Not the file this run wrote any more: someone else's, never deleted.
+                $problems[] = sprintf('"%s" changed after --fix wrote it and was not removed: compare it with "%s"', $step['to'], $step['from']);
+            } elseif ($k < $placed && !@unlink($step['to'])) {
+                $problems[] = sprintf('"%s" could not be removed and duplicates "%s": delete it before running the migrations', $step['to'], $step['from']);
+            }
+            if ($k >= $placed && $step['temp'] !== null && !@unlink($step['temp'])) {
+                $problems[] = sprintf('temporary file "%s" could not be removed', $step['temp']);
+            }
+        }
+        if ($problems !== []) {
+            return new RuntimeException($message . " ROLLBACK INCOMPLETE:\n  " . implode("\n  ", $problems));
+        }
+
+        return new RuntimeException($message . ($placed > 0 ? sprintf(' Nothing was changed: the %d migration(s) already moved were moved back.', $placed) : ' Nothing was changed.'));
+    }
+
+    /**
+     * Writes a file with the given permissions and reads it back: true only for a faithful copy. The group of the
+     * source is kept when the process may set it (best effort: an unprivileged process may not own that group).
+     */
+    private function write(string $path, string $contents, int $perms, false|int $group): bool
+    {
+        $handle = @fopen($path, 'w');
+        if ($handle === false) {
+            return false;
+        }
+        $written = @fwrite($handle, $contents);
+        // Durable before anything is published (PF-L3). A stream that cannot fsync (not a plain file) is accepted.
+        $synced = @fflush($handle) && (@fsync($handle) || stream_get_meta_data($handle)['wrapper_type'] !== 'plainfile');
+        fclose($handle);
+        if ($group !== false) {
+            @chgrp($path, $group);
+        }
+
+        return $synced && $written === strlen($contents) && @chmod($path, $perms) && @file_get_contents($path) === $contents;
     }
 }

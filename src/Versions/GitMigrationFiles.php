@@ -66,7 +66,7 @@ readonly class GitMigrationFiles
             return [];
         }
 
-        return self::versions(scandir($dir) ?: []);
+        return $this->versions(scandir($dir) ?: []);
     }
 
     /**
@@ -88,7 +88,7 @@ readonly class GitMigrationFiles
             throw new RuntimeException(sprintf('git ls-tree failed for "%s" at "%s": %s', $path, $ref, trim($error)));
         }
 
-        return self::versions(array_map('basename', array_values(array_filter(explode("\n", $out), static fn (string $line): bool => $line !== ''))));
+        return $this->versions(array_map(basename(...), array_values(array_filter(explode("\n", $out), static fn (string $line): bool => $line !== ''))));
     }
 
     /**
@@ -104,7 +104,7 @@ readonly class GitMigrationFiles
      *
      * @return list<string>
      */
-    private static function versions(array $files): array
+    private function versions(array $files): array
     {
         $versions = [];
         foreach ($files as $file) {

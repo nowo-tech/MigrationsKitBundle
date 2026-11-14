@@ -45,6 +45,28 @@
 
 ## Unreleased
 
+Target 2.7.0. No code change is required.
+
+- `nowo:migrations:check-versions --fix` that cannot finish now exits **2** (it used to end with an uncaught
+  exception, exit **1**, the same code as "out-of-order migration") and renames nothing, unless its own rollback
+  fails: the error then says **ROLLBACK INCOMPLETE** and lists the files to look at (a migration that could not be
+  written back keeps its renamed copy). A CI step that treated
+  exit 1 of `--fix` as a failure still fails; one that tells the two codes apart now sees the documented 2.
+- `--fix` refuses a migration whose class name differs from its file name instead of renaming the file alone.
+- `--fix` over several `--path` directories is one operation: a failure in one directory renames nothing in the
+  others (same rollback caveat). The "Renamed" lines are printed after every directory is done.
+- The renamed file keeps the source's permissions, and its group when the process may set it; the owner is the user
+  running the command. A source edited while `--fix` runs is not removed: the run is rolled back instead.
+- A migration that is a symbolic link becomes a regular file under the new name (the link is not kept and its
+  target file is left as it was).
+- `--fix` publishes with hard links. On a filesystem without them it takes a lock file,
+  `.nowo-migrations-fix.lock`, in the migrations directory for the run and removes it afterwards; a second `--fix`
+  on the same directory at the same time then fails (exit 2) instead of racing.
+- `ext-tokenizer` is now required. It ships with most PHP builds; on Alpine install `php8x-tokenizer`.
+- While it runs, `--fix` writes hidden temporary files (`.<Version>.php.<random>.tmp`) next to the migrations; they
+  are removed on success and on failure. A process killed mid-run can leave one behind: it is not a migration, delete
+  it.
+
 ## To 2.6.0
 
 From **2.5.0**:

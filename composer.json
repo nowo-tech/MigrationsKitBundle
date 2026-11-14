@@ -36,6 +36,7 @@
         "doctrine/dbal": "^3.5 || ^4.0",
         "doctrine/doctrine-bundle": "^2.8 || ^3.0",
         "doctrine/migrations": "^3.5 || ^4.0",
+        "ext-tokenizer": "*",
         "doctrine/persistence": "^3.1 || ^4.0",
         "nowo-tech/migrations-kit-contracts": "^1.0",
         "php": ">=8.2 <8.6",

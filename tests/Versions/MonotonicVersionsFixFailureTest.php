@@ -23,6 +23,8 @@ use function strlen;
 use function sys_get_temp_dir;
 use function uniqid;
 
+use const STREAM_META_ACCESS;
+
 /**
  * `--fix` on a migrations directory whose filesystem refuses the rename: a read-only mount, a full disk, a container
  * volume that only allows writes. The rename cannot be made to fail from a test on a normal filesystem, so the
@@ -177,6 +179,24 @@ final class FailingRenameStreamWrapper
         $this->cursor  = 0;
 
         return true;
+    }
+
+    public function stream_metadata(string $path, int $option, mixed $value): bool
+    {
+        return $option === STREAM_META_ACCESS && @chmod($this->real($path), (int) $value);
+    }
+
+    /**
+     * @param int<0, 7> $operation
+     */
+    public function stream_lock(int $operation): bool
+    {
+        return $this->handle !== false && flock($this->handle, $operation);
+    }
+
+    public function unlink(string $path): bool
+    {
+        return @unlink($this->real($path));
     }
 
     /**
