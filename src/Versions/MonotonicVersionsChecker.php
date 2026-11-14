@@ -7,6 +7,7 @@ namespace Nowo\MigrationsKitBundle\Versions;
 use DateTimeImmutable;
 use Nowo\MigrationsKitBundle\Test\MonotonicMigrationVersionsTrait;
 use RuntimeException;
+use Throwable;
 
 use function array_column;
 use function array_unique;
@@ -14,7 +15,9 @@ use function basename;
 use function bin2hex;
 use function chgrp;
 use function chmod;
+use function clearstatcache;
 use function count;
+use function dirname;
 use function fclose;
 use function fflush;
 use function file_exists;
@@ -31,21 +34,39 @@ use function is_array;
 use function is_file;
 use function link;
 use function random_bytes;
+use function realpath;
 use function rename;
 use function sprintf;
+use function stat;
+use function strcasecmp;
 use function stream_get_meta_data;
 use function strlen;
+use function tempnam;
 use function token_get_all;
 use function unlink;
 
 use const LOCK_EX;
 use const LOCK_NB;
 use const LOCK_UN;
+use const T_CASE;
 use const T_CLASS;
 use const T_COMMENT;
+use const T_CONST;
 use const T_DOC_COMMENT;
 use const T_DOUBLE_COLON;
+use const T_END_HEREDOC;
+use const T_FUNCTION;
+use const T_GOTO;
+use const T_NAME_FULLY_QUALIFIED;
+use const T_NAME_QUALIFIED;
+use const T_NAME_RELATIVE;
+use const T_NAMESPACE;
+use const T_NEW;
+use const T_NULLSAFE_OBJECT_OPERATOR;
+use const T_OBJECT_OPERATOR;
+use const T_START_HEREDOC;
 use const T_STRING;
+use const T_USE;
 use const T_WHITESPACE;
 
 /**
@@ -58,6 +79,11 @@ use const T_WHITESPACE;
  */
 final readonly class MonotonicVersionsChecker
 {
+    /**
+     * Tokens after which a name is a member, a function or a constant, not a class reference.
+     */
+    private const NOT_A_CLASS_NAME = [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_CONST, T_GOTO];
+
     /**
      * @param list<string> $paths migrations directories, relative to the project or absolute
      */
@@ -100,8 +126,9 @@ final readonly class MonotonicVersionsChecker
      *
      * All or nothing, like {@see fixAll()}.
      *
-     * @throws RuntimeException when the migrations cannot be renamed; nothing was changed unless the message says
-     *                          "ROLLBACK INCOMPLETE"
+     * @throws FixFailedException when the migrations cannot be renamed; nothing was changed unless
+     *                            {@see FixFailedException::$rollbackIncomplete} is true (the message then says
+     *                            "ROLLBACK INCOMPLETE")
      *
      * @return array<string, string> old version => new version
      */
@@ -120,14 +147,17 @@ final readonly class MonotonicVersionsChecker
      * 3. Commit: move every temporary file to its target, then remove every source.
      *
      * Nothing is touched before every file is staged. A failure while staging removes the temporary files; a failure
-     * while committing removes the targets already in place and writes back, from memory, the sources already
-     * removed. If that rollback itself fails, the message says "ROLLBACK INCOMPLETE" and lists every file that needs
-     * attention; a source that cannot be restored keeps its renamed copy, so no migration is ever lost.
+     * while committing is undone from what is on disk: every missing source is written back from memory first, then
+     * every target that still holds the bytes this run wrote is removed. If that rollback itself fails, the message says "ROLLBACK INCOMPLETE" and lists every file that needs
+     * attention; a source that cannot be restored keeps its renamed copy, so no migration is ever lost. Since 2.8 an
+     * unexpected error (not a reported failure, e.g. an `Error` thrown by a stream wrapper) is rolled back the same way
+     * and reported as a {@see FixFailedException} with that error as its previous exception.
      *
      * @param list<MonotonicVersionsReport> $reports
      *
-     * @throws RuntimeException when the migrations cannot be renamed; nothing was changed unless the message says
-     *                          "ROLLBACK INCOMPLETE"
+     * @throws FixFailedException when the migrations cannot be renamed; nothing was changed unless
+     *                            {@see FixFailedException::$rollbackIncomplete} is true (the message then says
+     *                            "ROLLBACK INCOMPLETE")
      *
      * @return list<array<string, string>> per report, in order: old version => new version
      */
@@ -135,10 +165,79 @@ final readonly class MonotonicVersionsChecker
     {
         $plan    = [];
         $renamed = [];
+        $locks   = [];
+        $started = 0;
+        try {
+            [$plan, $renamed] = $this->plan($reports, $now);
+
+            foreach ($plan as $k => $step) {
+                // Recorded in the plan as soon as the file exists, even if an error escapes right after (PL-I1).
+                $temp = $this->createOwnerOnly($step['dir'], basename($step['to']), $plan[$k]['temp']);
+                if ($temp === null || !$this->write($temp, $step['rewritten'], $step['perms'], $step['group'])) {
+                    throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": the renamed copy could not be written and checked in "%s".', $step['from'], $step['to'], $step['dir']), $plan, 0);
+                }
+                // The file itself, not its bytes, is what this run publishes: link() and rename() keep the inode
+                // (PL-D1-M1). Another run that wrote the same bytes to the same name owns a different file.
+                $plan[$k]['id'] = $this->identity($temp);
+            }
+
+            foreach ($plan as $k => $step) {
+                // Counted before the call: an error thrown after the move took effect still lets the rollback check it.
+                $started = $k + 1;
+                $problem = $this->publish($step, $locks);
+                if ($problem !== null) {
+                    throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": %s.', $step['from'], $step['to'], $problem), $plan, $k);
+                }
+            }
+            $this->syncDirectories($plan);
+
+            foreach ($plan as $step) {
+                // A source edited since it was read is not removed: its new bytes would be lost.
+                if (@file_get_contents($step['from']) !== $step['code'] || !@unlink($step['from'])) {
+                    throw $this->failure(sprintf('Cannot remove migration "%s" after writing it as "%s" (it could not be removed, or it changed since --fix read it).', $step['from'], $step['to']), $plan, count($plan));
+                }
+            }
+            $this->syncDirectories($plan);
+        } catch (FixFailedException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            // Anything else (PF-I6: an Error, a Random\RandomException) is rolled back like a reported failure. The
+            // rollback reads the disk, so an operation that took effect before it threw is undone too (PL-L1).
+            throw $this->failure(sprintf('Cannot rename the migrations: unexpected %s: %s.', $e::class, $e->getMessage()), $plan, $started, $e);
+        } finally {
+            foreach ($locks as $lockFile => $lock) {
+                try {
+                    @unlink($lockFile);
+                    flock($lock, LOCK_UN);
+                    fclose($lock);
+                } catch (Throwable) {
+                    // Best effort (PL-I2): a lock file left behind does not block the next run, and the renames are done.
+                }
+            }
+        }
+
+        return $renamed;
+    }
+
+    /**
+     * Plans every rename in memory; nothing on disk is touched.
+     *
+     * @param list<MonotonicVersionsReport> $reports
+     *
+     * @throws FixFailedException when a migration cannot be renamed
+     *
+     * @return array{0: list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null}>, 1: list<array<string, string>>}
+     */
+    private function plan(array $reports, DateTimeImmutable $now): array
+    {
+        $plan    = [];
+        $renamed = [];
         $seen    = [];
         foreach ($reports as $report) {
-            $map      = [];
-            $dir      = $this->files->absolute($report->path);
+            $map = [];
+            $dir = $this->files->absolute($report->path);
+            // The same directory spelled differently (`migrations`, `./migrations`, a symlink) is one key (PF-I2).
+            $key      = (@realpath($dir) ?: $dir) . '/';
             $existing = $this->files->current($report->path);
             if ($report->baseMax !== null) {
                 $existing[] = $report->baseMax;
@@ -148,63 +247,26 @@ final readonly class MonotonicVersionsChecker
                 $existing[] = $new;
                 $from       = $dir . '/' . $old . '.php';
                 $to         = $dir . '/' . $new . '.php';
-                if (isset($seen[$from]) || isset($seen[$to])) {
-                    throw new RuntimeException(sprintf('Cannot rename migration "%s": it is listed more than once (the same directory given twice?). Nothing was changed.', $from));
+                if (isset($seen[$key . $old]) || isset($seen[$key . $new])) {
+                    throw new FixFailedException(sprintf('Cannot rename migration "%s": it is listed more than once (the same directory given twice?). Nothing was changed.', $from));
                 }
-                $seen[$from] = $seen[$to] = true;
-                $code        = is_file($from) ? @file_get_contents($from) : false;
-                $perms       = $code === false ? false : @fileperms($from);
+                $seen[$key . $old] = $seen[$key . $new] = true;
+                $code              = is_file($from) ? @file_get_contents($from) : false;
+                $perms             = $code === false ? false : @fileperms($from);
                 if ($code === false || $perms === false || file_exists($to)) {
-                    throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s". Nothing was changed.', $from, $to));
+                    throw new FixFailedException(sprintf('Cannot rename migration "%s" to "%s". Nothing was changed.', $from, $to));
                 }
                 $rewritten = $this->renameClass($code, $old, $new);
                 if ($rewritten === null) {
-                    throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s": it does not declare "class %s", so its file and class names would no longer match. Nothing was changed.', $from, $to, $old));
+                    throw new FixFailedException(sprintf('Cannot rename migration "%s" to "%s": it does not declare "class %s", so its file and class names would no longer match. Nothing was changed.', $from, $to, $old));
                 }
-                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'group' => @filegroup($from), 'temp' => null];
+                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'group' => @filegroup($from), 'temp' => null, 'id' => null];
                 $map[$old] = $new;
             }
             $renamed[] = $map;
         }
 
-        foreach ($plan as $k => $step) {
-            $temp   = $step['dir'] . '/.' . basename($step['to']) . '.' . bin2hex(random_bytes(8)) . '.tmp';
-            $handle = @fopen($temp, 'x');
-            if ($handle !== false) {
-                fclose($handle);
-                $plan[$k]['temp'] = $temp;
-            }
-            if ($handle === false || !$this->write($temp, $step['rewritten'], $step['perms'], $step['group'])) {
-                throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": the renamed copy could not be written and checked in "%s".', $step['from'], $step['to'], $step['dir']), $plan, 0, 0);
-            }
-        }
-
-        $locks = [];
-        try {
-            foreach ($plan as $k => $step) {
-                $problem = $this->publish($step, $locks);
-                if ($problem !== null) {
-                    throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": %s.', $step['from'], $step['to'], $problem), $plan, $k, 0);
-                }
-            }
-            $this->syncDirectories($plan);
-
-            foreach ($plan as $k => $step) {
-                // A source edited since it was read is not removed: its new bytes would be lost.
-                if (@file_get_contents($step['from']) !== $step['code'] || !@unlink($step['from'])) {
-                    throw $this->failure(sprintf('Cannot remove migration "%s" after writing it as "%s" (it could not be removed, or it changed since --fix read it).', $step['from'], $step['to']), $plan, count($plan), $k);
-                }
-            }
-            $this->syncDirectories($plan);
-        } finally {
-            foreach ($locks as $lockFile => $lock) {
-                @unlink($lockFile);
-                flock($lock, LOCK_UN);
-                fclose($lock);
-            }
-        }
-
-        return $renamed;
+        return [$plan, $renamed];
     }
 
     /**
@@ -215,7 +277,7 @@ final readonly class MonotonicVersionsChecker
      * rest of the run (one per directory, taken on first use) and checks the target before rename(): that excludes a
      * concurrent --fix, not an editor writing the same name in the same instant.
      *
-     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null} $step
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null} $step
      * @param array<string, resource> $locks lock file => handle, kept until the end of the run
      *
      * @return string|null why it failed; null when the target is in place
@@ -246,7 +308,7 @@ final readonly class MonotonicVersionsChecker
     /**
      * Best effort: flushes the directory entries (new names, removed names) to disk where the platform allows it.
      *
-     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null}> $plan
      */
     private function syncDirectories(array $plan): void
     {
@@ -263,27 +325,58 @@ final readonly class MonotonicVersionsChecker
      * Renames the class declared as `class <old>` to `<new>`, by tokens: a mention of the name in a comment, a
      * docblock or a string is neither renamed nor taken for the declaration (PF-L1).
      *
+     * Since 2.8 the code references to the class are renamed too (PF-I1): `<old>::class` and other `<old>::` accesses,
+     * `new <old>`, `instanceof <old>`, a type, and `\<namespace>\<old>` / `namespace\<old>`. Class names are matched
+     * case-insensitively, like PHP does (PF-I10). Never renamed (PL-L2): anything inside a string or heredoc (including
+     * interpolated keys), `use` imports, members and constants (`->`, `?->`, `::`, `const`, `case <old>` but not
+     * `case <old>::X`), function names and calls (`function <old>`, `function &<old>`, `<old>(`), named arguments and
+     * labels (`f(<old>: 1)`, `<old>:`; a ternary `? new <old> :` is a reference).
+     *
      * @return string|null null when the code has no such declaration, or more than one
      */
     private function renameClass(string $code, string $old, string $new): ?string
     {
-        $out      = '';
-        $found    = 0;
-        $previous = null;
-        $expect   = false;
+        $tokens = [];
         foreach (token_get_all($code) as $token) {
-            [$id, $text] = is_array($token) ? $token : [null, $token];
+            $tokens[] = is_array($token) ? [$token[0], $token[1]] : [null, $token];
+        }
+        $out       = '';
+        $found     = 0;
+        $previous  = [null, null];
+        $namespace = '';
+        $inString  = false;
+        $inUse     = false;
+        foreach ($tokens as $i => [$id, $text]) {
             if (in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
                 $out .= $text;
                 continue;
             }
-            if ($expect && $id === T_STRING && $text === $old) {
-                $text = $new;
-                ++$found;
+            if (in_array($text, ['"', 'b"', 'B"', '`'], true) || $id === T_START_HEREDOC || $id === T_END_HEREDOC) {
+                // `b"` opens a binary-prefixed interpolated string (PL-D1-I2); it closes with a plain `"`.
+                $inString = $id === null ? !$inString : $id === T_START_HEREDOC;
+            } elseif ($inString) {
+                // Interpolated text: never code to rename.
+            } elseif ($id === T_USE) {
+                // An import (`use A\B;`, `use A\{B as C};`), not a closure's `use (...)`: it ends at its `;`.
+                $inUse = $this->next($tokens, $i) !== '(';
+            } elseif ($inUse) {
+                $inUse = $text !== ';';
+            } elseif ($previous[0] === T_NAMESPACE && in_array($id, [T_STRING, T_NAME_QUALIFIED], true)) {
+                $namespace = $text;
+            } elseif ($id === T_STRING && strcasecmp($text, $old) === 0) {
+                // `class Name` declares; `Name::class` and `new class` do not.
+                if ($previous[0] === T_CLASS && $previous[1] !== T_DOUBLE_COLON) {
+                    $text = $new;
+                    ++$found;
+                } elseif ($this->isClassReference($previous, $this->next($tokens, $i))) {
+                    $text = $new;
+                }
+            } elseif ($id === T_NAME_FULLY_QUALIFIED && strcasecmp($text, $this->qualified($namespace, $old)) === 0) {
+                $text = $this->qualified($namespace, $new);
+            } elseif ($id === T_NAME_RELATIVE && strcasecmp($text, 'namespace\\' . $old) === 0) {
+                $text = 'namespace\\' . $new;
             }
-            // `class Name` declares; `Name::class` and `new class` do not.
-            $expect   = $id === T_CLASS && $previous !== T_DOUBLE_COLON;
-            $previous = $id;
+            $previous = [$id ?? $text, $previous[0]];
             $out .= $text;
         }
 
@@ -291,36 +384,185 @@ final readonly class MonotonicVersionsChecker
     }
 
     /**
-     * Undoes a partial commit and builds the exception that reports it.
+     * Whether a bare name between these tokens refers to a class.
      *
-     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
-     * @param int $placed steps whose target is in place
-     * @param int $removed steps whose source was removed
+     * @param array{0: int|string|null, 1: int|string|null} $previous the two significant tokens before it (id, or text)
+     * @param string|null $next the significant token after it (text)
      */
-    private function failure(string $message, array $plan, int $placed, int $removed): RuntimeException
+    private function isClassReference(array $previous, ?string $next): bool
+    {
+        if (in_array($previous[0], self::NOT_A_CLASS_NAME, true) || ($previous[0] === '&' && $previous[1] === T_FUNCTION)) {
+            return false;
+        }
+        if ($previous[0] === T_CASE) {
+            // `case Name::X:` refers to the class; `case Name:` / `case Name;` / `case Name = 1;` do not.
+            return $next === '::';
+        }
+        // `f(Name: 1)` is a named argument and `Name:` at the start of a statement a label; `? new Name :` is a class.
+        if ($next === ':' && in_array($previous[0], ['(', ',', ';', '{', '}'], true)) {
+            return false;
+        }
+
+        // `Name(` without `new` is a function call.
+        return $next !== '(' || $previous[0] === T_NEW;
+    }
+
+    /**
+     * Text of the next significant token after position `$i`.
+     *
+     * @param list<array{0: int|null, 1: string}> $tokens
+     */
+    private function next(array $tokens, int $i): ?string
+    {
+        $j = $i + 1;
+        while (isset($tokens[$j]) && in_array($tokens[$j][0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+            ++$j;
+        }
+
+        return $tokens[$j][1] ?? null;
+    }
+
+    /**
+     * Fully qualified name of a class of the file's namespace.
+     */
+    private function qualified(string $namespace, string $class): string
+    {
+        return '\\' . ($namespace === '' ? '' : $namespace . '\\') . $class;
+    }
+
+    /**
+     * Undoes a partial run and builds the exception that reports it. Each step is undone from what is on disk, not from
+     * how far the run got (PL-L1): a missing source is written back first, and a target is removed only once its source
+     * is back.
+     *
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null}> $plan
+     * @param int $started steps whose target may have been moved into place (a target that changed since is reported)
+     * @param Throwable|null $previous the unexpected error that stopped the run, if any
+     */
+    private function failure(string $message, array $plan, int $started, ?Throwable $previous = null): FixFailedException
     {
         $problems = [];
+        $moved    = 0;
         foreach ($plan as $k => $step) {
-            if ($k < $removed && !$this->write($step['from'], $step['code'], $step['perms'], $step['group'])) {
-                // The renamed copy is now the only copy of this migration: keep it.
-                $problems[] = sprintf('"%s" could not be restored (if a partial "%s" exists, delete it); its content is in "%s" with the class renamed', $step['from'], basename($step['from']), $step['to']);
-                continue;
-            }
-            if ($k < $placed && @file_get_contents($step['to']) !== $step['rewritten']) {
-                // Not the file this run wrote any more: someone else's, never deleted.
-                $problems[] = sprintf('"%s" changed after --fix wrote it and was not removed: compare it with "%s"', $step['to'], $step['from']);
-            } elseif ($k < $placed && !@unlink($step['to'])) {
-                $problems[] = sprintf('"%s" could not be removed and duplicates "%s": delete it before running the migrations', $step['to'], $step['from']);
-            }
-            if ($k >= $placed && $step['temp'] !== null && !@unlink($step['temp'])) {
-                $problems[] = sprintf('temporary file "%s" could not be removed', $step['temp']);
+            try {
+                [$undone, $stepProblems] = $this->undo($step, $k < $started);
+                $moved += $undone ? 1 : 0;
+                $problems = [...$problems, ...$stepProblems];
+            } catch (Throwable $e) {
+                // One step that throws must not skip the others: report it and go on.
+                $problems[] = sprintf('undoing "%s" -> "%s" failed (%s: %s): check both files, and any hidden ".%s.*" or ".%s.*" temporary file, by hand', $step['from'], $step['to'], $e::class, $e->getMessage(), basename($step['to']), basename($step['from']));
             }
         }
         if ($problems !== []) {
-            return new RuntimeException($message . " ROLLBACK INCOMPLETE:\n  " . implode("\n  ", $problems));
+            return new FixFailedException($message . " ROLLBACK INCOMPLETE:\n  " . implode("\n  ", $problems), true, $previous);
         }
 
-        return new RuntimeException($message . ($placed > 0 ? sprintf(' Nothing was changed: the %d migration(s) already moved were moved back.', $placed) : ' Nothing was changed.'));
+        return new FixFailedException($message . ($moved > 0 ? sprintf(' Nothing was changed: the %d migration(s) already moved were moved back.', $moved) : ' Nothing was changed.'), false, $previous);
+    }
+
+    /**
+     * Undoes one step of the plan from the state of the disk.
+     *
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null} $step
+     * @param bool $started whether this run may have moved its target into place
+     *
+     * @return array{0: bool, 1: list<string>} whether a moved target was taken back, and what could not be undone
+     */
+    private function undo(array $step, bool $started): array
+    {
+        $problems = [];
+        if ($step['temp'] !== null && file_exists($step['temp']) && !@unlink($step['temp'])) {
+            $problems[] = sprintf('temporary file "%s" could not be removed', $step['temp']);
+        }
+        // Ours only if it is the very file this run staged (same device and inode) and still holds its bytes: a file
+        // with the same bytes but another inode was published by someone else (a concurrent --fix) and is kept.
+        $ours = $step['id'] !== null && $this->identity($step['to']) === $step['id'] && @file_get_contents($step['to']) === $step['rewritten'];
+        if (!file_exists($step['from']) && !$this->restore($step)) {
+            // The renamed copy may now be the only copy of this migration: it is kept.
+            $problems[] = sprintf('"%s" could not be restored; %s', $step['from'], sprintf($ours ? 'its content is in "%s" with the class renamed' : 'its renamed copy "%s" is missing or changed since --fix wrote it: compare or recreate it by hand', $step['to']));
+
+            return [false, $problems];
+        }
+        if ($ours && !@unlink($step['to'])) {
+            $problems[] = sprintf('"%s" could not be removed and duplicates "%s": delete it before running the migrations', $step['to'], $step['from']);
+        } elseif (!$ours && $started && file_exists($step['to'])) {
+            // Not the file this run wrote any more: someone else's, never deleted.
+            $problems[] = sprintf('"%s" changed after --fix wrote it and was not removed: compare it with "%s"', $step['to'], $step['from']);
+        }
+
+        return [$ours && $problems === [], $problems];
+    }
+
+    /**
+     * Device and inode of a file, or null when unknown (missing file, or a platform without inode numbers).
+     */
+    private function identity(string $path): ?string
+    {
+        clearstatcache(true, $path);
+        $stat = @stat($path);
+
+        return $stat === false || $stat['ino'] === 0 ? null : $stat['dev'] . ':' . $stat['ino'];
+    }
+
+    /**
+     * Writes a removed source back from memory without ever replacing a file: staged owner-only next to it, checked,
+     * then published like a renamed copy (PL-L3: the bytes are never readable through a wider mode).
+     *
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null} $step
+     */
+    private function restore(array $step): bool
+    {
+        $temp = $this->createOwnerOnly($step['dir'], basename($step['from']), $created);
+        if ($temp === null) {
+            return false;
+        }
+        if ($this->write($temp, $step['code'], $step['perms'], $step['group'])) {
+            if (@link($temp, $step['from'])) {
+                @unlink($temp);
+
+                return true;
+            }
+            if (!file_exists($step['from']) && @rename($temp, $step['from'])) {
+                return true;
+            }
+        }
+        @unlink($temp);
+
+        return false;
+    }
+
+    /**
+     * Creates an empty hidden file next to `<name>` that is owner-only from the start (PL-L3).
+     *
+     * On a local directory, tempnam() creates it with mode 0600 whatever the umask, so no other user can ever open it.
+     * Where tempnam() cannot work in that directory (a stream wrapper; it then falls back to the system temporary
+     * directory, which is refused here), the file is created with fopen('x') and set to 0600 by {@see write()} before
+     * its first byte: no byte is stored while it is wider, but a reader that opened it empty in that instant keeps its
+     * handle.
+     *
+     * @param string|null $created set to the path as soon as the file exists (null while it does not)
+     *
+     * @return string|null null when no file could be created in the directory
+     */
+    private function createOwnerOnly(string $dir, string $name, ?string &$created): ?string
+    {
+        $path = @tempnam($dir, '.' . $name . '.');
+        if ($path !== false && dirname($path) === (@realpath($dir) ?: $dir)) {
+            return $created = $path;
+        }
+        if ($path !== false) {
+            @unlink($path);
+        }
+        // Set before the call: an error thrown after fopen() created it must still let the caller remove it.
+        $created = $dir . '/.' . $name . '.' . bin2hex(random_bytes(8)) . '.tmp';
+        $handle  = @fopen($created, 'x');
+        if ($handle === false) {
+            // Not created (it may even be someone else's file of that name): never removed by this run.
+            return $created = null;
+        }
+        fclose($handle);
+
+        return $created;
     }
 
     /**
@@ -331,6 +573,13 @@ final readonly class MonotonicVersionsChecker
     {
         $handle = @fopen($path, 'w');
         if ($handle === false) {
+            return false;
+        }
+        // Owner-only before any byte is written (PF-I4): a new file starts with the umask's mode, often 0644, and must
+        // not expose a 0600 migration while it is being written. The final mode is set (and checked) below.
+        if (!@chmod($path, 0o600)) {
+            fclose($handle);
+
             return false;
         }
         $written = @fwrite($handle, $contents);

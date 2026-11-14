@@ -48,6 +48,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Target **2.8.0** (minor: a new `--strict` option on two commands, new exit-code constants and a new exception class;
+the default exit codes do not change).
+
+### Added
+
+- **`--strict` on `nowo:migrations:check-key-collations` and `nowo:migrations:check-versions` (audits PB-M-I1,
+  PF-I5).** Without it, "nothing was checked" and "everything checked and fine" both exit **0**, and a `--fix` that
+  changed nothing and one whose rollback was incomplete both exit **2**: a CI step that reads only the exit code could
+  not tell them apart. With `--strict`:
+  - `check-key-collations` exits **3** (`CheckKeyCollationsCommand::EXIT_NOTHING_CHECKED`) when no column was actually
+    verified: a platform without the notion (PostgreSQL, SQLite), no declaration from any installed bundle, or every
+    declared column skipped (mode off) or ignored by the host.
+  - `check-versions` exits **3** (`CheckMigrationVersionsCommand::EXIT_NOTHING_CHECKED`) when nothing was compared (no
+    base ref, or a directory with no migration at the base nor in the working tree), and **4**
+    (`CheckMigrationVersionsCommand::EXIT_ROLLBACK_INCOMPLETE`) when `--fix` failed and its rollback was incomplete.
+  - A failure (**1**) and an unreadable database / git / failed `--fix` that changed nothing (**2**) keep their codes
+    and take precedence over **3**.
+- `Versions\FixFailedException` (extends `RuntimeException`): what `fix()` / `fixAll()` throw, with
+  `$rollbackIncomplete` telling "nothing was changed" apart from "ROLLBACK INCOMPLETE" without parsing the message.
+
+### Fixed
+
+- **An unexpected error during `--fix` is rolled back (audit PF-I6).** Only the failures `fixAll()` reports itself
+  were rolled back; any other throwable (an `Error`, a `Random\RandomException`, an exception from a stream wrapper)
+  escaped with the staged copies, moved targets or removed sources left as they were, and the command exited **1**.
+  It is now rolled back like any other failure and reported as a `FixFailedException` (exit **2**, or **4** with
+  `--strict` if the rollback is incomplete) whose previous exception is the original error. A step of the rollback
+  that throws no longer skips the steps after it: it is listed under ROLLBACK INCOMPLETE and the rest is undone.
+- **The rollback works from what is on disk, not from how far the run got (audit PL-L1).** An operation that took
+  effect and then threw (possible through a stream wrapper) was not counted, so the rollback could delete a renamed
+  copy whose source was already gone (the migration was lost) or leave a duplicate, and still say "Nothing was
+  changed". Each step is now undone from the disk: a missing source is written back first (staged owner-only, then
+  linked into place without replacing anything), a target is removed only once its source is back and only if it is
+  the very file this run staged (same device and inode, which `link()` and `rename()` keep) and still holds its
+  bytes, and the "moved back" count is what was actually taken back. A file with the same name and the same bytes
+  published by another run (two `--fix` at once plan the same target) is never removed (delta audit PL-D1-M1). A
+  source that cannot be written back keeps its renamed copy, and the message says where the content is.
+- **A failure to release the lock file after a successful run is no longer reported as a failure (audit PL-I2).**
+  On a filesystem without hard links, an error from removing `.nowo-migrations-fix.lock` escaped after every rename
+  was done (exit 1, no "Renamed" lines). It is ignored now: the lock file left behind does not block the next run.
+- **`--fix` renames the code references to the class with its declaration (audit PF-I1).** `Version<old>::class`,
+  `new Version<old>`, `instanceof`, a type, `\<namespace>\Version<old>` and `namespace\Version<old>` used to keep the
+  old name, so the renamed migration referred to a class that no longer existed. Only those class-reference positions
+  are renamed (audit PL-L2): anything inside a string (`b"…"` too), a heredoc or a backtick command (interpolated
+  keys included),
+  `use` imports (also group imports of another namespace), members and constants (`->`, `?->`, `::`, `const`,
+  `case Version<old>`, while `case Version<old>::X` is a reference), function names and calls (`function
+  Version<old>`, `function &Version<old>`, `Version<old>(`), named arguments and labels (`f(Version<old>: 1)`,
+  `Version<old>:`; `$b ? new Version<old> : null` is a reference), and comments and docblocks are left as written.
+- **`--fix` accepts a declaration written in another case (audit PF-I10).** PHP class names are case-insensitive, so
+  `class version2026…` in `Version2026….php` declares the file's class; it was refused, and is now renamed (to the
+  usual `Version…` spelling). References are matched the same way.
+- **The same directory spelled twice is reported as such (audit PF-I2).** `--path=migrations --path=./migrations` (or
+  a symbolic link to the directory) is now refused up front with "listed more than once" instead of a generic
+  failure while publishing; as before, nothing is changed.
+- **A staged copy is owner-only from its creation (audits PF-I4, PL-L3).** It was created with the umask's mode (often
+  0644) and then filled, so a 0600 migration was briefly readable by others, and a reader that opened the file in
+  that window kept its handle. On a local directory the staged copy (and a source written back by a rollback) is now
+  created by `tempnam()`, which makes it 0600 whatever the umask, then filled, then given the source's mode. Its
+  hidden name is therefore `.<Version>.php.<6 random characters>` instead of `.<Version>.php.<16 hex>.tmp`. Where
+  `tempnam()` cannot create the file in that directory (a stream wrapper), the file is created with the umask's mode
+  and set to 0600 before its first byte: no byte is stored while it is wider, but a reader that opened it empty in
+  that instant keeps its handle. If that `chmod` fails, the copy is not written and nothing is changed.
+
+### Changed
+
+- `check-key-collations` prints "No declared column was verified: every one is skipped (mode off) or ignored by
+  host." under the OK line when that is the case (exit code unchanged without `--strict`).
+- `check-versions` reports a directory with no migration at the base nor in the working tree as
+  `EMPTY <path>: … (is the path right?)` instead of an `OK` line with 0 migrations (exit code unchanged without
+  `--strict`).
+- `composer.json` `require` is in Composer's `sort-packages` order (`php`, `ext-tokenizer`, then packages) (audit
+  PF-I9); no constraint changed.
+
+### Not changed (audit PF, by design)
+
+- **PF-I7:** if `link()` publishes a copy but the temporary name cannot be removed afterwards, a hidden
+  `.<Version>.php.<random>` (a second name of the new migration) stays behind. It is not loadable as a migration
+  (no `.php` suffix) and safe to delete; reporting it would change `fixAll()`'s return type, so it is documented
+  instead.
+- **PF-I8:** on a filesystem whose `fsync()` fails for plain files (some FUSE mounts), every `--fix` fails with exit
+  **2** and changes nothing. Durability before publishing is the point of PF-L3, so this fail-safe stays; run
+  `--fix` on a local checkout.
+- **PL-I1 (lock file only):** an error thrown by a stream wrapper right after it created `.nowo-migrations-fix.lock`
+  (before `--fix` holds it) leaves that file behind; it is never loaded and does not block the next run. The same case
+  for a staged copy is fixed: its name is recorded before it is created, so the rollback removes it.
+
+### Tests
+
+- `CheckKeyCollationsCommandTest` and `CheckMigrationVersionsStrictTest`: every strict code and its precedence, and
+  the default codes unchanged.
+- `MonotonicVersionsAtomicFixTest`: code references renamed (and members, functions, constants, other namespaces,
+  strings left), a reference in the global namespace, a lower-case declaration, the same directory as `migrations`
+  and `./migrations`, the mode of each staged copy while it is written, and an unexpected error while staging,
+  publishing and removing (rolled back) or whose rollback fails (`rollbackIncomplete`); audit PL: an error after a
+  move or a removal took effect (rolled back from the disk, nothing lost), a removed source that cannot be written
+  back (its renamed copy kept and named), a real-filesystem restore (mode kept, nothing left), each name that is not a
+  class reference (group `use`, interpolated keys in a string, heredoc and backticks, named argument, `function &`,
+  function call, `case`) and `namespace\Old`, a staged copy created 0600 under umask 0, an error right after a staged
+  copy was created (removed by the rollback), a lock-release error after a successful run, a target with the same
+  bytes published by a concurrent run (kept), and `case Old::X:` / `? new Old :` (renamed). `FaultyStreamWrapper`
+  gains `throwAt`, `throwAfter` and `recordModes`.
+
 ## [2.7.0] - 2026-11-14
 
 Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, and a changed exit code for a failed

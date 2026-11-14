@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [To 2.8.0](#to-280)
 - [To 2.7.0](#to-270)
 - [To 2.6.0](#to-260)
 - [To 2.5.0](#to-250)
@@ -45,6 +46,41 @@
 - [Upgrading to 1.0.0](#upgrading-to-100)
 
 ## Unreleased
+
+### To 2.8.0
+
+From **2.7.0**:
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
+
+Target 2.8.0. No code change is required; the default exit codes are unchanged.
+
+- New opt-in `--strict` on `nowo:migrations:check-key-collations` and `nowo:migrations:check-versions`: **3** when
+  nothing was checked (no declared column verified; no base ref or a directory without any migration), and, for
+  `check-versions --fix`, **4** when the rollback is incomplete. A CI step that wants "nothing checked" to be red adds
+  `--strict` and fails on any non-zero code; one that wants to tell the cases apart reads 1 / 2 / 3 / 4.
+- `fix()` / `fixAll()` now throw `Versions\FixFailedException`, a subclass of `RuntimeException`: existing
+  `catch (RuntimeException)` blocks still catch it. Its `$rollbackIncomplete` says whether files need attention.
+- `--fix` now also renames code references to the class (`Version<old>::class` and other `::` accesses, `new`,
+  `instanceof`, types, `\<namespace>\Version<old>`, `namespace\Version<old>`) and accepts a declaration in another
+  case. Nothing else is renamed: comments, strings, heredocs (interpolated keys included), `use` imports, members,
+  function names and calls, named arguments. Review those after a rename if they name the old version.
+- `--path=migrations --path=./migrations` is refused up front ("listed more than once"), as a symbolic link to the
+  same directory is; nothing is changed either way.
+- `check-versions` prints `EMPTY <path>` for a directory with no migration at all (exit 0 without `--strict`): a
+  misspelt `--path` or `monotonic_versions.paths` entry now shows up in the output.
+- On a local directory, the hidden staged copy is now created 0600 by `tempnam()` and named
+  `.<Version>.php.<6 random characters>` (it was `.<Version>.php.<16 hex>.tmp`); a `.gitignore` rule for the old name
+  should be widened (`.Version*.php.*`). Through a stream wrapper the old name and the old 0600-before-the-first-byte
+  behaviour remain. The final file gets the source's mode; nothing to do.
+- A failed `--fix` is undone from what is on disk: a missing source is written back before its renamed copy is
+  removed, and only the file this run staged (same inode) is ever removed — a file with the same name and bytes
+  published by a concurrent `--fix` is kept. If a source cannot be written back, its renamed copy is kept.
+- Known and kept: a hidden `.<Version>.php.<random>` can remain if the temporary name cannot be removed after
+  publishing (delete it; it is never loaded), and on a mount whose `fsync()` fails `--fix` always fails with exit 2
+  and changes nothing (run it on a local checkout).
 
 ## To 2.7.0
 

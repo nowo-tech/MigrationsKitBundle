@@ -471,6 +471,7 @@ In an application, the command asserts every installed bundle's declaration agai
 ```bash
 php bin/console nowo:migrations:check-key-collations
 php bin/console nowo:migrations:check-key-collations -v     # also lists the passing and skipped columns
+php bin/console nowo:migrations:check-key-collations --strict  # exit 3 when no column was actually verified
 ```
 
 ```text
@@ -491,6 +492,17 @@ FAIL: 1 declared identity / access-key column(s) are not binary NO PAD on mysql 
   so a host never restates them in `collation_check.ignore_columns` and the two gates cannot drift apart.
 - **Exit codes**: `0` nothing failed, or the platform has no such notion (PostgreSQL, SQLite: `SKIP`); `1` at least
   one failure; `2` the database cannot be read.
+- **`--strict`** (since 2.8): a run that verified **no** column exits **3** (`CheckKeyCollationsCommand::EXIT_NOTHING_CHECKED`)
+  instead of 0 — the platform has no such notion, no installed bundle declares a column, or every declared column is
+  `skipped` (mode off) or `ignored` by the host. A run with at least one `ok` or `fallback` column and no failure
+  still exits 0; `1` and `2` keep their meaning and win over `3`. Use it where "nothing checked" must not read as green:
+
+  | Code | Without `--strict` | With `--strict` |
+  |------|--------------------|-----------------|
+  | 0 | nothing failed (including nothing checked) | at least one column verified, nothing failed |
+  | 1 | at least one failure | same |
+  | 2 | database cannot be read | same |
+  | 3 | — | nothing was verified |
 
 ```yaml
 # .github/workflows/ci.yml (fragment, MySQL service)
@@ -515,18 +527,48 @@ php bin/console nowo:migrations:check-versions                  # latest tag, co
 php bin/console nowo:migrations:check-versions --base=origin/main
 php bin/console nowo:migrations:check-versions --path=migrations --path=migrations/tenant
 php bin/console nowo:migrations:check-versions --fix            # rename the new out-of-order migrations
+php bin/console nowo:migrations:check-versions --strict         # exit 3 when nothing was compared, 4 on ROLLBACK INCOMPLETE
 ```
 
 Exit **0** when every added migration sorts after the base (or there is no tag yet), **1** on an out-of-order
 migration, **2** when git or the base ref cannot be read, or when `--fix` cannot finish (it then renames nothing, unless the
 error says **ROLLBACK INCOMPLETE**).
+
+With **`--strict`** (since 2.8) the cases that share a code are told apart; the default codes do not change:
+
+| Code | Without `--strict` | With `--strict` |
+|------|--------------------|-----------------|
+| 0 | every added migration sorts after the base, or there is nothing to compare | every directory compared, all in order (or `--fix` renamed them all) |
+| 1 | an out-of-order migration (without `--fix`) | same |
+| 2 | git / the base ref cannot be read, or `--fix` failed and **nothing was changed** | same |
+| 3 | — | nothing compared: no base ref (no tag, no `--base`), or a directory with no migration at the base nor in the working tree (printed as `EMPTY <path>`: a misspelt path?) |
+| 4 | — (2) | `--fix` failed and its rollback is **incomplete**: the error says ROLLBACK INCOMPLETE and lists the files to look at |
+
+`1` and `2` win over `3`. In PHP, `fix()` / `fixAll()` throw `Versions\FixFailedException` (a `RuntimeException`);
+its `$rollbackIncomplete` is the same distinction as 2 / 4.
+
 `--fix` is the safe generator step: right after
 `make:migration` / `doctrine:migrations:generate`, it renames each **new** out-of-order migration (file and class name)
 to the next version after every existing one (`now`, or the newest version + 1 second when that is in the future). It
 never touches migrations of the base ref; do not run it on migrations already applied somewhere. It is all or nothing
 across files and directories: every renamed copy is written next to its target and checked first, and any failure
-leaves every original byte-identical (an incomplete rollback is reported as such, with the files to look at). It
+leaves every original byte-identical (an incomplete rollback is reported as such, with the files to look at; a source
+that cannot be written back keeps its renamed copy, and the rollback removes only the files this run itself staged,
+never one with the same name and bytes that a concurrent run published). It
 never overwrites an existing file, and a migration that is a symbolic link becomes a regular file.
+
+What `--fix` rewrites inside a migration: the class declaration (matched case-insensitively, like PHP) and, since
+2.8, the code references to that class — `Version<old>::class` and other `::` accesses, `new Version<old>`,
+`instanceof`, a type, `\<namespace>\Version<old>` and `namespace\Version<old>`. Nothing else is renamed: comments,
+docblocks, strings, heredocs and backtick commands (interpolated keys included), `use` imports, members and constants
+(`->`, `::`, `const`, `case <old>`; `case <old>::X` is renamed), function names and calls, named arguments and
+labels. On a local directory each
+staged copy is created owner-only (0600, by `tempnam()`) and gets the source's mode once complete; through a stream
+wrapper it is set to 0600 before its first byte. An unexpected error during the run is rolled back from what is on
+disk, like any other failure. Two cases are left as they are on purpose: a hidden `.<Version>.php.<random>` can
+remain if its name cannot be removed after the copy was
+published (it is never loaded; delete it), and on a mount whose `fsync()` fails (some FUSE mounts) `--fix` always
+fails with exit 2 and changes nothing — run it on a local checkout.
 
 ```yaml
 nowo_migrations_kit:

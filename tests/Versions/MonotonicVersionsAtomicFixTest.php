@@ -4,17 +4,26 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Tests\Versions;
 
+use Closure;
 use DateTimeImmutable;
+use Nowo\MigrationsKitBundle\Versions\FixFailedException;
 use Nowo\MigrationsKitBundle\Versions\GitMigrationFiles;
 use Nowo\MigrationsKitBundle\Versions\MonotonicVersionsChecker;
 use Nowo\MigrationsKitBundle\Versions\MonotonicVersionsReport;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use RuntimeException;
+use ValueError;
 
+use function array_diff;
 use function array_keys;
+use function array_values;
+use function basename;
 use function chmod;
 use function clearstatcache;
+use function dirname;
 use function escapeshellarg;
 use function exec;
 use function file_get_contents;
@@ -30,7 +39,9 @@ use function sprintf;
 use function stream_wrapper_register;
 use function stream_wrapper_unregister;
 use function substr;
+use function substr_count;
 use function sys_get_temp_dir;
+use function umask;
 use function uniqid;
 
 /**
@@ -42,6 +53,7 @@ use function uniqid;
  * Version20261120170001..170003.
  */
 #[CoversClass(MonotonicVersionsChecker::class)]
+#[CoversClass(FixFailedException::class)]
 final class MonotonicVersionsAtomicFixTest extends TestCase
 {
     private const NEW = ['Version20261105090000', 'Version20261105091000', 'Version20261105092000'];
@@ -111,7 +123,8 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         try {
             $this->checker(true)->fix($this->report(), $this->now());
             self::fail('A refused rename must be reported.');
-        } catch (RuntimeException $e) {
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete);
             self::assertStringContainsString('Cannot rename migration', $e->getMessage());
             self::assertStringContainsString('Version20261105091000.php', $e->getMessage());
             self::assertStringContainsString('Version20261120170002.php', $e->getMessage());
@@ -147,7 +160,7 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
     public function testAStagedFileThatCannotBeCheckedChangesNothing(): void
     {
         // The temporary file is written but its permissions cannot be set: it is not a faithful copy, nothing moves.
-        FaultyStreamWrapper::faults($this->root, ['failAt' => ['chmod' => 2]]);
+        FaultyStreamWrapper::faults($this->root, ['failAt' => ['chmod' => 4]]);
         $before = $this->snapshot();
 
         try {
@@ -163,7 +176,7 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
 
     public function testATemporaryFileThatCannotBeRemovedIsReported(): void
     {
-        FaultyStreamWrapper::faults($this->root, ['failAt' => ['chmod' => 2], 'failOn' => ['unlink' => ['.tmp']]]);
+        FaultyStreamWrapper::faults($this->root, ['failAt' => ['chmod' => 4], 'failOn' => ['unlink' => ['.tmp']]]);
 
         try {
             $this->checker(true)->fix($this->report(), $this->now());
@@ -213,7 +226,7 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
     {
         // PF-L2: someone creates the second target after it was planned (here: right after the last copy is staged).
         $foreign = $this->dir . '/Version20261120170002.php';
-        FaultyStreamWrapper::faults($this->root, ['after' => [['op' => 'chmod', 'call' => 3, 'file' => $foreign, 'append' => 'foreign']]]);
+        FaultyStreamWrapper::faults($this->root, ['after' => [['op' => 'chmod', 'call' => 6, 'file' => $foreign, 'append' => 'foreign']]]);
         $before = $this->snapshot();
 
         try {
@@ -262,7 +275,8 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         try {
             $this->checker(true)->fix($this->report(), $this->now());
             self::fail('The failure must be reported.');
-        } catch (RuntimeException $e) {
+        } catch (FixFailedException $e) {
+            self::assertTrue($e->rollbackIncomplete);
             self::assertStringContainsString('ROLLBACK INCOMPLETE', $e->getMessage());
             self::assertStringContainsString('Version20261120170001.php" changed after --fix wrote it', $e->getMessage());
         }
@@ -308,6 +322,8 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         self::assertStringContainsString('// class Version20261105090000 was generated', $code);
         self::assertStringContainsString("# class Version20261105090000\n", $code);
         self::assertStringContainsString("'class Version20261105090000'", $code);
+        // PF-I1: the code reference to the class follows the rename; the text mentions above do not.
+        self::assertStringContainsString(' . Version20261120170001::class;', $code);
     }
 
     public function testAMentionInACommentDoesNotBypassTheMismatchGuard(): void
@@ -328,7 +344,7 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
 
     public function testARestoreThatFailsKeepsTheRenamedCopyAndSaysSo(): void
     {
-        FaultyStreamWrapper::faults($this->root, ['failOn' => ['unlink' => ['Version20261105091000.php'], 'write' => ['/Version20261105090000.php']]]);
+        FaultyStreamWrapper::faults($this->root, ['failOn' => ['unlink' => ['Version20261105091000.php'], 'rename' => ['/Version20261105090000.php']]]);
 
         try {
             $this->checker(true)->fix($this->report(), $this->now());
@@ -414,6 +430,518 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         self::assertSame(['Version20261120170001.php', 'Version20261120170002.php', 'Version20261120170003.php'], array_keys($this->snapshot()));
     }
 
+    public function testCodeReferencesToTheClassAreRenamedWithIt(): void
+    {
+        // PF-I1: a migration that names its own class in code keeps loading after the rename. Members, functions and
+        // constants that merely share the name, and every text, are left alone.
+        $file = $this->dir . '/Version20261105090000.php';
+        file_put_contents($file, <<<'PHP'
+            <?php
+
+            namespace DoctrineMigrations;
+
+            final class Version20261105090000 extends \Doctrine\Migrations\AbstractMigration
+            {
+                public const Version20261105090000 = 'const';
+
+                public function getDescription(): string
+                {
+                    return Version20261105090000::class . \DoctrineMigrations\Version20261105090000::class . \Other\Version20261105090000::class
+                        . $this->Version20261105090000 . $this?->Version20261105090000 . self::Version20261105090000
+                        . "Version20261105090000";
+                }
+
+                public function copy(): Version20261105090000|false
+                {
+                    return new Version20261105090000($this->connection, $this->logger) instanceof version20261105090000 ? false : false;
+                }
+
+                public function Version20261105090000(): void
+                {
+                }
+            }
+
+            PHP);
+
+        $this->checker()->fix($this->report(), $this->now());
+
+        $code = (string) file_get_contents($this->dir . '/Version20261120170001.php');
+        self::assertStringContainsString('final class Version20261120170001 extends', $code);
+        self::assertStringContainsString('return Version20261120170001::class . \\DoctrineMigrations\\Version20261120170001::class . \\Other\\Version20261105090000::class', $code);
+        self::assertStringContainsString('. $this->Version20261105090000 . $this?->Version20261105090000 . self::Version20261105090000', $code);
+        self::assertStringContainsString('. "Version20261105090000";', $code);
+        self::assertStringContainsString('public const Version20261105090000 = ', $code);
+        self::assertStringContainsString('public function copy(): Version20261120170001|false', $code);
+        self::assertStringContainsString('return new Version20261120170001($this->connection, $this->logger) instanceof Version20261120170001 ?', $code);
+        self::assertStringContainsString('public function Version20261105090000(): void', $code);
+    }
+
+    public function testNamesThatAreNotReferencesToTheClassAreLeftAlone(): void
+    {
+        // PL-L2: a group import of another namespace, interpolated keys in a string and a heredoc, a named argument,
+        // a by-reference method, a function call, a closure's `use`, an enum-style `case`; `namespace\Old` is a
+        // reference (PL-I4) and is renamed.
+        $file = $this->dir . '/Version20261105090000.php';
+        file_put_contents($file, <<<'PHP'
+            <?php
+
+            namespace DoctrineMigrations;
+
+            use Tenant\{Version20261105090000 as TenantV};
+            use Other\Version20261105090000 as OtherV;
+
+            final class Version20261105090000 extends \Doctrine\Migrations\AbstractMigration
+            {
+                public function texts(array $m): string
+                {
+                    $f = function () use ($m) { return new Version20261105090000($this->connection, $this->logger); };
+
+                    return "x $m[Version20261105090000] y" . b"x $m[Version20261105090000]" . <<<SQL
+                        -- $m[Version20261105090000]
+                        SQL . `echo $m[Version20261105090000]` . g(Version20261105090000: 1) . Version20261105090000()
+                        . namespace\Version20261105090000::class;
+                }
+
+                public function &Version20261105090000(): array
+                {
+                    static $a = [];
+
+                    return $a;
+                }
+
+                public function kind(int $k): int
+                {
+                    switch ($k) {
+                        case Version20261105090000:
+                            return 1;
+                    }
+
+                    return 0;
+                }
+            }
+
+            PHP);
+
+        $this->checker()->fix($this->report(), $this->now());
+
+        $code = (string) file_get_contents($this->dir . '/Version20261120170001.php');
+        self::assertStringContainsString('final class Version20261120170001 extends', $code);
+        self::assertStringContainsString('use Tenant\{Version20261105090000 as TenantV};', $code);
+        self::assertStringContainsString('use Other\Version20261105090000 as OtherV;', $code);
+        self::assertStringContainsString('use ($m) { return new Version20261120170001($this->connection', $code);
+        self::assertStringContainsString('"x $m[Version20261105090000] y" . b"x $m[Version20261105090000]"', $code);
+        self::assertStringContainsString('-- $m[Version20261105090000]', $code);
+        self::assertStringContainsString('`echo $m[Version20261105090000]`', $code);
+        self::assertStringContainsString('g(Version20261105090000: 1) . Version20261105090000()', $code);
+        self::assertStringContainsString('. namespace\Version20261120170001::class;', $code);
+        self::assertStringContainsString('public function &Version20261105090000(): array', $code);
+        self::assertStringContainsString('case Version20261105090000:', $code);
+    }
+
+    public function testATernaryAndASwitchCaseOnAClassConstantAreReferences(): void
+    {
+        // PL-D1-I3: `? new Old :` is not a named argument, and `case Old::X:` is not a `case Old:` constant.
+        file_put_contents($this->dir . '/Version20261105090000.php', <<<'PHP'
+            <?php
+
+            namespace DoctrineMigrations;
+
+            final class Version20261105090000 extends \Doctrine\Migrations\AbstractMigration
+            {
+                public const X = 1;
+
+                public function pick(bool $b, int $k): ?self
+                {
+                    switch ($k) {
+                        case Version20261105090000::X:
+                            return $b ? new Version20261105090000($this->connection, $this->logger) : null;
+                    }
+
+                    return null;
+                }
+            }
+
+            PHP);
+
+        $this->checker()->fix($this->report(), $this->now());
+
+        $code = (string) file_get_contents($this->dir . '/Version20261120170001.php');
+        self::assertStringContainsString('case Version20261120170001::X:', $code);
+        self::assertStringContainsString('return $b ? new Version20261120170001($this->connection, $this->logger) : null;', $code);
+        self::assertStringNotContainsString('Version20261105090000', $code);
+    }
+
+    public function testARollbackNeverRemovesATargetWithTheSameBytesThatAnotherRunPublished(): void
+    {
+        // PL-D1-M1 (audit probe C1): run A has published the target and is about to remove its source; run B, which
+        // planned the same target with the same bytes, fails to publish (the name exists) and rolls back. Equal bytes
+        // are not proof that B wrote the file: B must leave A's target alone, or A removes its source next and the
+        // migration is gone. Here the third, empty directory plants A's file while B plans it.
+        $target = $this->dir . '/Version20261120170001.php';
+        $bytes  = "<?php\n\nnamespace DoctrineMigrations;\n\nfinal class Version20261120170001 extends \\Doctrine\\Migrations\\AbstractMigration\n{\n}\n";
+        mkdir($this->root . '/repo/empty');
+        $first  = new MonotonicVersionsReport('migrations', 'v1.0.0', 'Version20261120170000', ['Version20261105090000'], ['Version20261105090000']);
+        $empty  = new MonotonicVersionsReport('empty', 'v1.0.0', null, [], []);
+        $before = $this->snapshot();
+        $files  = new HookedGitMigrationFiles($this->root . '/repo', static function (string $path) use ($target, $bytes): void {
+            if ($path === 'empty') {
+                file_put_contents($target, $bytes);
+            }
+        });
+
+        try {
+            (new MonotonicVersionsChecker($files))->fixAll([$first, $empty], $this->now());
+            self::fail('The taken target must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete, $e->getMessage());
+            self::assertStringContainsString('already exists', $e->getMessage());
+            self::assertStringContainsString('Nothing was changed.', $e->getMessage());
+            self::assertStringNotContainsString('moved back', $e->getMessage());
+        }
+
+        $after = $this->snapshot();
+        self::assertSame($bytes, $after['Version20261120170001.php'][0] ?? null, 'Run A\'s target is still there.');
+        unset($after['Version20261120170001.php']);
+        self::assertSame($before, $after, 'Run B changed nothing of its own either.');
+    }
+
+    public function testAReferenceInTheGlobalNamespaceIsRenamed(): void
+    {
+        file_put_contents($this->dir . '/Version20261105090000.php', "<?php\n\nfinal class Version20261105090000\n{\n    public function me(): string\n    {\n        return \\Version20261105090000::class;\n    }\n}\n");
+
+        $this->checker()->fix($this->report(), $this->now());
+
+        self::assertStringContainsString('return \\Version20261120170001::class;', (string) file_get_contents($this->dir . '/Version20261120170001.php'));
+    }
+
+    public function testALowerCaseDeclarationIsRenamedLikePhpReadsIt(): void
+    {
+        // PF-I10: class names are case-insensitive in PHP, so `class version2026...` declares the file's class.
+        file_put_contents($this->dir . '/Version20261105090000.php', "<?php\n\nnamespace DoctrineMigrations;\n\nfinal class version20261105090000 extends \\Doctrine\\Migrations\\AbstractMigration\n{\n}\n");
+
+        $renamed = $this->checker()->fix($this->report(), $this->now());
+
+        self::assertSame('Version20261120170001', $renamed['Version20261105090000']);
+        self::assertStringContainsString('final class Version20261120170001 extends', (string) file_get_contents($this->dir . '/Version20261120170001.php'));
+    }
+
+    public function testTheSameDirectorySpelledDifferentlyIsRefusedAsListedTwice(): void
+    {
+        // PF-I2: `migrations` and `./migrations` are one directory; the message says so instead of a generic failure.
+        $before = $this->snapshot();
+        $dotted = new MonotonicVersionsReport('./migrations', 'v1.0.0', 'Version20261120170000', self::NEW, self::NEW);
+
+        try {
+            $this->checker()->fixAll([$this->report(), $dotted], $this->now());
+            self::fail('A directory listed twice must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete);
+            self::assertStringContainsString('listed more than once', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot());
+    }
+
+    public function testStagedCopiesAreOwnerOnlyWhileTheyAreWritten(): void
+    {
+        // PF-I4: with a 0600 source, no byte of the copy is ever written while the file has a wider mode.
+        foreach (self::NEW as $version) {
+            chmod($this->dir . '/' . $version . '.php', 0o600);
+        }
+        FaultyStreamWrapper::faults($this->root, ['recordModes' => true]);
+        // A test process, not a worker: the usual 022 mask makes a new file 0644, restored right after.
+        // @phpstan-ignore frankenphp.worker.noUmask
+        $umask = umask(0o022);
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+        } finally {
+            // @phpstan-ignore frankenphp.worker.noUmask
+            umask($umask);
+        }
+
+        $modes = (string) file_get_contents($this->root . '/' . FaultyStreamWrapper::MODES);
+        self::assertSame(3, substr_count($modes, ' 600'), $modes);
+        self::assertStringNotContainsString(' 644', $modes);
+        foreach ($this->snapshot() as $file => [, $perms]) {
+            self::assertSame(0o600, $perms, $file);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: int, 2: string}>
+     */
+    public static function unexpectedErrors(): iterable
+    {
+        // operation, call, phase. Through the stream wrapper: fopen-for-write 1..6 stage the copies, rename 1..3
+        // publish them, unlink 1..3 remove the sources.
+        yield 'while staging the second copy' => ['write', 3, 'stage'];
+        yield 'while publishing the second copy' => ['rename', 2, 'publish'];
+        yield 'while removing the second source' => ['unlink', 2, 'remove'];
+    }
+
+    #[DataProvider('unexpectedErrors')]
+    public function testAnUnexpectedErrorIsRolledBackAndReported(string $operation, int $call, string $phase): void
+    {
+        // PF-I6: an error that is not a reported failure used to escape fixAll() without any rollback.
+        FaultyStreamWrapper::faults($this->root, ['throwAt' => [$operation => $call]]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported (' . $phase . ').');
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete, $e->getMessage());
+            self::assertInstanceOf(ValueError::class, $e->getPrevious());
+            self::assertStringContainsString('unexpected ValueError: Injected error on ' . $operation, $e->getMessage());
+            self::assertStringContainsString('Nothing was changed', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot(), 'Every original back, no copy or temporary file left (' . $phase . ').');
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: int}>
+     */
+    public static function errorsAfterAnOperationTookEffect(): iterable
+    {
+        // PL-L1: the operation is done, then an error escapes. The rollback must see what is on disk.
+        yield 'after the first copy was moved' => ['rename', 1];
+        yield 'after the last copy was moved' => ['rename', 3];
+        yield 'after the first source was removed' => ['unlink', 1];
+        yield 'after the second source was removed' => ['unlink', 2];
+    }
+
+    #[DataProvider('errorsAfterAnOperationTookEffect')]
+    public function testAnErrorAfterAnOperationTookEffectIsRolledBackFromTheDisk(string $operation, int $call): void
+    {
+        FaultyStreamWrapper::faults($this->root, ['throwAfter' => [$operation => $call]]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete, $e->getMessage());
+            self::assertStringContainsString('Injected error after ' . $operation, $e->getMessage());
+            self::assertStringContainsString('Nothing was changed', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot(), 'No migration lost or duplicated, permissions kept.');
+    }
+
+    /**
+     * @return iterable<string, array{0: array<string, mixed>}>
+     */
+    public static function restoresThatFail(): iterable
+    {
+        // Writes: 1-6 stage the three copies, 7 opens the lock file, 8 creates the restore's staged file.
+        yield 'the restored copy cannot be moved into place' => [['failOn' => ['rename' => ['/Version20261105090000.php']]]];
+        yield 'the restored copy cannot be created' => [['failAt' => ['write' => 8]]];
+        yield 'the restored copy cannot be written' => [['failAt' => ['write' => 9]]];
+    }
+
+    public function testAnErrorRightAfterAStagedCopyWasCreatedLeavesNothingBehind(): void
+    {
+        // PL-I1: write 3 is the fopen('x') that creates the second staged copy; the error escapes after it took effect.
+        FaultyStreamWrapper::faults($this->root, ['throwAfter' => ['write' => 3]]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete, $e->getMessage());
+            self::assertStringContainsString('Nothing was changed', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot(), 'No hidden staged copy left.');
+    }
+
+    /**
+     * @param array<string, mixed> $fault
+     */
+    #[DataProvider('restoresThatFail')]
+    public function testATargetIsKeptWhenItsRemovedSourceCannotBeWrittenBack(array $fault): void
+    {
+        // PL-L1: the first source is removed, then an error escapes, and the source cannot be restored: the renamed
+        // copy is the only copy left and must survive, and the message must say so.
+        FaultyStreamWrapper::faults($this->root, ['throwAfter' => ['unlink' => 1]] + $fault);
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertTrue($e->rollbackIncomplete);
+            self::assertStringContainsString('Version20261105090000.php" could not be restored; its content is in "', $e->getMessage());
+        }
+
+        $after = $this->snapshot();
+        self::assertArrayHasKey('Version20261120170001.php', $after);
+        self::assertArrayNotHasKey('Version20261105090000.php', $after);
+        self::assertArrayHasKey('Version20261105091000.php', $after);
+        self::assertArrayNotHasKey('Version20261120170002.php', $after);
+    }
+
+    public function testASourceThatCannotBeWrittenBackNextToAChangedCopySaysSo(): void
+    {
+        // The first source is removed, its renamed copy is edited by someone else at that moment, an error escapes
+        // and the source cannot be written back: the edited copy is kept and the message does not claim it is ours.
+        $first = $this->dir . '/Version20261120170001.php';
+        FaultyStreamWrapper::faults($this->root, [
+            'throwAfter' => ['unlink' => 1],
+            'failOn'     => ['rename' => ['/Version20261105090000.php']],
+            'after'      => [['op' => 'unlink', 'call' => 1, 'file' => $first, 'append' => "// edited\n"]],
+        ]);
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertTrue($e->rollbackIncomplete);
+            self::assertStringContainsString('Version20261105090000.php" could not be restored; its renamed copy "', $e->getMessage());
+            self::assertStringContainsString('is missing or changed since', $e->getMessage());
+        }
+        self::assertStringEndsWith("// edited\n", (string) file_get_contents($first));
+    }
+
+    public function testOnALocalDirectoryARemovedSourceIsWrittenBackWithItsMode(): void
+    {
+        // PL-L1 / PL-L3 on a real filesystem: the second source becomes unreadable after it was planned (a third,
+        // empty directory triggers it while being planned), so its removal is refused after the first source was
+        // removed. The first one is written back (staged owner-only, linked into place) with its mode.
+        $tenant = $this->root . '/repo/tenant';
+        mkdir($tenant);
+        $this->migration($tenant, 'Version20261105090000', 0o644);
+        $other = $tenant . '/Version20261105090000.php';
+        $this->unreadable($other);
+        chmod($other, 0o644);
+        mkdir($this->root . '/repo/empty');
+        $first  = new MonotonicVersionsReport('migrations', 'v1.0.0', 'Version20261120170000', ['Version20261105090000'], ['Version20261105090000']);
+        $second = new MonotonicVersionsReport('tenant', 'v1.0.0', 'Version20261120170000', ['Version20261105090000'], ['Version20261105090000']);
+        $empty  = new MonotonicVersionsReport('empty', 'v1.0.0', null, [], []);
+        $before = $this->snapshot();
+        $files  = new HookedGitMigrationFiles($this->root . '/repo', static function (string $path) use ($other): void {
+            if ($path === 'empty') {
+                chmod($other, 0o000);
+            }
+        });
+
+        try {
+            (new MonotonicVersionsChecker($files))->fixAll([$first, $second, $empty], $this->now());
+            self::fail('The refused removal must be reported.');
+        } catch (FixFailedException $e) {
+            chmod($other, 0o644);
+            self::assertFalse($e->rollbackIncomplete, $e->getMessage());
+            self::assertStringContainsString('Cannot remove migration "' . $other . '"', $e->getMessage());
+            self::assertStringContainsString('the 2 migration(s) already moved were moved back', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot(), 'The first source is back, byte-identical and 0640; no staged file left.');
+        self::assertSame(['Version20261105090000.php'], array_values(array_diff(scandir($tenant) ?: [], ['.', '..'])));
+    }
+
+    public function testAStagedCopyThatCannotBeOpenedForWritingChangesNothing(): void
+    {
+        FaultyStreamWrapper::faults($this->root, ['failAt' => ['write' => 2]]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The failure must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertStringContainsString('could not be written', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot());
+    }
+
+    public function testAnErrorWhileReleasingTheLockAfterASuccessfulRunIsNotAFailure(): void
+    {
+        // PL-I2: three sources removed (unlink 1-3), then the lock file (unlink 4) throws: the renames are done.
+        FaultyStreamWrapper::faults($this->root, ['throwAt' => ['unlink' => 4]]);
+
+        $renamed = $this->checker(true)->fix($this->report(), $this->now());
+
+        self::assertCount(3, $renamed);
+        self::assertSame(['.nowo-migrations-fix.lock', 'Version20261120170001.php', 'Version20261120170002.php', 'Version20261120170003.php'], array_keys($this->snapshot()));
+    }
+
+    public function testOnALocalDirectoryTheStagedCopyIsOwnerOnlyFromItsCreation(): void
+    {
+        // PL-L3: tempnam() creates the file 0600 whatever the umask, so nobody else can open it, not even empty.
+        $create  = new ReflectionMethod(MonotonicVersionsChecker::class, 'createOwnerOnly');
+        $created = null;
+        // A test process, not a worker: umask 0 would make an fopen()-created file 0666.
+        // @phpstan-ignore frankenphp.worker.noUmask
+        $umask = umask(0);
+        try {
+            $path = $create->invokeArgs($this->checker(), [$this->dir, 'Version20261120170001.php', &$created]);
+        } finally {
+            // @phpstan-ignore frankenphp.worker.noUmask
+            umask($umask);
+        }
+
+        self::assertIsString($path);
+        self::assertSame($this->dir, dirname($path));
+        self::assertStringStartsWith('.Version20261120170001.php.', basename($path));
+        clearstatcache();
+        self::assertSame(0o600, fileperms($path) & 0o777);
+        $refused = null;
+        self::assertNull($create->invokeArgs($this->checker(), [$this->root . '/no-such-dir', 'x.php', &$refused]), 'tempnam() falling back to the system temporary directory is refused.');
+    }
+
+    public function testAnUnexpectedErrorWhoseRollbackFailsSaysSo(): void
+    {
+        FaultyStreamWrapper::faults($this->root, ['throwAt' => ['rename' => 2], 'failOn' => ['unlink' => ['/Version20261120170001.php']]]);
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertTrue($e->rollbackIncomplete);
+            self::assertInstanceOf(ValueError::class, $e->getPrevious());
+            self::assertStringContainsString('ROLLBACK INCOMPLETE', $e->getMessage());
+        }
+    }
+
+    public function testAnErrorWhileRollingBackDoesNotSkipTheOtherSteps(): void
+    {
+        // The second move throws; undoing the first then throws too. The other steps are still undone (their staged
+        // copies removed) and the failed step is reported instead of escaping.
+        FaultyStreamWrapper::faults($this->root, ['throwAt' => ['rename' => 2, 'unlink' => 1]]);
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertTrue($e->rollbackIncomplete);
+            self::assertStringContainsString('ROLLBACK INCOMPLETE', $e->getMessage());
+            self::assertStringContainsString('Version20261105090000.php" -> "', $e->getMessage());
+            self::assertStringContainsString('failed (ValueError: Injected error on unlink call 1.)', $e->getMessage());
+        }
+
+        $after = $this->snapshot();
+        self::assertSame(['Version20261105090000.php', 'Version20261105091000.php', 'Version20261105092000.php', 'Version20261120170001.php'], array_keys($after), 'Only the step that threw is left; no temporary file.');
+    }
+
+    public function testACopyThatCannotBeMadeOwnerOnlyIsNotWritten(): void
+    {
+        // PF-I4: the 0600 step comes before any byte; if it fails, the copy is not written and nothing moves.
+        FaultyStreamWrapper::faults($this->root, ['failAt' => ['chmod' => 3], 'recordModes' => true]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The failure must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertStringContainsString('Version20261105091000.php', $e->getMessage());
+            self::assertStringContainsString('could not be written', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot());
+        self::assertSame(1, substr_count((string) file_get_contents($this->root . '/' . FaultyStreamWrapper::MODES), "\n"), 'Only the first copy was written.');
+    }
+
     private function checker(bool $faulty = false): MonotonicVersionsChecker
     {
         return new MonotonicVersionsChecker(new GitMigrationFiles(($faulty ? FaultyStreamWrapper::url($this->root) : $this->root) . '/repo'));
@@ -463,5 +991,28 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         ksort($files);
 
         return $files;
+    }
+}
+
+/**
+ * Runs a callback each time a directory is listed, to change the disk between the plan of two directories.
+ *
+ * @internal
+ */
+final readonly class HookedGitMigrationFiles extends GitMigrationFiles
+{
+    /**
+     * @param Closure(string): void $hook
+     */
+    public function __construct(string $projectDir, private Closure $hook)
+    {
+        parent::__construct($projectDir);
+    }
+
+    public function current(string $path): array
+    {
+        ($this->hook)($path);
+
+        return parent::current($path);
     }
 }
