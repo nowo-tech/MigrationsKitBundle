@@ -279,6 +279,57 @@ final class CheckKeyCollationsCommandTest extends TestCase
         self::assertStringContainsString('OK: 1 declared identity / access-key column(s) from 1 bundle(s) on mysql (0 ok, 0 fallback, 0 ignored by host, 1 skipped: mode off).', $tester->getDisplay());
     }
 
+    public function testStrictTellsNothingDeclaredApartFromAPass(): void
+    {
+        // PB-M-I1: without --strict both are 0 (pinned above); --strict gives "nothing checked" its own code.
+        $tester = $this->tester($this->connection());
+
+        self::assertSame(CheckKeyCollationsCommand::EXIT_NOTHING_CHECKED, $tester->execute(['--strict' => true]));
+        self::assertStringContainsString('No identity / access-key column declared by any installed bundle.', $tester->getDisplay());
+    }
+
+    public function testStrictTellsAnUnsupportedPlatformApartFromAPass(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getDatabasePlatform')->willReturn($this->createMock(AbstractPlatform::class));
+
+        self::assertSame(CheckKeyCollationsCommand::EXIT_NOTHING_CHECKED, $this->tester($connection, [new ExactKeyColumn('t', 'c', 'o')])->execute(['--strict' => true]));
+    }
+
+    public function testStrictTellsARunWhereEveryColumnWasSkippedOrIgnoredApartFromAPass(): void
+    {
+        $tester = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['legal_document'], [$this->row('legal_document', 'slug', 'utf8mb4_unicode_ci')]),
+            [
+                new ExactKeyColumn('chat_user_reference', 'user_key', 'nowo-tech/chat-kit-bundle', 'user key', 'nowo_chat_kit.user_reference: string', false),
+                new ExactKeyColumn('legal_document', 'slug', 'nowo-tech/legal-kit-bundle'),
+            ],
+            ['legal_document.slug' => 'legacy slugs'],
+        );
+
+        self::assertSame(CheckKeyCollationsCommand::EXIT_NOTHING_CHECKED, $tester->execute(['--strict' => true]));
+        self::assertStringContainsString('No declared column was verified: every one is skipped (mode off) or ignored by host.', $tester->getDisplay());
+        self::assertSame(Command::SUCCESS, $tester->execute([]), 'Unchanged without --strict.');
+    }
+
+    public function testStrictKeepsZeroForARealPassOneForAFailureAndTwoForAnUnreadableDatabase(): void
+    {
+        $pass = $this->tester(
+            $this->connection([], ['api_token'], [$this->row('api_token', 'token_hash', 'utf8mb4_bin')]),
+            [new ExactKeyColumn('api_token', 'token_hash', 'nowo-tech/api-token-bundle')],
+        );
+        self::assertSame(Command::SUCCESS, $pass->execute(['--strict' => true]), 'A fallback column was verified.');
+        self::assertStringNotContainsString('No declared column was verified', $pass->getDisplay());
+
+        $fail = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['api_token'], [$this->row('api_token', 'token_hash', 'utf8mb4_bin')]),
+            [new ExactKeyColumn('api_token', 'token_hash', 'nowo-tech/api-token-bundle')],
+        );
+        self::assertSame(Command::FAILURE, $fail->execute(['--strict' => true]));
+
+        self::assertSame(CheckKeyCollationsCommand::EXIT_MISCONFIGURED, $this->tester(new stdClass())->execute(['--strict' => true]));
+    }
+
     public function testAPlatformWithoutNoPadCollationsIsSkipped(): void
     {
         $connection = $this->createMock(Connection::class);

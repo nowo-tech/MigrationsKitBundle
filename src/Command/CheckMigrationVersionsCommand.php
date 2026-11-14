@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\MigrationsKitBundle\Command;
 
+use Nowo\MigrationsKitBundle\Versions\FixFailedException;
 use Nowo\MigrationsKitBundle\Versions\MonotonicVersionsChecker;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -38,15 +39,30 @@ use function sprintf;
           <info>php %command.full_name% --base=origin/main</info>
           <info>php %command.full_name% --path=migrations --path=migrations/tenant</info>
           <info>php %command.full_name% --fix</info>                   rename the offending (new) migrations after the newest one
+          <info>php %command.full_name% --strict</info>                distinct exit codes for "nothing compared" and "rollback incomplete"
 
         Exit 0 when every added migration sorts after the base (or there is no tag yet), 1 on any out-of-order migration,
         2 when git or the base ref cannot be read or --fix cannot rename. --fix renames only migrations added since the
         base (file and class name), all or nothing: run it before they are pushed or applied anywhere.
+
+        With --strict: 3 instead of 0 when nothing was compared (no base ref, or a directory with no migration at the
+        base nor in the working tree: a misspelt path?), and 4 instead of 2 when --fix failed and its rollback was
+        incomplete (the message says ROLLBACK INCOMPLETE; files need attention).
         HELP,
 )]
 final class CheckMigrationVersionsCommand extends Command
 {
     public const EXIT_MISCONFIGURED = 2;
+
+    /**
+     * With --strict only (2.8): nothing was compared (no base ref, or a directory without any migration).
+     */
+    public const EXIT_NOTHING_CHECKED = 3;
+
+    /**
+     * With --strict only (2.8): --fix failed and could not undo everything ("ROLLBACK INCOMPLETE").
+     */
+    public const EXIT_ROLLBACK_INCOMPLETE = 4;
 
     public function __construct(
         private readonly MonotonicVersionsChecker $checker,
@@ -59,14 +75,16 @@ final class CheckMigrationVersionsCommand extends Command
         $this
             ->addOption('base', null, InputOption::VALUE_REQUIRED, 'Git ref to compare with (default: configured base, else the latest tag)')
             ->addOption('path', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Migrations directory (relative to the project); default: configured paths')
-            ->addOption('fix', null, InputOption::VALUE_NONE, 'Rename out-of-order migrations added since the base after the newest one');
+            ->addOption('fix', null, InputOption::VALUE_NONE, 'Rename out-of-order migrations added since the base after the newest one')
+            ->addOption('strict', null, InputOption::VALUE_NONE, 'Exit ' . self::EXIT_NOTHING_CHECKED . ' when nothing was compared and ' . self::EXIT_ROLLBACK_INCOMPLETE . ' when a --fix rollback is incomplete');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io    = new SymfonyStyle($input, $output);
-        $base  = $input->getOption('base');
-        $paths = $input->getOption('path');
+        $io     = new SymfonyStyle($input, $output);
+        $base   = $input->getOption('base');
+        $paths  = $input->getOption('path');
+        $strict = $input->getOption('strict') === true;
         try {
             $reports = $this->checker->check(is_array($paths) && $paths !== [] ? array_values($paths) : null, is_string($base) && $base !== '' ? $base : null);
         } catch (RuntimeException $e) {
@@ -77,12 +95,18 @@ final class CheckMigrationVersionsCommand extends Command
         if ($reports === []) {
             $io->note('No base ref (no tag yet and no --base): nothing to compare.');
 
-            return Command::SUCCESS;
+            return $strict ? self::EXIT_NOTHING_CHECKED : Command::SUCCESS;
         }
 
         $failed = 0;
+        $empty  = 0;
         $toFix  = [];
         foreach ($reports as $report) {
+            if ($report->baseMax === null && $report->added === []) {
+                ++$empty;
+                $io->writeln(sprintf('<comment>EMPTY</comment> %s: no migration at %s nor in the working tree (is the path right?).', $report->path, $report->base));
+                continue;
+            }
             if ($report->isValid()) {
                 $io->writeln(sprintf('<info>OK</info> %s: %d migration(s) added since %s, all after %s.', $report->path, count($report->added), $report->base, $report->baseMax ?? '(none)'));
                 continue;
@@ -108,7 +132,7 @@ final class CheckMigrationVersionsCommand extends Command
             } catch (RuntimeException $e) {
                 $io->error($e->getMessage());
 
-                return self::EXIT_MISCONFIGURED;
+                return $strict && $e instanceof FixFailedException && $e->rollbackIncomplete ? self::EXIT_ROLLBACK_INCOMPLETE : self::EXIT_MISCONFIGURED;
             }
             foreach ($toFix as $index => $report) {
                 foreach ($renamed[$index] as $old => $new) {
@@ -117,6 +141,10 @@ final class CheckMigrationVersionsCommand extends Command
             }
         }
 
-        return $failed === 0 ? Command::SUCCESS : Command::FAILURE;
+        if ($failed > 0) {
+            return Command::FAILURE;
+        }
+
+        return $strict && $empty > 0 ? self::EXIT_NOTHING_CHECKED : Command::SUCCESS;
     }
 }

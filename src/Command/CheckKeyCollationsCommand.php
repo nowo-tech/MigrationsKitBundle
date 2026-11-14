@@ -42,17 +42,24 @@ use function substr;
           <info>php %command.full_name%</info>
           <info>php %command.full_name% -v</info>                              also list passing and skipped columns
           <info>php %command.full_name% --connection=legacy</info>
+          <info>php %command.full_name% --strict</info>                        exit 3 when nothing was actually verified
 
         Columns of a mode that is off are reported as skipped, not failed. A declared, active column whose table or
         column is absent IS a failure: that is a rename or a drop, not a disabled feature. Host ignore entries
         (nowo_migrations_kit.key_collation_check.ignore_columns, each with a reason) never hide a column: it stays in
         the output as "ignored". Exit 0 when nothing fails or the platform has no such notion (PostgreSQL, SQLite),
-        1 on any failure, 2 when the database cannot be read.
+        1 on any failure, 2 when the database cannot be read. With --strict, a run that verified no column (platform
+        without the notion, no declaration, or every declared column skipped or ignored) exits 3 instead of 0.
         HELP,
 )]
 final class CheckKeyCollationsCommand extends Command
 {
     public const EXIT_MISCONFIGURED = 2;
+
+    /**
+     * With --strict only (2.8): the run verified no column, so a 0 would be indistinguishable from a real pass.
+     */
+    public const EXIT_NOTHING_CHECKED = 3;
 
     public function __construct(
         private readonly ConnectionRegistry $connections,
@@ -67,7 +74,9 @@ final class CheckKeyCollationsCommand extends Command
      */
     protected function configure(): void
     {
-        $this->addOption('connection', 'c', InputOption::VALUE_REQUIRED, 'Doctrine connection name (default: key_collation_check.connection, else nowo_migrations_kit.connection)');
+        $this
+            ->addOption('connection', 'c', InputOption::VALUE_REQUIRED, 'Doctrine connection name (default: key_collation_check.connection, else nowo_migrations_kit.connection)')
+            ->addOption('strict', null, InputOption::VALUE_NONE, 'Exit ' . self::EXIT_NOTHING_CHECKED . ' instead of 0 when no column was actually verified');
     }
 
     /**
@@ -75,8 +84,9 @@ final class CheckKeyCollationsCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $name = $input->getOption('connection');
-        $name = is_string($name) && $name !== '' ? $name : $this->defaultConnection;
+        $name    = $input->getOption('connection');
+        $name    = is_string($name) && $name !== '' ? $name : $this->defaultConnection;
+        $nothing = $input->getOption('strict') === true ? self::EXIT_NOTHING_CHECKED : Command::SUCCESS;
 
         try {
             $connection = $this->connections->getConnection($name);
@@ -93,13 +103,13 @@ final class CheckKeyCollationsCommand extends Command
         if (!$report->supported) {
             $output->writeln(sprintf('<comment>SKIP: no NO PAD collation question on %s (MySQL / MariaDB only).</comment>', OutputFormatter::escape($report->platform)));
 
-            return Command::SUCCESS;
+            return $nothing;
         }
 
         if ($report->findings === []) {
             $output->writeln('<comment>No identity / access-key column declared by any installed bundle.</comment>');
 
-            return Command::SUCCESS;
+            return $nothing;
         }
 
         $failures = $report->failures();
@@ -130,16 +140,23 @@ final class CheckKeyCollationsCommand extends Command
             return Command::FAILURE;
         }
 
+        $verified = count($report->withStatus(ExactKeyStatus::OK)) + count($fallback);
         $output->writeln(sprintf(
             '<info>OK: %d declared identity / access-key column(s) from %d bundle(s) on %s (%d ok, %d fallback, %d ignored by host, %d skipped: mode off).</info>',
             count($report->findings),
             $report->declaringBundles,
             $report->platform,
-            count($report->withStatus(ExactKeyStatus::OK)),
+            $verified - count($fallback),
             count($fallback),
             count($ignored),
             count($skipped),
         ));
+        if ($verified === 0) {
+            // Every declared column was skipped (mode off) or ignored by the host: nothing was actually verified.
+            $output->writeln('<comment>No declared column was verified: every one is skipped (mode off) or ignored by host.</comment>');
+
+            return $nothing;
+        }
 
         return Command::SUCCESS;
     }

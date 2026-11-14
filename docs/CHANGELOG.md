@@ -48,6 +48,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Target **2.8.0** (minor: a new `--strict` option on two commands, new exit-code constants and a new exception class;
+the default exit codes do not change).
+
+### Added
+
+- **`--strict` on `nowo:migrations:check-key-collations` and `nowo:migrations:check-versions` (audits PB-M-I1,
+  PF-I5).** Without it, "nothing was checked" and "everything checked and fine" both exit **0**, and a `--fix` that
+  changed nothing and one whose rollback was incomplete both exit **2**: a CI step that reads only the exit code could
+  not tell them apart. With `--strict`:
+  - `check-key-collations` exits **3** (`CheckKeyCollationsCommand::EXIT_NOTHING_CHECKED`) when no column was actually
+    verified: a platform without the notion (PostgreSQL, SQLite), no declaration from any installed bundle, or every
+    declared column skipped (mode off) or ignored by the host.
+  - `check-versions` exits **3** (`CheckMigrationVersionsCommand::EXIT_NOTHING_CHECKED`) when nothing was compared (no
+    base ref, or a directory with no migration at the base nor in the working tree), and **4**
+    (`CheckMigrationVersionsCommand::EXIT_ROLLBACK_INCOMPLETE`) when `--fix` failed and its rollback was incomplete.
+  - A failure (**1**) and an unreadable database / git / failed `--fix` that changed nothing (**2**) keep their codes
+    and take precedence over **3**.
+- `Versions\FixFailedException` (extends `RuntimeException`): what `fix()` / `fixAll()` throw, with
+  `$rollbackIncomplete` telling "nothing was changed" apart from "ROLLBACK INCOMPLETE" without parsing the message.
+
+### Fixed
+
+- **An unexpected error during `--fix` is rolled back (audit PF-I6).** Only the failures `fixAll()` reports itself
+  were rolled back; any other throwable (an `Error`, a `Random\RandomException`, an exception from a stream wrapper)
+  escaped with the staged copies, moved targets or removed sources left as they were, and the command exited **1**.
+  It is now rolled back like any other failure and reported as a `FixFailedException` (exit **2**, or **4** with
+  `--strict` if the rollback is incomplete) whose previous exception is the original error.
+- **`--fix` renames the code references to the class with its declaration (audit PF-I1).** `Version<old>::class`,
+  `new Version<old>`, a type, and the fully qualified `\<namespace>\Version<old>` used to keep the old name, so the
+  renamed migration referred to a class that no longer existed. Members, functions and constants that merely share the
+  name, other namespaces, and every comment, docblock, string and heredoc are left as written.
+- **`--fix` accepts a declaration written in another case (audit PF-I10).** PHP class names are case-insensitive, so
+  `class version2026…` in `Version2026….php` declares the file's class; it was refused, and is now renamed (to the
+  usual `Version…` spelling). References are matched the same way.
+- **The same directory spelled twice is reported as such (audit PF-I2).** `--path=migrations --path=./migrations` (or
+  a symbolic link to the directory) is now refused up front with "listed more than once" instead of a generic
+  failure while publishing; as before, nothing is changed.
+- **A copy is owner-only while it is written (audit PF-I4).** A new file starts with the umask's mode (often 0644),
+  so a 0600 migration was briefly readable by others while its copy was being written. The copy (and a source being
+  written back by a rollback) is now set to 0600 before its first byte, then to the source's mode once written.
+
+### Changed
+
+- `check-key-collations` prints "No declared column was verified: every one is skipped (mode off) or ignored by
+  host." under the OK line when that is the case (exit code unchanged without `--strict`).
+- `check-versions` reports a directory with no migration at the base nor in the working tree as
+  `EMPTY <path>: … (is the path right?)` instead of an `OK` line with 0 migrations (exit code unchanged without
+  `--strict`).
+- `composer.json` `require` is in Composer's `sort-packages` order (`php`, `ext-tokenizer`, then packages) (audit
+  PF-I9); no constraint changed.
+
+### Not changed (audit PF, by design)
+
+- **PF-I7:** if `link()` publishes a copy but the temporary name cannot be removed afterwards, a hidden
+  `.<Version>.php.<random>.tmp` (a second name of the new migration) stays behind. It is not loadable as a migration
+  (no `.php` suffix) and safe to delete; reporting it would change `fixAll()`'s return type, so it is documented
+  instead.
+- **PF-I8:** on a filesystem whose `fsync()` fails for plain files (some FUSE mounts), every `--fix` fails with exit
+  **2** and changes nothing. Durability before publishing is the point of PF-L3, so this fail-safe stays; run
+  `--fix` on a local checkout.
+
+### Tests
+
+- `CheckKeyCollationsCommandTest` and `CheckMigrationVersionsStrictTest`: every strict code and its precedence, and
+  the default codes unchanged.
+- `MonotonicVersionsAtomicFixTest`: code references renamed (and members, functions, constants, other namespaces,
+  strings left), a reference in the global namespace, a lower-case declaration, the same directory as `migrations`
+  and `./migrations`, the mode of each staged copy while it is written, and an unexpected error while staging,
+  publishing and removing (rolled back) or whose rollback fails (`rollbackIncomplete`). `FaultyStreamWrapper` gains
+  `throwAt` and `recordModes`.
+
 ## [2.7.0] - 2026-11-14
 
 Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, and a changed exit code for a failed
