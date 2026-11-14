@@ -48,11 +48,15 @@
 Target 2.7.0. No code change is required.
 
 - `nowo:migrations:check-versions --fix` that cannot finish now exits **2** (it used to end with an uncaught
-  exception, exit **1**, the same code as "out-of-order migration") and renames nothing. A CI step that treated
+  exception, exit **1**, the same code as "out-of-order migration") and renames nothing, unless its own rollback
+  fails: the error then says **ROLLBACK INCOMPLETE** and lists the files to look at (a migration that could not be
+  written back keeps its renamed copy). A CI step that treated
   exit 1 of `--fix` as a failure still fails; one that tells the two codes apart now sees the documented 2.
 - `--fix` refuses a migration whose class name differs from its file name instead of renaming the file alone.
 - `--fix` over several `--path` directories is one operation: a failure in one directory renames nothing in the
-  others. The "Renamed" lines are printed after every directory is done.
+  others (same rollback caveat). The "Renamed" lines are printed after every directory is done.
+- The renamed file keeps the source's permissions, and its group when the process may set it; the owner is the user
+  running the command. A source edited while `--fix` runs is not removed: the run is rolled back instead.
 - While it runs, `--fix` writes hidden temporary files (`.<Version>.php.<random>.tmp`) next to the migrations; they
   are removed on success and on failure. A process killed mid-run can leave one behind: it is not a migration, delete
   it.

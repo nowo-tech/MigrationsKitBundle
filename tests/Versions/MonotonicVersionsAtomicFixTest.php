@@ -191,6 +191,24 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         self::assertSame($before, $this->snapshot(), 'The first migration is written back from memory, with its permissions.');
     }
 
+    public function testASourceEditedWhileFixRunsIsNotDeleted(): void
+    {
+        // The second source is saved by someone else after it was read and staged: removing it would lose that edit.
+        FaultyStreamWrapper::faults($this->root, ['editAfterRename' => ['/Version20261120170003.php' => $this->dir . '/Version20261105091000.php']]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('A source that changed must be reported.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('changed since --fix read it', $e->getMessage());
+            self::assertStringContainsString('Nothing was changed', $e->getMessage());
+        }
+
+        $before['Version20261105091000.php'][0] .= "// edited\n";
+        self::assertSame($before, $this->snapshot(), 'The edit is kept and the other migrations are back.');
+    }
+
     public function testARestoreThatFailsKeepsTheRenamedCopyAndSaysSo(): void
     {
         FaultyStreamWrapper::faults($this->root, ['failOn' => ['unlink' => ['Version20261105091000.php'], 'write' => ['/Version20261105090000.php']]]);

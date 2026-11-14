@@ -31,6 +31,7 @@ use function strpos;
 use function substr;
 use function unlink;
 
+use const FILE_APPEND;
 use const JSON_THROW_ON_ERROR;
 use const STREAM_META_ACCESS;
 
@@ -140,7 +141,17 @@ final class FaultyStreamWrapper
 
     public function rename(string $from, string $to): bool
     {
-        return !$this->fails('rename', $to) && @rename($this->real($from), $this->real($to));
+        if ($this->fails('rename', $to) || !@rename($this->real($from), $this->real($to))) {
+            return false;
+        }
+        // Simulates someone saving a file while --fix runs: `editAfterRename` maps a target suffix to a real file.
+        foreach ($this->read($this->root($to))['editAfterRename'] ?? [] as $suffix => $file) {
+            if (str_ends_with($to, $suffix)) {
+                file_put_contents($file, "// edited\n", FILE_APPEND);
+            }
+        }
+
+        return true;
     }
 
     public function dir_opendir(string $path): bool
@@ -179,7 +190,7 @@ final class FaultyStreamWrapper
      * Writes the faults for a root: `failAt` (operation => fail on the Nth call, 1-based) and `failOn` (operation =>
      * fail when the path ends with one of the suffixes).
      *
-     * @param array{failAt?: array<string, int>, failOn?: array<string, list<string>>} $faults
+     * @param array{failAt?: array<string, int>, failOn?: array<string, list<string>>, editAfterRename?: array<string, string>} $faults
      */
     public static function faults(string $root, array $faults): void
     {
@@ -196,8 +207,7 @@ final class FaultyStreamWrapper
         if (!is_file($file)) {
             return false;
         }
-        /** @var array{failAt?: array<string, int>, failOn?: array<string, list<string>>, calls: array<string, int>} $faults */
-        $faults                      = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+        $faults                      = $this->read($this->root($url));
         $call                        = ($faults['calls'][$operation] ?? 0) + 1;
         $faults['calls'][$operation] = $call;
         file_put_contents($file, json_encode($faults, JSON_THROW_ON_ERROR));
@@ -211,6 +221,21 @@ final class FaultyStreamWrapper
         }
 
         return false;
+    }
+
+    /**
+     * @return array{failAt?: array<string, int>, failOn?: array<string, list<string>>, editAfterRename?: array<string, string>, calls: array<string, int>}
+     */
+    private function read(string $root): array
+    {
+        $file = $root . '/' . self::FAULTS;
+        if (!is_file($file)) {
+            return ['calls' => []];
+        }
+        /** @var array{failAt?: array<string, int>, failOn?: array<string, list<string>>, editAfterRename?: array<string, string>, calls: array<string, int>} $faults */
+        $faults = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+
+        return $faults;
     }
 
     private function root(string $url): string

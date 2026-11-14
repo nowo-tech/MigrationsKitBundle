@@ -518,7 +518,8 @@ php bin/console nowo:migrations:check-versions --fix            # rename the new
 ```
 
 Exit **0** when every added migration sorts after the base (or there is no tag yet), **1** on an out-of-order
-migration, **2** when git or the base ref cannot be read, or when `--fix` cannot finish (it then renames nothing).
+migration, **2** when git or the base ref cannot be read, or when `--fix` cannot finish (it then renames nothing, unless the
+error says **ROLLBACK INCOMPLETE**).
 `--fix` is the safe generator step: right after
 `make:migration` / `doctrine:migrations:generate`, it renames each **new** out-of-order migration (file and class name)
 to the next version after every existing one (`now`, or the newest version + 1 second when that is in the future). It

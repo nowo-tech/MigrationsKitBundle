@@ -10,11 +10,13 @@ use RuntimeException;
 
 use function basename;
 use function bin2hex;
+use function chgrp;
 use function chmod;
 use function count;
 use function fclose;
 use function file_exists;
 use function file_get_contents;
+use function filegroup;
 use function fileperms;
 use function fopen;
 use function fwrite;
@@ -141,7 +143,7 @@ final readonly class MonotonicVersionsChecker
                 if ($rewritten === null || $count !== 1) {
                     throw new RuntimeException(sprintf('Cannot rename migration "%s" to "%s": it does not declare "class %s", so its file and class names would no longer match. Nothing was changed.', $from, $to, $old));
                 }
-                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'temp' => null];
+                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'group' => @filegroup($from), 'temp' => null];
                 $map[$old] = $new;
             }
             $renamed[] = $map;
@@ -154,7 +156,7 @@ final readonly class MonotonicVersionsChecker
                 fclose($handle);
                 $plan[$k]['temp'] = $temp;
             }
-            if ($handle === false || !$this->write($temp, $step['rewritten'], $plan[$k]['perms'])) {
+            if ($handle === false || !$this->write($temp, $step['rewritten'], $step['perms'], $step['group'])) {
                 throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": the renamed copy could not be written and checked in "%s".', $step['from'], $step['to'], $step['dir']), $plan, 0, 0);
             }
         }
@@ -166,8 +168,9 @@ final readonly class MonotonicVersionsChecker
         }
 
         foreach ($plan as $k => $step) {
-            if (!@unlink($step['from'])) {
-                throw $this->failure(sprintf('Cannot remove migration "%s" after writing it as "%s".', $step['from'], $step['to']), $plan, count($plan), $k);
+            // A source edited since it was read is not removed: its new bytes would be lost.
+            if (@file_get_contents($step['from']) !== $step['code'] || !@unlink($step['from'])) {
+                throw $this->failure(sprintf('Cannot remove migration "%s" after writing it as "%s" (it could not be removed, or it changed since --fix read it).', $step['from'], $step['to']), $plan, count($plan), $k);
             }
         }
 
@@ -177,7 +180,7 @@ final readonly class MonotonicVersionsChecker
     /**
      * Undoes a partial commit and builds the exception that reports it.
      *
-     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, temp: string|null}> $plan
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
      * @param int $placed steps whose target is in place
      * @param int $removed steps whose source was removed
      */
@@ -185,7 +188,7 @@ final readonly class MonotonicVersionsChecker
     {
         $problems = [];
         foreach ($plan as $k => $step) {
-            if ($k < $removed && !$this->write($step['from'], $step['code'], $step['perms'])) {
+            if ($k < $removed && !$this->write($step['from'], $step['code'], $step['perms'], $step['group'])) {
                 // The renamed copy is now the only copy of this migration: keep it.
                 $problems[] = sprintf('"%s" could not be restored; its content is in "%s" with the class renamed', $step['from'], $step['to']);
                 continue;
@@ -205,9 +208,10 @@ final readonly class MonotonicVersionsChecker
     }
 
     /**
-     * Writes a file with the given permissions and reads it back: true only for a faithful copy.
+     * Writes a file with the given permissions and reads it back: true only for a faithful copy. The group of the
+     * source is kept when the process may set it (best effort: an unprivileged process may not own that group).
      */
-    private function write(string $path, string $contents, int $perms): bool
+    private function write(string $path, string $contents, int $perms, false|int $group): bool
     {
         $handle = @fopen($path, 'w');
         if ($handle === false) {
@@ -215,6 +219,9 @@ final readonly class MonotonicVersionsChecker
         }
         $written = @fwrite($handle, $contents);
         fclose($handle);
+        if ($group !== false) {
+            @chgrp($path, $group);
+        }
 
         return $written === strlen($contents) && @chmod($path, $perms) && @file_get_contents($path) === $contents;
     }

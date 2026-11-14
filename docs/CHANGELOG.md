@@ -61,7 +61,9 @@ Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, an
   every original byte-identical, with its permissions; a failure while moving puts back the files already moved
   (the originals are written back from memory). If that rollback itself fails the error says **ROLLBACK
   INCOMPLETE** and names every file that needs attention; a migration that cannot be restored keeps its renamed
-  copy, so none is ever lost. Several `--path` directories are one operation. The command reports the failure and
+  copy, so none is ever lost. A source edited while `--fix` runs is not removed (the run is rolled back), and the
+  renamed file keeps the source's permissions and, when the process may set it, its group. Several `--path`
+  directories are one operation. The command reports the failure and
   exits **2**.
 - **`--fix` no longer renames a migration whose class name differs from its file name (audit PB-M-I5).** The class
   rewrite did nothing and the file was renamed anyway, which produced the file / class mismatch Doctrine cannot load.
@@ -75,7 +77,7 @@ Target: **2.7.0** (a new public method, `MonotonicVersionsChecker::fixAll()`, an
 ### Tests
 
 - `MonotonicVersionsAtomicFixTest`: a failure on the second of three migrations (unreadable source, refused rename,
-  unremovable source), an unwritable directory, a staged copy that cannot be checked, a failed rollback (restore and
+  unremovable source, source edited during the run), an unwritable directory, a staged copy that cannot be checked, a failed rollback (restore and
   removal), a class / file mismatch, the same directory twice, and two directories; every failure asserts the
   directory listing, contents and permissions are unchanged. Driven through a stream wrapper that fails chosen
   operations (`FaultyStreamWrapper`, no static state). Command: a failed `--fix` exits 2 and moves nothing.
