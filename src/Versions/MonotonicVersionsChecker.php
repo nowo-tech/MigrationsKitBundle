@@ -372,19 +372,11 @@ final readonly class MonotonicVersionsChecker
     {
         $problems = [];
         foreach ($plan as $k => $step) {
-            if ($k < $removed && !$this->write($step['from'], $step['code'], $step['perms'], $step['group'])) {
-                // The renamed copy is now the only copy of this migration: keep it.
-                $problems[] = sprintf('"%s" could not be restored (if a partial "%s" exists, delete it); its content is in "%s" with the class renamed', $step['from'], basename($step['from']), $step['to']);
-                continue;
-            }
-            if ($k < $placed && @file_get_contents($step['to']) !== $step['rewritten']) {
-                // Not the file this run wrote any more: someone else's, never deleted.
-                $problems[] = sprintf('"%s" changed after --fix wrote it and was not removed: compare it with "%s"', $step['to'], $step['from']);
-            } elseif ($k < $placed && !@unlink($step['to'])) {
-                $problems[] = sprintf('"%s" could not be removed and duplicates "%s": delete it before running the migrations', $step['to'], $step['from']);
-            }
-            if ($k >= $placed && $step['temp'] !== null && !@unlink($step['temp'])) {
-                $problems[] = sprintf('temporary file "%s" could not be removed', $step['temp']);
+            try {
+                $problems = [...$problems, ...$this->undo($step, $k < $placed, $k < $removed)];
+            } catch (Throwable $e) {
+                // One step that throws must not skip the others (review of 2.8): report it and go on.
+                $problems[] = sprintf('undoing "%s" -> "%s" failed (%s: %s): check both files and any "%s" temporary file by hand', $step['from'], $step['to'], $e::class, $e->getMessage(), '.' . basename($step['to']) . '.*.tmp');
             }
         }
         if ($problems !== []) {
@@ -392,6 +384,35 @@ final readonly class MonotonicVersionsChecker
         }
 
         return new FixFailedException($message . ($placed > 0 ? sprintf(' Nothing was changed: the %d migration(s) already moved were moved back.', $placed) : ' Nothing was changed.'), false, $previous);
+    }
+
+    /**
+     * Undoes one step of the plan.
+     *
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null} $step
+     * @param bool $placed whether its target is in place
+     * @param bool $removed whether its source was removed
+     *
+     * @return list<string> what could not be undone
+     */
+    private function undo(array $step, bool $placed, bool $removed): array
+    {
+        if ($removed && !$this->write($step['from'], $step['code'], $step['perms'], $step['group'])) {
+            // The renamed copy is now the only copy of this migration: keep it.
+            return [sprintf('"%s" could not be restored (if a partial "%s" exists, delete it); its content is in "%s" with the class renamed', $step['from'], basename($step['from']), $step['to'])];
+        }
+        $problems = [];
+        if ($placed && @file_get_contents($step['to']) !== $step['rewritten']) {
+            // Not the file this run wrote any more: someone else's, never deleted.
+            $problems[] = sprintf('"%s" changed after --fix wrote it and was not removed: compare it with "%s"', $step['to'], $step['from']);
+        } elseif ($placed && !@unlink($step['to'])) {
+            $problems[] = sprintf('"%s" could not be removed and duplicates "%s": delete it before running the migrations', $step['to'], $step['from']);
+        }
+        if (!$placed && $step['temp'] !== null && !@unlink($step['temp'])) {
+            $problems[] = sprintf('temporary file "%s" could not be removed', $step['temp']);
+        }
+
+        return $problems;
     }
 
     /**
@@ -406,7 +427,11 @@ final readonly class MonotonicVersionsChecker
         }
         // Owner-only before any byte is written (PF-I4): a new file starts with the umask's mode, often 0644, and must
         // not expose a 0600 migration while it is being written. The final mode is set (and checked) below.
-        @chmod($path, 0o600);
+        if (!@chmod($path, 0o600)) {
+            fclose($handle);
+
+            return false;
+        }
         $written = @fwrite($handle, $contents);
         // Durable before anything is published (PF-L3). A stream that cannot fsync (not a plain file) is accepted.
         $synced = @fflush($handle) && (@fsync($handle) || stream_get_meta_data($handle)['wrapper_type'] !== 'plainfile');

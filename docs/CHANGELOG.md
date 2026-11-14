@@ -74,7 +74,8 @@ the default exit codes do not change).
   were rolled back; any other throwable (an `Error`, a `Random\RandomException`, an exception from a stream wrapper)
   escaped with the staged copies, moved targets or removed sources left as they were, and the command exited **1**.
   It is now rolled back like any other failure and reported as a `FixFailedException` (exit **2**, or **4** with
-  `--strict` if the rollback is incomplete) whose previous exception is the original error.
+  `--strict` if the rollback is incomplete) whose previous exception is the original error. A step of the rollback
+  that throws no longer skips the steps after it: it is listed under ROLLBACK INCOMPLETE and the rest is undone.
 - **`--fix` renames the code references to the class with its declaration (audit PF-I1).** `Version<old>::class`,
   `new Version<old>`, a type, and the fully qualified `\<namespace>\Version<old>` used to keep the old name, so the
   renamed migration referred to a class that no longer existed. Members, functions and constants that merely share the
@@ -87,7 +88,8 @@ the default exit codes do not change).
   failure while publishing; as before, nothing is changed.
 - **A copy is owner-only while it is written (audit PF-I4).** A new file starts with the umask's mode (often 0644),
   so a 0600 migration was briefly readable by others while its copy was being written. The copy (and a source being
-  written back by a rollback) is now set to 0600 before its first byte, then to the source's mode once written.
+  written back by a rollback) is now set to 0600 before its first byte, then to the source's mode once written; if
+  that first `chmod` fails, the copy is not written and the run fails with nothing changed.
 
 ### Changed
 

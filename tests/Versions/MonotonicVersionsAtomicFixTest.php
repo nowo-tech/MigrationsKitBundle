@@ -578,6 +578,44 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         }
     }
 
+    public function testAnErrorWhileRollingBackDoesNotSkipTheOtherSteps(): void
+    {
+        // The second move throws; undoing the first then throws too. The other steps are still undone (their staged
+        // copies removed) and the failed step is reported instead of escaping.
+        FaultyStreamWrapper::faults($this->root, ['throwAt' => ['rename' => 2, 'unlink' => 1]]);
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The error must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertTrue($e->rollbackIncomplete);
+            self::assertStringContainsString('ROLLBACK INCOMPLETE', $e->getMessage());
+            self::assertStringContainsString('Version20261105090000.php" -> "', $e->getMessage());
+            self::assertStringContainsString('failed (ValueError: Injected error on unlink call 1.)', $e->getMessage());
+        }
+
+        $after = $this->snapshot();
+        self::assertSame(['Version20261105090000.php', 'Version20261105091000.php', 'Version20261105092000.php', 'Version20261120170001.php'], array_keys($after), 'Only the step that threw is left; no temporary file.');
+    }
+
+    public function testACopyThatCannotBeMadeOwnerOnlyIsNotWritten(): void
+    {
+        // PF-I4: the 0600 step comes before any byte; if it fails, the copy is not written and nothing moves.
+        FaultyStreamWrapper::faults($this->root, ['failAt' => ['chmod' => 3], 'recordModes' => true]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The failure must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertStringContainsString('Version20261105091000.php', $e->getMessage());
+            self::assertStringContainsString('could not be written', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot());
+        self::assertSame(1, substr_count((string) file_get_contents($this->root . '/' . FaultyStreamWrapper::MODES), "\n"), 'Only the first copy was written.');
+    }
+
     private function checker(bool $faulty = false): MonotonicVersionsChecker
     {
         return new MonotonicVersionsChecker(new GitMigrationFiles(($faulty ? FaultyStreamWrapper::url($this->root) : $this->root) . '/repo'));
