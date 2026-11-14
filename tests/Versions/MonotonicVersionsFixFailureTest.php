@@ -186,6 +186,14 @@ final class FailingRenameStreamWrapper
         return $option === STREAM_META_ACCESS && @chmod($this->real($path), (int) $value);
     }
 
+    /**
+     * @param int<0, 7> $operation
+     */
+    public function stream_lock(int $operation): bool
+    {
+        return $this->handle !== false && flock($this->handle, $operation);
+    }
+
     public function unlink(string $path): bool
     {
         return @unlink($this->real($path));

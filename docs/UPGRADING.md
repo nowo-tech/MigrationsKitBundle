@@ -57,6 +57,12 @@ Target 2.7.0. No code change is required.
   others (same rollback caveat). The "Renamed" lines are printed after every directory is done.
 - The renamed file keeps the source's permissions, and its group when the process may set it; the owner is the user
   running the command. A source edited while `--fix` runs is not removed: the run is rolled back instead.
+- A migration that is a symbolic link becomes a regular file under the new name (the link is not kept and its
+  target file is left as it was).
+- `--fix` publishes with hard links. On a filesystem without them it takes a lock file,
+  `.nowo-migrations-fix.lock`, in the migrations directory for the run and removes it afterwards; a second `--fix`
+  on the same directory at the same time then fails (exit 2) instead of racing.
+- `ext-tokenizer` is now required. It ships with most PHP builds; on Alpine install `php8x-tokenizer`.
 - While it runs, `--fix` writes hidden temporary files (`.<Version>.php.<random>.tmp`) next to the migrations; they
   are removed on success and on failure. A process killed mid-run can leave one behind: it is not a migration, delete
   it.

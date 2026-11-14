@@ -194,7 +194,7 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
     public function testASourceEditedWhileFixRunsIsNotDeleted(): void
     {
         // The second source is saved by someone else after it was read and staged: removing it would lose that edit.
-        FaultyStreamWrapper::faults($this->root, ['editAfterRename' => ['/Version20261120170003.php' => $this->dir . '/Version20261105091000.php']]);
+        FaultyStreamWrapper::faults($this->root, ['after' => [['op' => 'rename', 'call' => 3, 'file' => $this->dir . '/Version20261105091000.php', 'append' => "// edited\n"]]]);
         $before = $this->snapshot();
 
         try {
@@ -207,6 +207,123 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
 
         $before['Version20261105091000.php'][0] .= "// edited\n";
         self::assertSame($before, $this->snapshot(), 'The edit is kept and the other migrations are back.');
+    }
+
+    public function testATargetThatAppearsBeforeTheCommitIsNeverOverwritten(): void
+    {
+        // PF-L2: someone creates the second target after it was planned (here: right after the last copy is staged).
+        $foreign = $this->dir . '/Version20261120170002.php';
+        FaultyStreamWrapper::faults($this->root, ['after' => [['op' => 'chmod', 'call' => 3, 'file' => $foreign, 'append' => 'foreign']]]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('A target that appeared must be reported.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('Version20261120170002.php', $e->getMessage());
+            self::assertStringContainsString('already exists', $e->getMessage());
+            self::assertStringContainsString('Nothing was changed', $e->getMessage());
+        }
+
+        $after = $this->snapshot();
+        self::assertSame('foreign', $after['Version20261120170002.php'][0], 'The file that appeared is not overwritten, and not deleted by the rollback.');
+        unset($after['Version20261120170002.php']);
+        self::assertSame($before, $after);
+    }
+
+    public function testWithoutHardLinksADirectoryThatCannotBeLockedChangesNothing(): void
+    {
+        // Through a stream wrapper link() is unavailable, so the fallback locks the directory first; if the lock file
+        // cannot be opened, nothing moves.
+        FaultyStreamWrapper::faults($this->root, ['failOn' => ['write' => ['/.nowo-migrations-fix.lock']]]);
+        $before = $this->snapshot();
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('A directory that cannot be locked must be reported.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('could not be locked', $e->getMessage());
+            self::assertStringContainsString('Nothing was changed', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot());
+    }
+
+    public function testARollbackLeavesATargetSomeoneElseChanged(): void
+    {
+        // The first target is moved into place, then edited by someone else before the second move fails: the rollback
+        // must not delete a file that is no longer the one --fix wrote.
+        $first = $this->dir . '/Version20261120170001.php';
+        FaultyStreamWrapper::faults($this->root, [
+            'failAt' => ['rename' => 2],
+            'after'  => [['op' => 'rename', 'call' => 1, 'file' => $first, 'append' => "// edited\n"]],
+        ]);
+
+        try {
+            $this->checker(true)->fix($this->report(), $this->now());
+            self::fail('The failure must be reported.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('ROLLBACK INCOMPLETE', $e->getMessage());
+            self::assertStringContainsString('Version20261120170001.php" changed after --fix wrote it', $e->getMessage());
+        }
+
+        self::assertStringEndsWith("// edited\n", (string) file_get_contents($first));
+    }
+
+    public function testARealDirectoryPublishesWithoutTemporaryFilesLeft(): void
+    {
+        $this->checker()->fix($this->report(), $this->now());
+
+        self::assertSame(['Version20261120170001.php', 'Version20261120170002.php', 'Version20261120170003.php'], array_keys($this->snapshot()), 'No temporary or lock file is left behind.');
+    }
+
+    public function testAMentionInACommentOrAStringIsNotTheDeclaration(): void
+    {
+        // PF-L1: the first "class Version..." in the file is in a docblock, a comment and a string; only the declaration
+        // is renamed, and the mentions are left as written.
+        $file = $this->dir . '/Version20261105090000.php';
+        file_put_contents($file, <<<'PHP'
+            <?php
+
+            /**
+             * Follows class Version20261105090000 of the old branch.
+             */
+            // class Version20261105090000 was generated by make:migration
+            # class Version20261105090000
+            final class Version20261105090000 extends \Doctrine\Migrations\AbstractMigration
+            {
+                public function getDescription(): string
+                {
+                    return 'class Version20261105090000' . self::class . Version20261105090000::class;
+                }
+            }
+
+            PHP);
+
+        $this->checker()->fix($this->report(), $this->now());
+
+        $code = (string) file_get_contents($this->dir . '/Version20261120170001.php');
+        self::assertStringContainsString('final class Version20261120170001 extends', $code);
+        self::assertStringContainsString(' * Follows class Version20261105090000 of the old branch.', $code);
+        self::assertStringContainsString('// class Version20261105090000 was generated', $code);
+        self::assertStringContainsString("# class Version20261105090000\n", $code);
+        self::assertStringContainsString("'class Version20261105090000'", $code);
+    }
+
+    public function testAMentionInACommentDoesNotBypassTheMismatchGuard(): void
+    {
+        // PF-L1: the real class is SomethingElse; a comment that names the file's class must not let the rename through.
+        file_put_contents($this->dir . '/Version20261105091000.php', "<?php\n\n/* class Version20261105091000 */\n\$s = 'class Version20261105091000';\nfinal class SomethingElse\n{\n}\n");
+        $before = $this->snapshot();
+
+        try {
+            $this->checker()->fix($this->report(), $this->now());
+            self::fail('A migration without its class declaration must be reported.');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('does not declare "class Version20261105091000"', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->snapshot());
     }
 
     public function testARestoreThatFailsKeepsTheRenamedCopyAndSaysSo(): void

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "32c0fc7e111d11c1c0736650b1bfb5bb",
+    "content-hash": "610ec5513c6ec19b3fad626fc9a591ff",
     "packages": [
         {
             "name": "doctrine/dbal",
@@ -4303,7 +4303,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-11-03T12:14:22+00:00"
+            "time": "2026-11-03T12:14:22+00:00",
+            "published-time": "2026-11-03T12:14:36+00:00"
         },
         {
             "name": "phpstan/phpstan-phpunit",
@@ -6824,6 +6825,7 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
+        "ext-tokenizer": "*",
         "php": ">=8.2 <8.6"
     },
     "platform-dev": {},

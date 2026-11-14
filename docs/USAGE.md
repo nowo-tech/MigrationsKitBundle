@@ -525,7 +525,8 @@ error says **ROLLBACK INCOMPLETE**).
 to the next version after every existing one (`now`, or the newest version + 1 second when that is in the future). It
 never touches migrations of the base ref; do not run it on migrations already applied somewhere. It is all or nothing
 across files and directories: every renamed copy is written next to its target and checked first, and any failure
-leaves every original byte-identical (an incomplete rollback is reported as such, with the files to look at).
+leaves every original byte-identical (an incomplete rollback is reported as such, with the files to look at). It
+never overwrites an existing file, and a migration that is a symbolic link becomes a regular file.
 
 ```yaml
 nowo_migrations_kit:

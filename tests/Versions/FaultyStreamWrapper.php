@@ -10,6 +10,7 @@ use function feof;
 use function fflush;
 use function file_get_contents;
 use function file_put_contents;
+use function flock;
 use function fopen;
 use function fread;
 use function fstat;
@@ -123,7 +124,20 @@ final class FaultyStreamWrapper
             return false;
         }
 
-        return @chmod($this->real($path), (int) $value);
+        if (!@chmod($this->real($path), (int) $value)) {
+            return false;
+        }
+        $this->after('chmod', $path);
+
+        return true;
+    }
+
+    /**
+     * @param int<0, 7> $operation
+     */
+    public function stream_lock(int $operation): bool
+    {
+        return $this->handle !== false && flock($this->handle, $operation);
     }
 
     /**
@@ -144,12 +158,7 @@ final class FaultyStreamWrapper
         if ($this->fails('rename', $to) || !@rename($this->real($from), $this->real($to))) {
             return false;
         }
-        // Simulates someone saving a file while --fix runs: `editAfterRename` maps a target suffix to a real file.
-        foreach ($this->read($this->root($to))['editAfterRename'] ?? [] as $suffix => $file) {
-            if (str_ends_with($to, $suffix)) {
-                file_put_contents($file, "// edited\n", FILE_APPEND);
-            }
-        }
+        $this->after('rename', $to);
 
         return true;
     }
@@ -188,13 +197,24 @@ final class FaultyStreamWrapper
 
     /**
      * Writes the faults for a root: `failAt` (operation => fail on the Nth call, 1-based) and `failOn` (operation =>
-     * fail when the path ends with one of the suffixes).
+     * fail when the path ends with one of the suffixes), `after` (simulates someone else writing while --fix runs: after
+     * the Nth successful call of an operation, append text to a real file, creating it if needed).
      *
-     * @param array{failAt?: array<string, int>, failOn?: array<string, list<string>>, editAfterRename?: array<string, string>} $faults
+     * @param array{failAt?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>} $faults
      */
     public static function faults(string $root, array $faults): void
     {
         file_put_contents($root . '/' . self::FAULTS, json_encode($faults + ['calls' => []], JSON_THROW_ON_ERROR));
+    }
+
+    private function after(string $operation, string $url): void
+    {
+        $faults = $this->read($this->root($url));
+        foreach ($faults['after'] ?? [] as $hook) {
+            if ($hook['op'] === $operation && $hook['call'] === ($faults['calls'][$operation] ?? 0)) {
+                file_put_contents($hook['file'], $hook['append'], FILE_APPEND);
+            }
+        }
     }
 
     /**
@@ -224,7 +244,7 @@ final class FaultyStreamWrapper
     }
 
     /**
-     * @return array{failAt?: array<string, int>, failOn?: array<string, list<string>>, editAfterRename?: array<string, string>, calls: array<string, int>}
+     * @return array{failAt?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, calls: array<string, int>}
      */
     private function read(string $root): array
     {
@@ -232,7 +252,7 @@ final class FaultyStreamWrapper
         if (!is_file($file)) {
             return ['calls' => []];
         }
-        /** @var array{failAt?: array<string, int>, failOn?: array<string, list<string>>, editAfterRename?: array<string, string>, calls: array<string, int>} $faults */
+        /** @var array{failAt?: array<string, int>, failOn?: array<string, list<string>>, after?: list<array{op: string, call: int, file: string, append: string}>, calls: array<string, int>} $faults */
         $faults = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
 
         return $faults;
