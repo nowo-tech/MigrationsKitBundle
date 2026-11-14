@@ -496,7 +496,7 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
                 {
                     $f = function () use ($m) { return new Version20261105090000($this->connection, $this->logger); };
 
-                    return "x $m[Version20261105090000] y" . <<<SQL
+                    return "x $m[Version20261105090000] y" . b"x $m[Version20261105090000]" . <<<SQL
                         -- $m[Version20261105090000]
                         SQL . `echo $m[Version20261105090000]` . g(Version20261105090000: 1) . Version20261105090000()
                         . namespace\Version20261105090000::class;
@@ -529,13 +529,80 @@ final class MonotonicVersionsAtomicFixTest extends TestCase
         self::assertStringContainsString('use Tenant\{Version20261105090000 as TenantV};', $code);
         self::assertStringContainsString('use Other\Version20261105090000 as OtherV;', $code);
         self::assertStringContainsString('use ($m) { return new Version20261120170001($this->connection', $code);
-        self::assertStringContainsString('"x $m[Version20261105090000] y"', $code);
+        self::assertStringContainsString('"x $m[Version20261105090000] y" . b"x $m[Version20261105090000]"', $code);
         self::assertStringContainsString('-- $m[Version20261105090000]', $code);
         self::assertStringContainsString('`echo $m[Version20261105090000]`', $code);
         self::assertStringContainsString('g(Version20261105090000: 1) . Version20261105090000()', $code);
         self::assertStringContainsString('. namespace\Version20261120170001::class;', $code);
         self::assertStringContainsString('public function &Version20261105090000(): array', $code);
         self::assertStringContainsString('case Version20261105090000:', $code);
+    }
+
+    public function testATernaryAndASwitchCaseOnAClassConstantAreReferences(): void
+    {
+        // PL-D1-I3: `? new Old :` is not a named argument, and `case Old::X:` is not a `case Old:` constant.
+        file_put_contents($this->dir . '/Version20261105090000.php', <<<'PHP'
+            <?php
+
+            namespace DoctrineMigrations;
+
+            final class Version20261105090000 extends \Doctrine\Migrations\AbstractMigration
+            {
+                public const X = 1;
+
+                public function pick(bool $b, int $k): ?self
+                {
+                    switch ($k) {
+                        case Version20261105090000::X:
+                            return $b ? new Version20261105090000($this->connection, $this->logger) : null;
+                    }
+
+                    return null;
+                }
+            }
+
+            PHP);
+
+        $this->checker()->fix($this->report(), $this->now());
+
+        $code = (string) file_get_contents($this->dir . '/Version20261120170001.php');
+        self::assertStringContainsString('case Version20261120170001::X:', $code);
+        self::assertStringContainsString('return $b ? new Version20261120170001($this->connection, $this->logger) : null;', $code);
+        self::assertStringNotContainsString('Version20261105090000', $code);
+    }
+
+    public function testARollbackNeverRemovesATargetWithTheSameBytesThatAnotherRunPublished(): void
+    {
+        // PL-D1-M1 (audit probe C1): run A has published the target and is about to remove its source; run B, which
+        // planned the same target with the same bytes, fails to publish (the name exists) and rolls back. Equal bytes
+        // are not proof that B wrote the file: B must leave A's target alone, or A removes its source next and the
+        // migration is gone. Here the third, empty directory plants A's file while B plans it.
+        $target = $this->dir . '/Version20261120170001.php';
+        $bytes  = "<?php\n\nnamespace DoctrineMigrations;\n\nfinal class Version20261120170001 extends \\Doctrine\\Migrations\\AbstractMigration\n{\n}\n";
+        mkdir($this->root . '/repo/empty');
+        $first  = new MonotonicVersionsReport('migrations', 'v1.0.0', 'Version20261120170000', ['Version20261105090000'], ['Version20261105090000']);
+        $empty  = new MonotonicVersionsReport('empty', 'v1.0.0', null, [], []);
+        $before = $this->snapshot();
+        $files  = new HookedGitMigrationFiles($this->root . '/repo', static function (string $path) use ($target, $bytes): void {
+            if ($path === 'empty') {
+                file_put_contents($target, $bytes);
+            }
+        });
+
+        try {
+            (new MonotonicVersionsChecker($files))->fixAll([$first, $empty], $this->now());
+            self::fail('The taken target must be reported.');
+        } catch (FixFailedException $e) {
+            self::assertFalse($e->rollbackIncomplete, $e->getMessage());
+            self::assertStringContainsString('already exists', $e->getMessage());
+            self::assertStringContainsString('Nothing was changed.', $e->getMessage());
+            self::assertStringNotContainsString('moved back', $e->getMessage());
+        }
+
+        $after = $this->snapshot();
+        self::assertSame($bytes, $after['Version20261120170001.php'][0] ?? null, 'Run A\'s target is still there.');
+        unset($after['Version20261120170001.php']);
+        self::assertSame($before, $after, 'Run B changed nothing of its own either.');
     }
 
     public function testAReferenceInTheGlobalNamespaceIsRenamed(): void

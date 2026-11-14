@@ -15,6 +15,7 @@ use function basename;
 use function bin2hex;
 use function chgrp;
 use function chmod;
+use function clearstatcache;
 use function count;
 use function dirname;
 use function fclose;
@@ -36,6 +37,7 @@ use function random_bytes;
 use function realpath;
 use function rename;
 use function sprintf;
+use function stat;
 use function strcasecmp;
 use function stream_get_meta_data;
 use function strlen;
@@ -78,9 +80,9 @@ use const T_WHITESPACE;
 final readonly class MonotonicVersionsChecker
 {
     /**
-     * Tokens after which a name is a member, a function, a constant or an enum case, not a class reference.
+     * Tokens after which a name is a member, a function or a constant, not a class reference.
      */
-    private const NOT_A_CLASS_NAME = [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_CONST, T_GOTO, T_CASE];
+    private const NOT_A_CLASS_NAME = [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_CONST, T_GOTO];
 
     /**
      * @param list<string> $paths migrations directories, relative to the project or absolute
@@ -174,6 +176,9 @@ final readonly class MonotonicVersionsChecker
                 if ($temp === null || !$this->write($temp, $step['rewritten'], $step['perms'], $step['group'])) {
                     throw $this->failure(sprintf('Cannot rename migration "%s" to "%s": the renamed copy could not be written and checked in "%s".', $step['from'], $step['to'], $step['dir']), $plan, 0);
                 }
+                // The file itself, not its bytes, is what this run publishes: link() and rename() keep the inode
+                // (PL-D1-M1). Another run that wrote the same bytes to the same name owns a different file.
+                $plan[$k]['id'] = $this->identity($temp);
             }
 
             foreach ($plan as $k => $step) {
@@ -221,7 +226,7 @@ final readonly class MonotonicVersionsChecker
      *
      * @throws FixFailedException when a migration cannot be renamed
      *
-     * @return array{0: list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}>, 1: list<array<string, string>>}
+     * @return array{0: list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null}>, 1: list<array<string, string>>}
      */
     private function plan(array $reports, DateTimeImmutable $now): array
     {
@@ -255,7 +260,7 @@ final readonly class MonotonicVersionsChecker
                 if ($rewritten === null) {
                     throw new FixFailedException(sprintf('Cannot rename migration "%s" to "%s": it does not declare "class %s", so its file and class names would no longer match. Nothing was changed.', $from, $to, $old));
                 }
-                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'group' => @filegroup($from), 'temp' => null];
+                $plan[]    = ['dir' => $dir, 'from' => $from, 'to' => $to, 'code' => $code, 'rewritten' => $rewritten, 'perms' => $perms & 0o7777, 'group' => @filegroup($from), 'temp' => null, 'id' => null];
                 $map[$old] = $new;
             }
             $renamed[] = $map;
@@ -272,7 +277,7 @@ final readonly class MonotonicVersionsChecker
      * rest of the run (one per directory, taken on first use) and checks the target before rename(): that excludes a
      * concurrent --fix, not an editor writing the same name in the same instant.
      *
-     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null} $step
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null} $step
      * @param array<string, resource> $locks lock file => handle, kept until the end of the run
      *
      * @return string|null why it failed; null when the target is in place
@@ -303,7 +308,7 @@ final readonly class MonotonicVersionsChecker
     /**
      * Best effort: flushes the directory entries (new names, removed names) to disk where the platform allows it.
      *
-     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null}> $plan
      */
     private function syncDirectories(array $plan): void
     {
@@ -323,8 +328,9 @@ final readonly class MonotonicVersionsChecker
      * Since 2.8 the code references to the class are renamed too (PF-I1): `<old>::class` and other `<old>::` accesses,
      * `new <old>`, `instanceof <old>`, a type, and `\<namespace>\<old>` / `namespace\<old>`. Class names are matched
      * case-insensitively, like PHP does (PF-I10). Never renamed (PL-L2): anything inside a string or heredoc (including
-     * interpolated keys), `use` imports, members and constants (`->`, `?->`, `::`, `const`, `case`), function names and
-     * calls (`function <old>`, `function &<old>`, `<old>(`), named arguments and labels (`<old>:`).
+     * interpolated keys), `use` imports, members and constants (`->`, `?->`, `::`, `const`, `case <old>` but not
+     * `case <old>::X`), function names and calls (`function <old>`, `function &<old>`, `<old>(`), named arguments and
+     * labels (`f(<old>: 1)`, `<old>:`; a ternary `? new <old> :` is a reference).
      *
      * @return string|null null when the code has no such declaration, or more than one
      */
@@ -345,8 +351,9 @@ final readonly class MonotonicVersionsChecker
                 $out .= $text;
                 continue;
             }
-            if ($text === '"' || $text === '`' || $id === T_START_HEREDOC || $id === T_END_HEREDOC) {
-                $inString = $text === '"' || $text === '`' ? !$inString : $id === T_START_HEREDOC;
+            if (in_array($text, ['"', 'b"', 'B"', '`'], true) || $id === T_START_HEREDOC || $id === T_END_HEREDOC) {
+                // `b"` opens a binary-prefixed interpolated string (PL-D1-I2); it closes with a plain `"`.
+                $inString = $id === null ? !$inString : $id === T_START_HEREDOC;
             } elseif ($inString) {
                 // Interpolated text: never code to rename.
             } elseif ($id === T_USE) {
@@ -387,9 +394,17 @@ final readonly class MonotonicVersionsChecker
         if (in_array($previous[0], self::NOT_A_CLASS_NAME, true) || ($previous[0] === '&' && $previous[1] === T_FUNCTION)) {
             return false;
         }
+        if ($previous[0] === T_CASE) {
+            // `case Name::X:` refers to the class; `case Name:` / `case Name;` / `case Name = 1;` do not.
+            return $next === '::';
+        }
+        // `f(Name: 1)` is a named argument and `Name:` at the start of a statement a label; `? new Name :` is a class.
+        if ($next === ':' && in_array($previous[0], ['(', ',', ';', '{', '}'], true)) {
+            return false;
+        }
 
-        // `Name:` is a named argument, a label or a `case`; `Name(` without `new` is a function call.
-        return $next !== ':' && ($next !== '(' || $previous[0] === T_NEW);
+        // `Name(` without `new` is a function call.
+        return $next !== '(' || $previous[0] === T_NEW;
     }
 
     /**
@@ -420,7 +435,7 @@ final readonly class MonotonicVersionsChecker
      * how far the run got (PL-L1): a missing source is written back first, and a target is removed only once its source
      * is back.
      *
-     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null}> $plan
+     * @param list<array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null}> $plan
      * @param int $started steps whose target may have been moved into place (a target that changed since is reported)
      * @param Throwable|null $previous the unexpected error that stopped the run, if any
      */
@@ -448,7 +463,7 @@ final readonly class MonotonicVersionsChecker
     /**
      * Undoes one step of the plan from the state of the disk.
      *
-     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null} $step
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null} $step
      * @param bool $started whether this run may have moved its target into place
      *
      * @return array{0: bool, 1: list<string>} whether a moved target was taken back, and what could not be undone
@@ -459,7 +474,9 @@ final readonly class MonotonicVersionsChecker
         if ($step['temp'] !== null && file_exists($step['temp']) && !@unlink($step['temp'])) {
             $problems[] = sprintf('temporary file "%s" could not be removed', $step['temp']);
         }
-        $ours = @file_get_contents($step['to']) === $step['rewritten'];
+        // Ours only if it is the very file this run staged (same device and inode) and still holds its bytes: a file
+        // with the same bytes but another inode was published by someone else (a concurrent --fix) and is kept.
+        $ours = $step['id'] !== null && $this->identity($step['to']) === $step['id'] && @file_get_contents($step['to']) === $step['rewritten'];
         if (!file_exists($step['from']) && !$this->restore($step)) {
             // The renamed copy may now be the only copy of this migration: it is kept.
             $problems[] = sprintf('"%s" could not be restored; %s', $step['from'], sprintf($ours ? 'its content is in "%s" with the class renamed' : 'its renamed copy "%s" is missing or changed since --fix wrote it: compare or recreate it by hand', $step['to']));
@@ -477,10 +494,21 @@ final readonly class MonotonicVersionsChecker
     }
 
     /**
+     * Device and inode of a file, or null when unknown (missing file, or a platform without inode numbers).
+     */
+    private function identity(string $path): ?string
+    {
+        clearstatcache(true, $path);
+        $stat = @stat($path);
+
+        return $stat === false || $stat['ino'] === 0 ? null : $stat['dev'] . ':' . $stat['ino'];
+    }
+
+    /**
      * Writes a removed source back from memory without ever replacing a file: staged owner-only next to it, checked,
      * then published like a renamed copy (PL-L3: the bytes are never readable through a wider mode).
      *
-     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null} $step
+     * @param array{dir: string, from: string, to: string, code: string, rewritten: string, perms: int, group: false|int, temp: string|null, id: string|null} $step
      */
     private function restore(array $step): bool
     {

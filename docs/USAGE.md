@@ -553,14 +553,16 @@ to the next version after every existing one (`now`, or the newest version + 1 s
 never touches migrations of the base ref; do not run it on migrations already applied somewhere. It is all or nothing
 across files and directories: every renamed copy is written next to its target and checked first, and any failure
 leaves every original byte-identical (an incomplete rollback is reported as such, with the files to look at; a source
-that cannot be written back keeps its renamed copy, so the rollback never deletes the only copy of a migration). It
+that cannot be written back keeps its renamed copy, and the rollback removes only the files this run itself staged,
+never one with the same name and bytes that a concurrent run published). It
 never overwrites an existing file, and a migration that is a symbolic link becomes a regular file.
 
 What `--fix` rewrites inside a migration: the class declaration (matched case-insensitively, like PHP) and, since
 2.8, the code references to that class — `Version<old>::class` and other `::` accesses, `new Version<old>`,
 `instanceof`, a type, `\<namespace>\Version<old>` and `namespace\Version<old>`. Nothing else is renamed: comments,
 docblocks, strings, heredocs and backtick commands (interpolated keys included), `use` imports, members and constants
-(`->`, `::`, `const`, `case`), function names and calls, named arguments and labels. On a local directory each
+(`->`, `::`, `const`, `case <old>`; `case <old>::X` is renamed), function names and calls, named arguments and
+labels. On a local directory each
 staged copy is created owner-only (0600, by `tempnam()`) and gets the source's mode once complete; through a stream
 wrapper it is set to 0600 before its first byte. An unexpected error during the run is rolled back from what is on
 disk, like any other failure. Two cases are left as they are on purpose: a hidden `.<Version>.php.<random>` can

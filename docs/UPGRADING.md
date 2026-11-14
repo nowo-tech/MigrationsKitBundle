@@ -76,7 +76,8 @@ Target 2.8.0. No code change is required; the default exit codes are unchanged.
   should be widened (`.Version*.php.*`). Through a stream wrapper the old name and the old 0600-before-the-first-byte
   behaviour remain. The final file gets the source's mode; nothing to do.
 - A failed `--fix` is undone from what is on disk: a missing source is written back before its renamed copy is
-  removed, so a rollback never deletes the only copy of a migration.
+  removed, and only the file this run staged (same inode) is ever removed — a file with the same name and bytes
+  published by a concurrent `--fix` is kept. If a source cannot be written back, its renamed copy is kept.
 - Known and kept: a hidden `.<Version>.php.<random>` can remain if the temporary name cannot be removed after
   publishing (delete it; it is never loaded), and on a mount whose `fsync()` fails `--fix` always fails with exit 2
   and changes nothing (run it on a local checkout).

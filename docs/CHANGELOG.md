@@ -80,19 +80,23 @@ the default exit codes do not change).
   effect and then threw (possible through a stream wrapper) was not counted, so the rollback could delete a renamed
   copy whose source was already gone (the migration was lost) or leave a duplicate, and still say "Nothing was
   changed". Each step is now undone from the disk: a missing source is written back first (staged owner-only, then
-  linked into place without replacing anything), a target is removed only once its source is back and only if it
-  still holds the bytes this run wrote, and the "moved back" count is what was actually taken back. A source that
-  cannot be written back keeps its renamed copy, and the message says where the content is.
+  linked into place without replacing anything), a target is removed only once its source is back and only if it is
+  the very file this run staged (same device and inode, which `link()` and `rename()` keep) and still holds its
+  bytes, and the "moved back" count is what was actually taken back. A file with the same name and the same bytes
+  published by another run (two `--fix` at once plan the same target) is never removed (delta audit PL-D1-M1). A
+  source that cannot be written back keeps its renamed copy, and the message says where the content is.
 - **A failure to release the lock file after a successful run is no longer reported as a failure (audit PL-I2).**
   On a filesystem without hard links, an error from removing `.nowo-migrations-fix.lock` escaped after every rename
   was done (exit 1, no "Renamed" lines). It is ignored now: the lock file left behind does not block the next run.
 - **`--fix` renames the code references to the class with its declaration (audit PF-I1).** `Version<old>::class`,
   `new Version<old>`, `instanceof`, a type, `\<namespace>\Version<old>` and `namespace\Version<old>` used to keep the
   old name, so the renamed migration referred to a class that no longer existed. Only those class-reference positions
-  are renamed (audit PL-L2): anything inside a string, a heredoc or a backtick command (interpolated keys included),
+  are renamed (audit PL-L2): anything inside a string (`b"…"` too), a heredoc or a backtick command (interpolated
+  keys included),
   `use` imports (also group imports of another namespace), members and constants (`->`, `?->`, `::`, `const`,
-  `case`), function names and calls (`function Version<old>`, `function &Version<old>`, `Version<old>(`), named
-  arguments and labels (`Version<old>:`), and comments and docblocks are left as written.
+  `case Version<old>`, while `case Version<old>::X` is a reference), function names and calls (`function
+  Version<old>`, `function &Version<old>`, `Version<old>(`), named arguments and labels (`f(Version<old>: 1)`,
+  `Version<old>:`; `$b ? new Version<old> : null` is a reference), and comments and docblocks are left as written.
 - **`--fix` accepts a declaration written in another case (audit PF-I10).** PHP class names are case-insensitive, so
   `class version2026…` in `Version2026….php` declares the file's class; it was refused, and is now renamed (to the
   usual `Version…` spelling). References are matched the same way.
@@ -143,7 +147,9 @@ the default exit codes do not change).
   back (its renamed copy kept and named), a real-filesystem restore (mode kept, nothing left), each name that is not a
   class reference (group `use`, interpolated keys in a string, heredoc and backticks, named argument, `function &`,
   function call, `case`) and `namespace\Old`, a staged copy created 0600 under umask 0, an error right after a staged
-  copy was created (removed by the rollback), and a lock-release error after a successful run. `FaultyStreamWrapper` gains `throwAt`, `throwAfter` and `recordModes`.
+  copy was created (removed by the rollback), a lock-release error after a successful run, a target with the same
+  bytes published by a concurrent run (kept), and `case Old::X:` / `? new Old :` (renamed). `FaultyStreamWrapper`
+  gains `throwAt`, `throwAfter` and `recordModes`.
 
 ## [2.7.0] - 2026-11-14
 
