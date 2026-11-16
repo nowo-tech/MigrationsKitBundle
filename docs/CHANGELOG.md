@@ -49,6 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Documentation
+
+- Spec Kit baseline: the code inventory maps all 30 files under `src/` (collation, key-collation and monotonic-version gates added since 2.3), with `FR-COLL-001`, `FR-KEY-001` and `FR-VER-001` in the spec (REQ-SPECKIT-001/003).
+
 ## [2.8.0] - 2026-11-14
 
 Target **2.8.0** (minor: a new `--strict` option on two commands, new exit-code constants and a new exception class;

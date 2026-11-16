@@ -204,7 +204,7 @@ find src -type f ! -path '*/assets/dist/*' ! -name '*.test.ts' | wc -l
 
 The **Total production sources** row in `code-inventory.md` must match this count.
 
-In **MigrationsKitBundle**, the baseline inventory covers **12/12** files — see [`specs/001-baseline/code-inventory.md`](../specs/001-baseline/code-inventory.md).
+In **MigrationsKitBundle**, the baseline inventory covers **30/30** files — see [`specs/001-baseline/code-inventory.md`](../specs/001-baseline/code-inventory.md).
 
 ---
 
