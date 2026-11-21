@@ -14,7 +14,7 @@ SERVICE_PHP := php
 
 DATABASE_URL_MYSQL := mysql://app:app@mysql:3306/demo
 
-.PHONY: help up down build install lock shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql write-sql-reference-mysql db-reset cache-clear update-bundle ensure-up test test-coverage check-pdo-mysql up-mysql db-reset-mysql migrate-mysql test-mysql test-mysql-write-sql list-migrations
+.PHONY: help up down build install lock shell logs setup migrate migrate-verbose migrate-dry-run migrate-write-sql write-sql-reference-mysql db-reset cache-clear update-bundle ensure-up test test-e2e test-coverage check-pdo-mysql up-mysql db-reset-mysql migrate-mysql test-mysql test-mysql-write-sql list-migrations
 
 help:
 	@echo "Migrations Kit Bundle Demo - Symfony 8"
@@ -188,6 +188,20 @@ test-mysql-write-sql: update-bundle db-reset-mysql
 
 setup: install migrate
 	@echo "Demo ready. Tables created in var/data.db"
+
+# REQ-DEMO-013 / REQ-DEMO-014: Playwright e2e (demo platform shell rules, axe) in the official Playwright image, nothing to install on the host.
+# The image tag always follows the exact @playwright/test version pinned in e2e/package.json (browsers ship with the image).
+PLAYWRIGHT_VERSION := $(shell sed -n 's/.*"@playwright\/test": "\([0-9.]*\)".*/\1/p' e2e/package.json)
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v$(PLAYWRIGHT_VERSION)-jammy
+
+test-e2e: ensure-up migrate
+	@mkdir -p e2e/node_modules
+	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8008}; \
+	docker run --rm --network host \
+		-v "$(CURDIR)/e2e:/e2e" -w /e2e \
+		-e DEMO_BASE_URL=http://127.0.0.1:$$PORT \
+		$(PLAYWRIGHT_IMAGE) \
+		bash -lc 'npm ci --no-fund --no-audit && npx playwright test --project=chromium'
 
 shell: ensure-up
 	$(COMPOSE) exec $(SERVICE_PHP) sh

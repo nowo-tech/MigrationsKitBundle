@@ -10,45 +10,44 @@
 {% endblock %}
 
 {% block body %}
-    <section class="nowo-ui-card">
-        <div class="nowo-ui-card__body">
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'Status', kind: 'detail', in_sync: in_sync} %}
+        {% block section_actions %}
+            {% if in_sync %}<span class="nowo-ui-badge nowo-ui-badge--success">In sync</span>{% else %}<span class="nowo-ui-badge nowo-ui-badge--danger">Out of sync</span>{% endif %}
+        {% endblock %}
+        {% block section_body %}
             {% if in_sync %}
-                <p><span class="nowo-ui-badge nowo-ui-badge--success">In sync</span> <strong>Entities are in sync with the database.</strong></p>
+                <p><strong>Entities are in sync with the database.</strong></p>
                 <p>All migrations have been applied and the Doctrine entities match the current schema.</p>
             {% else %}
-                <p><span class="nowo-ui-badge nowo-ui-badge--danger">Out of sync</span> <strong>Entities are not in sync with the database.</strong></p>
+                <p><strong>Entities are not in sync with the database.</strong></p>
                 <p>Run migrations to create or update the database schema:</p>
-                <pre class="nowo-ui-code-block"><code>php bin/console doctrine:migrations:migrate --no-interaction</code></pre>
+                <pre class="nowo-ui-code-block" tabindex="0"><code>php bin/console doctrine:migrations:migrate --no-interaction</code></pre>
                 <p>Or with Docker: <code>make migrate</code> from the demo directory.</p>
             {% endif %}
-        </div>
-    </section>
+        {% endblock %}
+    {% endembed %}
 
     {% if not in_sync and mapping_errors|length > 0 %}
-        <section class="nowo-ui-card">
-            <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Mapping errors</h2></div>
-            <div class="nowo-ui-card__body">
+        {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'Mapping errors', kind: 'list', mapping_errors: mapping_errors} %}
+            {% block section_body %}
                 <ul>
                     {% for error in mapping_errors %}
                         <li><code>{{ error }}</code></li>
                     {% endfor %}
                 </ul>
-            </div>
-        </section>
+            {% endblock %}
+        {% endembed %}
     {% endif %}
 
     {% if not in_sync and schema_errors|length > 0 %}
-        <section class="nowo-ui-card">
-            <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Schema errors (DB vs entities)</h2></div>
-            <div class="nowo-ui-card__body">
+        {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'Schema errors (DB vs entities)', kind: 'list', schema_errors: schema_errors} %}
+            {% block section_body %}
                 <ul>
                     {% for error in schema_errors %}
                         <li><code>{{ error }}</code></li>
                     {% endfor %}
                 </ul>
-            </div>
-        </section>
+            {% endblock %}
+        {% endembed %}
     {% endif %}
-
-    <p class="nowo-ui-muted">Demo: Migrations Kit Bundle · Symfony 8 · Web Profiler (toolbar at bottom in dev)</p>
 {% endblock %}

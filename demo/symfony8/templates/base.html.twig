@@ -1,16 +1,16 @@
-{#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-    asset package, no CSS framework, no CDN). The header menu is static: the demo is one page. -#}
-{% extends '@NowoUiKit/layout/admin.html.twig' %}
+{#- REQ-DEMO-014: the demo runs inside UiKit's shared demo platform shell (@NowoUiKit/demo_platform/layout.html.twig):
+    the same top bar, aside, content width, theme and footer as every other nowo-tech bundle demo. This file only
+    declares the demo (nowo_ui_demo_platform). The demo is one page. -#}
+{% extends '@NowoUiKit/demo_platform/layout.html.twig' %}
+{% set nowo_ui_demo_platform = {
+    bundle: 'Migrations Kit',
+    home_route: 'app_schema_status',
+    repository: 'https://github.com/nowo-tech/MigrationsKitBundle',
+    translation_domain: false,
+    locales: [],
+    nav: [
+        {label: 'Schema status', route: 'app_schema_status'},
+    ],
+} %}
 
 {% block nowo_ui_document_title %}{% block title %}Migrations Kit Bundle Demo{% endblock %}{% endblock %}
-
-{% block nowo_ui_navigation %}
-    <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('app_schema_status') }}">Migrations Kit Bundle Demo</a>
-        <nav class="nowo-ui-menu" aria-label="Demo">
-            <a class="nowo-ui-link" href="{{ path('app_schema_status') }}" aria-current="page">Schema status</a>
-        </nav>
-    </header>
-{% endblock %}
-
-{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}
