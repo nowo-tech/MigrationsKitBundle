@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a748325f82f4c5b0cd14db5e25e47c22",
+    "content-hash": "4db09a301d811968b2119eae75c5e72a",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -1126,17 +1126,19 @@
         },
         {
             "name": "nowo-tech/migrations-kit-bundle",
-            "version": "dev-master",
+            "version": "dev-chore/demo-platform-shell",
             "dist": {
                 "type": "path",
                 "url": "/var/migrations-kit-bundle",
-                "reference": "40c14300a04ec371a56f2fe02514ee5d733db8e3"
+                "reference": "8b04ad401fdac8117d859ccad66d8e4475a69eb7"
             },
             "require": {
                 "doctrine/dbal": "^3.5 || ^4.0",
                 "doctrine/doctrine-bundle": "^2.8 || ^3.0",
                 "doctrine/migrations": "^3.5 || ^4.0",
                 "doctrine/persistence": "^3.1 || ^4.0",
+                "ext-tokenizer": "*",
+                "nowo-tech/migrations-kit-contracts": "^1.0",
                 "php": ">=8.2 <8.6",
                 "symfony/config": "^7.4 || ^8.0",
                 "symfony/console": "^7.4 || ^8.0",
@@ -1178,6 +1180,10 @@
                 ],
                 "test-coverage": [
                     "vendor/bin/phpunit --colors=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text=php://stdout"
+                ],
+                "test-coverage-100": [
+                    "@test-coverage",
+                    "php .scripts/check-coverage.php coverage.xml --min-percent=100"
                 ],
                 "cs-check": [
                     "vendor/bin/php-cs-fixer fix --dry-run --diff"
@@ -1240,17 +1246,83 @@
             }
         },
         {
-            "name": "nowo-tech/ui-kit-bundle",
-            "version": "v2.49.0",
+            "name": "nowo-tech/migrations-kit-contracts",
+            "version": "v1.0.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/nowo-tech/UiKitBundle.git",
-                "reference": "38f5a1e26f360bda0fe7e1f88a5182c47081b8ce"
+                "url": "https://github.com/nowo-tech/MigrationsKitContracts.git",
+                "reference": "4e8bac5d985aa177c38b72b80ebf9d87dbb3eb8e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/38f5a1e26f360bda0fe7e1f88a5182c47081b8ce",
-                "reference": "38f5a1e26f360bda0fe7e1f88a5182c47081b8ce",
+                "url": "https://api.github.com/repos/nowo-tech/MigrationsKitContracts/zipball/4e8bac5d985aa177c38b72b80ebf9d87dbb3eb8e",
+                "reference": "4e8bac5d985aa177c38b72b80ebf9d87dbb3eb8e",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.2 <8.6"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "phpstan/phpstan": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpunit/phpunit": "^10.0 || ^11.0",
+                "rector/rector": "^2.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Nowo\\MigrationsKitContracts\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Héctor Franco Aceituno",
+                    "email": "hectorfranco@nowo.tech",
+                    "homepage": "https://github.com/HecFranco",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Nowo.tech",
+                    "homepage": "https://nowo.tech"
+                }
+            ],
+            "description": "Contracts a bundle implements to declare its identity and access-key columns, so a host can assert they are in a binary NO PAD collation (REQ-SEC-006). Interfaces and value objects only, no dependencies beyond PHP.",
+            "homepage": "https://github.com/nowo-tech/MigrationsKitContracts",
+            "keywords": [
+                "collation",
+                "contracts",
+                "database",
+                "identity",
+                "mariadb",
+                "mysql",
+                "no-pad",
+                "security",
+                "utf8mb4"
+            ],
+            "support": {
+                "issues": "https://github.com/nowo-tech/MigrationsKitContracts/issues",
+                "source": "https://github.com/nowo-tech/MigrationsKitContracts"
+            },
+            "time": "2026-11-13T16:29:59+00:00",
+            "published-time": "2026-11-13T16:41:39+00:00"
+        },
+        {
+            "name": "nowo-tech/ui-kit-bundle",
+            "version": "v2.62.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nowo-tech/UiKitBundle.git",
+                "reference": "5fb5c5fab50ea8806eec285255fc10cce7c40ec3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/5fb5c5fab50ea8806eec285255fc10cce7c40ec3",
+                "reference": "5fb5c5fab50ea8806eec285255fc10cce7c40ec3",
                 "shasum": ""
             },
             "require": {
@@ -1297,7 +1369,8 @@
                 "symfony/validator": "Colour validation in the optional appearance forms"
             },
             "bin": [
-                "bin/nowo-ui-token-lint"
+                "bin/nowo-ui-token-lint",
+                "bin/nowo-ui-demo-style-lint"
             ],
             "type": "symfony-bundle",
             "autoload": {
@@ -1339,8 +1412,8 @@
                 "issues": "https://github.com/nowo-tech/UiKitBundle/issues",
                 "source": "https://github.com/nowo-tech/UiKitBundle"
             },
-            "time": "2026-11-11T22:37:57+00:00",
-            "published-time": "2026-11-11T22:41:16+00:00"
+            "time": "2026-11-21T01:22:50+00:00",
+            "published-time": "2026-11-21T01:26:09+00:00"
         },
         {
             "name": "psr/cache",
@@ -3385,16 +3458,16 @@
         },
         {
             "name": "symfony/polyfill-php85",
-            "version": "v1.43.0",
+            "version": "v1.44.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php85.git",
-                "reference": "86a42cbcc07adc331481a5ab310a4024bfc227f6"
+                "reference": "94c794cb5ba51784bc259f11e9f128593297d8dc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/polyfill-php85/zipball/86a42cbcc07adc331481a5ab310a4024bfc227f6",
-                "reference": "86a42cbcc07adc331481a5ab310a4024bfc227f6",
+                "url": "https://api.github.com/repos/symfony/polyfill-php85/zipball/94c794cb5ba51784bc259f11e9f128593297d8dc",
+                "reference": "94c794cb5ba51784bc259f11e9f128593297d8dc",
                 "shasum": ""
             },
             "require": {
@@ -3441,7 +3514,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php85/tree/v1.43.0"
+                "source": "https://github.com/symfony/polyfill-php85/tree/v1.44.0"
             },
             "funding": [
                 {
@@ -3461,8 +3534,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-25T15:46:47+00:00",
-            "published-time": "2026-09-30T10:23:32+00:00"
+            "time": "2026-10-30T15:20:09+00:00",
+            "published-time": "2026-11-15T14:20:22+00:00"
         },
         {
             "name": "symfony/polyfill-php86",
