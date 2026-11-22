@@ -3,12 +3,9 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 2.9.0](#to-290)
   - [The key-collation gate now checks the own default of the tables too (new failure possible)](#the-key-collation-gate-now-checks-the-own-default-of-the-tables-too-new-failure-possible)
-    - [Check it before you upgrade](#check-it-before-you-upgrade)
-    - [Repair one table](#repair-one-table)
-    - [In a bundle's own gate it is opt-in (no new failure)](#in-a-bundles-own-gate-it-is-opt-in-no-new-failure)
   - [Generated migrations now carry the host's default table options (fixed in 2.9)](#generated-migrations-now-carry-the-hosts-default-table-options-fixed-in-29)
-    - [Which hosts this actually affected](#which-hosts-this-actually-affected)
 - [To 2.8.0](#to-280)
   - [To 2.8.0](#to-280-1)
 - [To 2.7.0](#to-270)
@@ -53,6 +50,14 @@
 - [Upgrading to 1.0.0](#upgrading-to-100)
 
 ## Unreleased
+
+## To 2.9.0
+
+From **2.8.0**:
+
+```bash
+composer update nowo-tech/migrations-kit-bundle
+```
 
 ### The key-collation gate now checks the own default of the tables too (new failure possible)
 

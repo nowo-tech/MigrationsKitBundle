@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.9.0] - 2026-11-22](#290---2026-11-22)
 - [[2.8.0] - 2026-11-14](#280---2026-11-14)
 - [[2.7.0] - 2026-11-14](#270---2026-11-14)
 - [[2.6.0] - 2026-11-13](#260---2026-11-13)
@@ -48,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [[1.0.0] - 2026-02-20](#100---2026-02-20)
 
 ## [Unreleased]
+
+## [2.9.0] - 2026-11-22
 
 ### Fixed
 
@@ -94,6 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - Spec Kit baseline: the code inventory maps all 30 files under `src/` (collation, key-collation and monotonic-version gates added since 2.3), with `FR-COLL-001`, `FR-KEY-001` and `FR-VER-001` in the spec (REQ-SPECKIT-001/003).
+
+[2.9.0]: https://github.com/nowo-tech/MigrationsKitBundle/releases/tag/v2.9.0
 
 ## [2.8.0] - 2026-11-14
 
