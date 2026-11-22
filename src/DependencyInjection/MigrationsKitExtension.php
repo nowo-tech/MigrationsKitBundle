@@ -72,7 +72,11 @@ final class MigrationsKitExtension extends Extension
 
         /** @var array{connection: string|null, ignore_columns: array<string, string>} $keys */
         $keys = $config['key_collation_check'];
-        $container->getDefinition(ExactKeyChecker::class)->setArgument('$ignoreColumns', $keys['ignore_columns']);
+        // The table-default check of the key gate expects the host's uniform collation, which is the sibling gate's
+        // expected value: one source, so the two gates can never disagree about what a table default should be.
+        $container->getDefinition(ExactKeyChecker::class)
+            ->setArgument('$ignoreColumns', $keys['ignore_columns'])
+            ->setArgument('$uniformCollation', $collation['expected_collation']);
         $container->getDefinition(CheckKeyCollationsCommand::class)
             ->setArgument('$connections', new Reference('doctrine'))
             ->setArgument('$defaultConnection', $keys['connection'] ?? $config['connection']);

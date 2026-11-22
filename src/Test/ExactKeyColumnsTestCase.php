@@ -10,6 +10,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Tools\DsnParser;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyFinding;
+use Nowo\MigrationsKitBundle\Collation\ExactKeyTableFinding;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +31,11 @@ use function strtolower;
  * This is the point of the declaration: a new identity column added to the bundle's schema and left on the host
  * default fails *this bundle's* CI, long before any host installs it. Extend it, return the bundle's own
  * {@see ExactKeyColumnsInterface} service(s), and create the schema in {@see createSchema()}.
+ *
+ * Since 2.9 it also asserts the own default collation of every table a declared column lives on. A bundle whose test
+ * database has no uniform collation configured sees a new failure here: set the collation on the test DSN
+ * (default_table_options) or return it from {@see uniformCollation()}, so the table defaults the bundle's own schema
+ * creates are the ones it means to create.
  *
  * Skips cleanly when there is no database to talk to (no DATABASE_URL) or when the platform has no such notion
  * (PostgreSQL, SQLite), so a bundle whose unit suite runs without a database is not broken by extending it.
@@ -86,6 +92,20 @@ abstract class ExactKeyColumnsTestCase extends TestCase
     }
 
     /**
+     * The collation this bundle's test database uses for ordinary text, against which the own default of every table
+     * holding a declared column is compared (2.9). Null = ask the server whether the table default folds case and
+     * accents, and fail when it does.
+     *
+     * It is a normal collation (utf8mb4_unicode_ci and friends), never the binary NO PAD collation of the declared
+     * columns: those are binary precisely because the table default is not, and a binary table default would make
+     * every ordinary text comparison in the bundle case- and accent-sensitive.
+     */
+    protected function uniformCollation(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Environment variable holding the test database DSN. Override to use another name.
      */
     protected function databaseUrlVariable(): string
@@ -105,7 +125,7 @@ abstract class ExactKeyColumnsTestCase extends TestCase
 
         $this->createSchema($connection);
 
-        $report = (new ExactKeyChecker($this->exactKeyColumnProviders()))->check($connection);
+        $report = (new ExactKeyChecker($this->exactKeyColumnProviders(), [], $this->uniformCollation()))->check($connection);
 
         self::assertNotSame([], $report->findings, 'This bundle declares no identity / access-key column. If it really owns none, do not extend ExactKeyColumnsTestCase; otherwise declare them, so a new one cannot land on the host default collation unnoticed.');
 
@@ -116,6 +136,17 @@ abstract class ExactKeyColumnsTestCase extends TestCase
                 "Identity / access-key columns must be binary NO PAD (REQ-SEC-006); expected %s on this server.\n%s",
                 $report->expectedCollation,
                 implode("\n", array_map(static fn (ExactKeyFinding $f): string => (string) $f->alter, $report->failures())),
+            ),
+        );
+
+        // The table a declared column lives on is checked too: correct columns on a table whose own default folds is
+        // not a safe schema, only one that fails later, when the next text column is added without a COLLATE.
+        self::assertSame(
+            [],
+            array_map(static fn (ExactKeyTableFinding $f): string => $f->describe(), $report->tableFailures()),
+            sprintf(
+                "The own default collation of a table holding a declared identity / access-key column is what a text column added to it later without an explicit COLLATE inherits (REQ-SEC-006).\n%s",
+                implode("\n", array_map(static fn (ExactKeyTableFinding $f): string => $f->alter ?? $f->detail, $report->tableFailures())),
             ),
         );
 

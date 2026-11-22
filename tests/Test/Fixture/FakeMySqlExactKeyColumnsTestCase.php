@@ -12,6 +12,7 @@ use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumns;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 
+use function is_int;
 use function str_contains;
 
 /**
@@ -52,16 +53,39 @@ abstract class FakeMySqlExactKeyColumnsTestCase extends ExactKeyColumnsTestCase
     protected function createTestConnection(): ?Connection
     {
         $collations = $this->serverCollations();
-        $tables     = $this->schemaTables();
+        $columns    = $this->schemaColumns();
+        $rows       = [];
+        foreach ($this->schemaTables() as $name => $collation) {
+            $rows[] = is_int($name)
+                ? ['table_name' => $collation, 'collation_name' => $this->tableCollation()]
+                : ['table_name' => $name, 'collation_name' => $collation];
+        }
 
         $connection = $this->createMock(Connection::class);
         $connection->method('getDatabasePlatform')->willReturn($this->createPlatform());
-        $connection->method('fetchFirstColumn')->willReturnCallback(
-            static fn (string $sql): array => str_contains($sql, 'COLLATIONS') ? $collations : $tables,
+        $connection->method('getParams')->willReturn(['defaultTableOptions' => ['collation' => 'utf8mb4_unicode_ci']]);
+        $connection->method('fetchFirstColumn')->willReturn($collations);
+        $connection->method('fetchAllAssociative')->willReturnCallback(
+            static fn (string $sql): array => str_contains($sql, 'information_schema.TABLES') ? $rows : $columns,
         );
-        $connection->method('fetchAllAssociative')->willReturn($this->schemaColumns());
 
         return $connection;
+    }
+
+    /**
+     * Exposes the shipped default of {@see ExactKeyColumnsTestCase::uniformCollation()} to the test.
+     */
+    public function uniformCollationValue(): ?string
+    {
+        return $this->uniformCollation();
+    }
+
+    /**
+     * The own default of a table given here as a bare name.
+     */
+    protected function tableCollation(): string
+    {
+        return 'utf8mb4_unicode_ci';
     }
 
     protected function createPlatform(): AbstractPlatform
@@ -78,7 +102,8 @@ abstract class FakeMySqlExactKeyColumnsTestCase extends ExactKeyColumnsTestCase
     }
 
     /**
-     * @return list<string> base tables that exist
+     * @return array<string, string>|list<string> base tables that exist: a bare name takes {@see tableCollation()}
+     *                                            as its own default, "name => collation" sets it
      */
     protected function schemaTables(): array
     {

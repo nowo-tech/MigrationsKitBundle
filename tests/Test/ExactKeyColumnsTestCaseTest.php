@@ -9,6 +9,7 @@ use Nowo\MigrationsKitBundle\Test\ExactKeyColumnsTestCase;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\AllSkippedGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\DoubleListedGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\FailingGate;
+use Nowo\MigrationsKitBundle\Tests\Test\Fixture\FoldingTableDefaultGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\NoDeclarationGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\PostgresGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\RealConnectionGate;
@@ -136,5 +137,28 @@ final class ExactKeyColumnsTestCaseTest extends TestCase
             /* @phpstan-ignore-next-line frankenphp.classic.noPutenv (PHPUnit test: the DSN the shipped gate reads comes from the environment, so covering it means setting it; restored in finally) */
             $previous === false ? putenv($gate->variable) : putenv($gate->variable . '=' . $previous);
         }
+    }
+
+    public function testCorrectColumnsOnATableWhoseOwnDefaultFoldsStillFailTheGate(): void
+    {
+        // The state that reads as a pass: every declared column is binary NO PAD and the table they live on is not.
+        // Nothing is broken yet, which is exactly why this has to fail now - the commit that creates the table is the
+        // only moment at which it is free to fix.
+        $gate = new FoldingTableDefaultGate('testDeclaredIdentityColumnsAreBinaryNoPad');
+
+        try {
+            $gate->testDeclaredIdentityColumnsAreBinaryNoPad();
+            self::fail('A table default that a later column would inherit must fail the gate.');
+        } catch (ExpectationFailedException $e) {
+            self::assertStringContainsString('is what a text column added to it later without an explicit COLLATE inherits', $e->getMessage());
+            self::assertStringContainsString('ALTER TABLE `vault_grant` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;', $e->getMessage());
+            self::assertStringNotContainsString('CONVERT TO', $e->getMessage());
+            self::assertStringContainsString('fail     vault_grant (table default): utf8mb4_0900_ai_ci', (string) $e->getComparisonFailure()?->getDiff());
+        }
+    }
+
+    public function testTheUniformCollationDefaultsToAskingTheServer(): void
+    {
+        self::assertNull((new FoldingTableDefaultGate('testDeclaredIdentityColumnsAreBinaryNoPad'))->uniformCollationValue());
     }
 }

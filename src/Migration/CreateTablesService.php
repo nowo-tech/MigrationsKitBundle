@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use Nowo\MigrationsKitBundle\Schema\DefaultTableOptions;
 use Nowo\MigrationsKitBundle\Schema\Definition\SchemaDefinitionParser;
 use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use ReflectionException;
@@ -271,7 +272,7 @@ final readonly class CreateTablesService
                     // Table does not exist and definition only has renames — nothing to create or rename.
                     continue;
                 }
-                $table = $this->parser->parseTable($tableName, $tableDef);
+                $table = $this->parser->parseTable($tableName, $tableDef, DefaultTableOptions::forConnection($this->connection));
                 foreach ($platform->getCreateTableSQL($table) as $sql) {
                     $sqls[] = $sql;
                 }

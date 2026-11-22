@@ -6,6 +6,7 @@ namespace Nowo\MigrationsKitBundle\Schema\Definition;
 
 use Doctrine\DBAL\Schema\Table;
 use Nowo\MigrationsKitBundle\Migration\MigrationDefinitionKeys as MDK;
+use Nowo\MigrationsKitBundle\Schema\DefaultTableOptions;
 use Nowo\MigrationsKitBundle\Schema\TableSchemaHelper;
 use ReflectionMethod;
 use ReflectionParameter;
@@ -16,6 +17,11 @@ use function is_array;
 
 /**
  * Builds a DBAL Table from an array definition (columns + primary key).
+ *
+ * The Table also carries the connection's default table options when the caller passes them. Without them a
+ * generated CREATE TABLE omits the charset and collation the host configured in doctrine.dbal.default_table_options,
+ * so the table lands on the server default - and a host that did configure it is worse off than one that did not,
+ * because it believes it is covered (fixed in 2.9).
  *
  * Not marked `final`: PHPUnit doubles subclass it to cover DBAL 3/4 foreign-key signature branches.
  *
@@ -28,10 +34,20 @@ class SchemaDefinitionParser
      * Builds a Table from a table definition array.
      *
      * @param array<string, mixed> $tableDef Must contain MDK::COLUMNS (array of column defs) and optionally MDK::PRIMARY_KEY (e.g. ['columns' => ['id']])
+     * @param array<string, mixed> $defaultTableOptions the table options Doctrine computes for the connection
+     *                                                  (doctrine.dbal.default_table_options; {@see DefaultTableOptions}).
+     *                                                  Empty for a host that configured nothing, and then the
+     *                                                  generated SQL is exactly what it was before. Passed in rather
+     *                                                  than read here because this parser is instantiated by hand in
+     *                                                  migrations (`new SchemaDefinitionParser()`) and has no
+     *                                                  connection.
      */
-    public function parseTable(string $tableName, array $tableDef): Table
+    public function parseTable(string $tableName, array $tableDef, array $defaultTableOptions = []): Table
     {
-        $table   = $this->createTable($tableName);
+        $table = $this->createTable($tableName);
+        foreach ($defaultTableOptions as $option => $value) {
+            $table->addOption($option, $value);
+        }
         $columns = $tableDef[MDK::COLUMNS] ?? [];
         if (!is_array($columns)) {
             return $table;

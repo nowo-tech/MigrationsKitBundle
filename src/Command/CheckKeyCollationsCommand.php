@@ -9,6 +9,7 @@ use Doctrine\Persistence\ConnectionRegistry;
 use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyFinding;
+use Nowo\MigrationsKitBundle\Collation\ExactKeyTableFinding;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -43,6 +44,16 @@ use function substr;
           <info>php %command.full_name% -v</info>                              also list passing and skipped columns
           <info>php %command.full_name% --connection=legacy</info>
           <info>php %command.full_name% --strict</info>                        exit 3 when nothing was actually verified
+
+        The own default of every table holding a declared column is checked too (2.9): a table whose columns are all
+        correct but whose own default folds case and accents is a deferred failure, because the first text column
+        added to it later without an explicit COLLATE inherits that default. The expected value is the collation this
+        host uses for ordinary text (nowo_migrations_kit.collation_check.expected_collation, else
+        doctrine.dbal.default_table_options.collation); when the host declared none anywhere, the server is asked
+        whether the table default folds, and a folding default fails. The remedy is always ALTER TABLE … DEFAULT
+        CHARACTER SET … COLLATE … on the uniform collation, never CONVERT TO (which would rewrite the declared key
+        columns out of their binary collation) and never the binary collation at table level (which would make
+        ordinary text comparisons case-sensitive and fail the uniformity gate on every new table).
 
         Columns of a mode that is off are reported as skipped, not failed. A declared, active column whose table or
         column is absent IS a failure: that is a rename or a drop, not a disabled feature. Host ignore entries
@@ -112,17 +123,20 @@ final class CheckKeyCollationsCommand extends Command
             return $nothing;
         }
 
-        $failures = $report->failures();
-        $ignored  = $report->withStatus(ExactKeyStatus::IGNORED);
-        $skipped  = $report->withStatus(ExactKeyStatus::SKIPPED);
-        $fallback = $report->withStatus(ExactKeyStatus::FALLBACK);
+        $failures      = $report->failures();
+        $ignored       = $report->withStatus(ExactKeyStatus::IGNORED);
+        $skipped       = $report->withStatus(ExactKeyStatus::SKIPPED);
+        $fallback      = $report->withStatus(ExactKeyStatus::FALLBACK);
+        $tableFailures = $report->tableFailures();
 
         $this->write($output, $failures, '<error>');
         $this->write($output, $fallback, '<comment>');
         $this->write($output, $ignored, '<comment>');
+        $this->writeTables($output, $tableFailures, '<error>');
         if ($output->isVerbose()) {
             $this->write($output, $skipped, '<comment>');
             $this->write($output, $report->withStatus(ExactKeyStatus::OK), '<info>');
+            $this->writeTables($output, $report->tablesWithStatus(ExactKeyStatus::OK), '<info>');
         }
 
         if ($report->degraded) {
@@ -136,7 +150,21 @@ final class CheckKeyCollationsCommand extends Command
                     $output->writeln('  ' . OutputFormatter::escape($finding->alter));
                 }
             }
+        }
 
+        if ($tableFailures !== []) {
+            // Said plainly, because the damage is in the future tense: nothing is broken today, and the commit that
+            // creates the table is the only moment at which this costs nothing to fix.
+            $output->writeln(sprintf('<error>FAIL: %d table(s) holding a declared identity / access-key column have an own default collation that a text column added later would inherit on %s.</error>', count($tableFailures), $report->platform));
+            foreach ($tableFailures as $finding) {
+                if ($finding->alter !== null) {
+                    $output->writeln('  ' . OutputFormatter::escape($finding->alter));
+                }
+            }
+            $output->writeln('<comment>Change the table default only (ALTER TABLE … DEFAULT CHARACTER SET … COLLATE …), never CONVERT TO: that rewrites every existing text column of the table, including the declared key columns, out of their binary collation and straight into folding look-alike keys.</comment>');
+        }
+
+        if ($failures !== [] || $tableFailures !== []) {
             return Command::FAILURE;
         }
 
@@ -151,6 +179,7 @@ final class CheckKeyCollationsCommand extends Command
             count($ignored),
             count($skipped),
         ));
+        $output->writeln(sprintf('<info>OK: the own default collation of %d table(s) holding those columns: what a text column added later without an explicit COLLATE would inherit.</info>', count($report->tableFindings)));
         if ($verified === 0) {
             // Every declared column was skipped (mode off) or ignored by the host: nothing was actually verified.
             $output->writeln('<comment>No declared column was verified: every one is skipped (mode off) or ignored by host.</comment>');
@@ -169,6 +198,17 @@ final class CheckKeyCollationsCommand extends Command
         $close = '</' . substr($tag, 1);
         foreach ($findings as $finding) {
             $output->writeln('  ' . $tag . OutputFormatter::escape($finding->describe()) . $close . ' <comment>[' . OutputFormatter::escape($finding->column->owner) . ']</comment>');
+        }
+    }
+
+    /**
+     * @param list<ExactKeyTableFinding> $findings
+     */
+    private function writeTables(OutputInterface $output, array $findings, string $tag): void
+    {
+        $close = '</' . substr($tag, 1);
+        foreach ($findings as $finding) {
+            $output->writeln('  ' . $tag . OutputFormatter::escape($finding->describe()) . $close);
         }
     }
 }
