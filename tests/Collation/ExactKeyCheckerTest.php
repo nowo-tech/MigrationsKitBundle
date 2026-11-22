@@ -535,6 +535,18 @@ final class ExactKeyCheckerTest extends TestCase
         self::assertSame([], $report->tableFindings);
     }
 
+    public function testTheTableDefaultCheckCanBeSwitchedOffEntirely(): void
+    {
+        // Off means off: no TABLE_COLLATION comparison and no folding probe, so nothing can raise either. $folds is
+        // null here, which would be "no answer" and a raise if the probe ran.
+        $connection = $this->connection(new MySQLPlatform(), ['utf8mb4_0900_bin'], ['api_token' => 'utf8mb4_0900_ai_ci'], [$this->column('api_token', 'token_hash', 'utf8mb4_0900_bin')], 'x', []);
+        $report     = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token'))], [], null, false))->check($connection);
+
+        self::assertSame([], $report->tableFindings);
+        self::assertTrue($report->isOk());
+        self::assertCount(1, $report->withStatus(ExactKeyStatus::OK), 'The columns are still checked.');
+    }
+
     public function testSqliteHasNoTableLevelCollationAndIsLeftAlone(): void
     {
         $report = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token'))]))->check($this->connection($this->sqlitePlatform()));

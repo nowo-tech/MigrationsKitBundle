@@ -11,6 +11,7 @@ use Nowo\MigrationsKitBundle\Tests\Test\Fixture\DoubleListedGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\FailingGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\FoldingTableDefaultGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\NoDeclarationGate;
+use Nowo\MigrationsKitBundle\Tests\Test\Fixture\OptedOutTableDefaultGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\PostgresGate;
 use Nowo\MigrationsKitBundle\Tests\Test\Fixture\RealConnectionGate;
 use PHPUnit\Framework\AssertionFailedError;
@@ -157,8 +158,17 @@ final class ExactKeyColumnsTestCaseTest extends TestCase
         }
     }
 
-    public function testTheUniformCollationDefaultsToAskingTheServer(): void
+    public function testTheTableDefaultAssertionIsOffUntilABundleOptsIn(): void
     {
-        self::assertNull((new FoldingTableDefaultGate('testDeclaredIdentityColumnsAreBinaryNoPad'))->uniformCollationValue());
+        // Same folding table default as above, no uniformCollation(): the bundle's own gate passes. The damage lives
+        // in a host's database, not in a bundle's test DSN, and ~40 bundles going red on an unrelated MigrationsKit
+        // bump would be failures about test infrastructure - the kind that get silenced rather than fixed.
+        $gate = new OptedOutTableDefaultGate('testDeclaredIdentityColumnsAreBinaryNoPad');
+
+        self::assertNull($gate->uniformCollationValue(), 'Off by default.');
+
+        $gate->testDeclaredIdentityColumnsAreBinaryNoPad();
+
+        self::assertSame(1, $gate->createSchemaCalls);
     }
 }

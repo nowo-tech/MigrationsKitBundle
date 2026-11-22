@@ -54,11 +54,16 @@ final readonly class ExactKeyChecker
      *                                      the host declared none anywhere. It is the expected value of a table's own
      *                                      default and the collation named in the remedy - never the binary NO PAD
      *                                      collation of the key columns themselves. {@see UniformCollation}
+     * @param bool $checkTableDefaults false skips the table-default check entirely (no TABLE_COLLATION comparison, no
+     *                                 folding probe, nothing to raise). Mandatory where the risk is - the host-side
+     *                                 command, which runs against the live database - and opt-in for a bundle's own
+     *                                 gate, whose test schema holds no real identities. {@see ExactKeyColumnsTestCase}
      */
     public function __construct(
         private iterable $providers = [],
         private array $ignoreColumns = [],
         private ?string $uniformCollation = null,
+        private bool $checkTableDefaults = true,
     ) {
     }
 
@@ -99,7 +104,9 @@ final readonly class ExactKeyChecker
             $findings[] = $this->inspect($column, $schema, $support);
         }
 
-        return new ExactKeyReport($name, true, $support->expected, $support->degraded, $findings, $bundles, $this->inspectTables($connection, $declared, $schema, $support));
+        $tableFindings = $this->checkTableDefaults ? $this->inspectTables($connection, $declared, $schema, $support) : [];
+
+        return new ExactKeyReport($name, true, $support->expected, $support->degraded, $findings, $bundles, $tableFindings);
     }
 
     /**

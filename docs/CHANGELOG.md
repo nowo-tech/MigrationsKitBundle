@@ -73,8 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   uniformity gate caught it. The remedy printed is always
   `ALTER TABLE … DEFAULT CHARACTER SET … COLLATE <uniform collation>`, never `CONVERT TO` (which would rewrite the
   declared key columns out of their binary collation) and never the binary collation at table level.
-- `ExactKeyColumnsTestCase::uniformCollation()`: the collation a bundle's test database uses for ordinary text, used
-  by the same table-default assertion in a bundle's own gate. Default `null` = ask the server.
+- `ExactKeyColumnsTestCase::uniformCollation()`: returning the collation a bundle's test database uses for ordinary
+  text switches on the same table-default assertion in the bundle's own gate. **Off by default**, so extending
+  bundles see no new failure: the damage lives in a host's database, not in a bundle's test DSN, and the host-side
+  command is where the check is mandatory. `ExactKeyChecker` takes a `$checkTableDefaults` flag for that (default
+  `true`; the command never turns it off).
 
 ### Changed
 

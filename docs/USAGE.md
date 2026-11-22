@@ -468,9 +468,12 @@ It skips cleanly when `DATABASE_URL` is unset or the platform is PostgreSQL / SQ
 database is not broken by extending it. It also fails when the bundle declares nothing, or when *every* declared
 column was skipped — a run that checked nothing must not report green.
 
-Since **2.9** it asserts the own default of every table a declared column lives on, exactly as the host-side command
-does. Override `uniformCollation()` to name the collation the bundle's test database uses for ordinary text; the
-default `null` asks the server whether the table default folds.
+Since **2.9** it can assert the own default of every table a declared column lives on, as the host-side command
+does — **opt-in**: return the collation the bundle's test database uses for ordinary text from `uniformCollation()`
+and the assertion runs; the default `null` leaves it off, so extending bundles get no new failure. Off by default
+because the damage lives in a host's database and not in a bundle's test DSN, where there are no real identities;
+worth switching on because the test schema is built down the same code path as a host's, so it becomes a real check
+that that path emits the table options.
 
 ### The host-side aggregate run
 

@@ -6,6 +6,7 @@
   - [The key-collation gate now checks the own default of the tables too (new failure possible)](#the-key-collation-gate-now-checks-the-own-default-of-the-tables-too-new-failure-possible)
     - [Check it before you upgrade](#check-it-before-you-upgrade)
     - [Repair one table](#repair-one-table)
+    - [In a bundle's own gate it is opt-in (no new failure)](#in-a-bundles-own-gate-it-is-opt-in-no-new-failure)
   - [Generated migrations now carry the host's default table options (fixed in 2.9)](#generated-migrations-now-carry-the-hosts-default-table-options-fixed-in-29)
     - [Which hosts this actually affected](#which-hosts-this-actually-affected)
 - [To 2.8.0](#to-280)
@@ -111,9 +112,26 @@ read, `3` with `--strict` when nothing was verified. A `TABLE_COLLATION` that ca
 empty one is a failure naming the missing grant, and a server that cannot answer whether a collation folds raises,
 which the command reports as exit 2.
 
-Bundles extending `ExactKeyColumnsTestCase` get the same assertion against their own test database. A bundle whose
-test DSN sets no collation may see a new failure there: set the collation on the test connection
-(`default_table_options`) or return it from the new `uniformCollation()` hook.
+#### In a bundle's own gate it is opt-in (no new failure)
+
+`ExactKeyColumnsTestCase` can make the same assertion against a bundle's own test database, but it is **off by
+default**, so extending bundles see **no new failure** on this upgrade. Switch it on in one line:
+
+```php
+protected function uniformCollation(): ?string
+{
+    return 'utf8mb4_unicode_ci';   // the collation this bundle's test database uses for ordinary text
+}
+```
+
+It is mandatory in the command and opt-in here because the damage this gate chases lives in **a host's database**,
+not in a bundle's test DSN: a test schema holds no real identities, and nobody's data is at risk because a throwaway
+table has an insensitive default. The command runs against the real database, which is where the first text column
+someone adds tomorrow without a `COLLATE` does the harm, so that is where the check is not negotiable.
+
+It is worth switching on all the same: **a bundle's test schema is built down the same code path as a host's**, so
+the assertion turns the bundle's own suite into a real check that that path emits the table options — the very thing
+the parser fix below restores.
 
 ### Generated migrations now carry the host's default table options (fixed in 2.9)
 

@@ -7,8 +7,9 @@ namespace Nowo\MigrationsKitBundle\Tests\Test\Fixture;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
 
 /**
- * Every declared column binary NO PAD, on a table whose own default is the MySQL 8 server default: the gate must
- * fail. This is the state that reads as a pass today and breaks the next time someone adds a text column.
+ * A bundle that opted in to the table-default assertion (uniformCollation()), with every declared column binary
+ * NO PAD on a table whose own default is the MySQL 8 server default: the gate must fail. This is the state that
+ * reads as a pass today and breaks the next time someone adds a text column.
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  * @copyright 2026 Nowo.tech
@@ -21,6 +22,14 @@ final class FoldingTableDefaultGate extends FakeMySqlExactKeyColumnsTestCase
     protected function declaredColumns(): array
     {
         return [new ExactKeyColumn('vault_grant', 'grantee_id', 'nowo-tech/vault-bundle')];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function uniformCollation(): string
+    {
+        return 'utf8mb4_unicode_ci';
     }
 
     /**
