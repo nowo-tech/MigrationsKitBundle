@@ -371,7 +371,11 @@ Run it after `doctrine:migrations:migrate` in CI (or in a release phase) against
 
 Fix a failing table in a migration, e.g. `ALTER TABLE tasks CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
 (it rebuilds the table and blocks its writes; use an online schema change for large tables), and create new tables with
-the expected options (`default_table_options` in `doctrine.yaml`).
+the expected options (`default_table_options` in `doctrine.yaml`). Since **2.9** those options also reach the
+`CREATE TABLE` statements this bundle generates: `CreateTablesService::apply()` passes everything Doctrine computes
+for the connection (charset, collation, `ENGINE`, …) to the `Table` the definition parser builds, so a host that
+configured `default_table_options` sees them in its generated migrations. A host that configured nothing gets exactly
+the SQL it got before.
 
 ## Identity / access-key gate (`nowo:migrations:check-key-collations`)
 
@@ -464,6 +468,13 @@ It skips cleanly when `DATABASE_URL` is unset or the platform is PostgreSQL / SQ
 database is not broken by extending it. It also fails when the bundle declares nothing, or when *every* declared
 column was skipped — a run that checked nothing must not report green.
 
+Since **2.9** it can assert the own default of every table a declared column lives on, as the host-side command
+does — **opt-in**: return the collation the bundle's test database uses for ordinary text from `uniformCollation()`
+and the assertion runs; the default `null` leaves it off, so extending bundles get no new failure. Off by default
+because the damage lives in a host's database and not in a bundle's test DSN, where there are no real identities;
+worth switching on because the test schema is built down the same code path as a host's, so it becomes a real check
+that that path emits the table options.
+
 ### The host-side aggregate run
 
 In an application, the command asserts every installed bundle's declaration against the live schema in one pass:
@@ -483,6 +494,27 @@ FAIL: 1 declared identity / access-key column(s) are not binary NO PAD on mysql 
 
 - **Outcomes**: `ok`, `fallback` (binary but PAD SPACE on a server with nothing better — passes, warns), `fail`,
   `missing` (declared, active, not in the schema — fails), `skipped` (mode off — not a failure), `ignored`.
+- **Table defaults** (since 2.9): the gate also reads `information_schema.TABLES.TABLE_COLLATION` for every table
+  holding a declared, active, not-ignored column, and **fails** when that default is not the host's uniform collation
+  — or, when the host has declared none anywhere, when the server answers that the default folds case and accents.
+  Correct columns on a table whose own default folds is not a safe schema, only a deferred failure: the first text
+  column added later without an explicit `COLLATE` inherits the default, and a join against a declared binary key
+  then fails with MySQL error 1267 while a lookup on the new column starts folding look-alike keys. The expected
+  value comes from the same chain as the uniformity gate (`collation_check.expected_collation`, else
+  `doctrine.dbal.default_table_options.collation`), and the remedy names **that** collation:
+
+  ```text
+    fail     wf_instance (table default): utf8mb4_0900_ai_ci (the table default is not this host's uniform collation …)
+  FAIL: 1 table(s) holding a declared identity / access-key column have an own default collation that a text column
+  added later would inherit on mysql.
+    ALTER TABLE `wf_instance` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  ```
+
+  Never `CONVERT TO CHARACTER SET …`, which rewrites every text column of the table — the declared binary keys
+  included — and never the binary collation at table level, which would make ordinary text comparisons case- and
+  accent-sensitive and fail the uniformity gate on every new table. A `TABLE_COLLATION` that cannot be read is a
+  failure naming the missing grant, not a pass, and a server that cannot say whether a collation folds raises
+  (exit 2). PostgreSQL and SQLite have no table-level collation and are unaffected.
 - **Host overrides**: `key_collation_check.ignore_columns` maps `table.column` (or an `fnmatch()` pattern) to a
   **mandatory reason**. An ignored column is still printed, with its reason — an ignore never makes a column the
   bundle calls an identity key disappear from the output.

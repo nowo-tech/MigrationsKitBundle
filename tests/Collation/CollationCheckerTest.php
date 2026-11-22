@@ -13,6 +13,8 @@ use InvalidArgumentException;
 use Nowo\MigrationsKitBundle\Collation\CollationChecker;
 use Nowo\MigrationsKitBundle\Collation\CollationMismatch;
 use Nowo\MigrationsKitBundle\Collation\CollationReport;
+use Nowo\MigrationsKitBundle\Collation\TableCollationReader;
+use Nowo\MigrationsKitBundle\Collation\UniformCollation;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumns;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,6 +25,8 @@ use function str_contains;
 #[CoversClass(CollationChecker::class)]
 #[CoversClass(CollationReport::class)]
 #[CoversClass(CollationMismatch::class)]
+#[CoversClass(TableCollationReader::class)]
+#[CoversClass(UniformCollation::class)]
 final class CollationCheckerTest extends TestCase
 {
     /**

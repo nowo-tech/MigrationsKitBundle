@@ -3,6 +3,12 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [The key-collation gate now checks the own default of the tables too (new failure possible)](#the-key-collation-gate-now-checks-the-own-default-of-the-tables-too-new-failure-possible)
+    - [Check it before you upgrade](#check-it-before-you-upgrade)
+    - [Repair one table](#repair-one-table)
+    - [In a bundle's own gate it is opt-in (no new failure)](#in-a-bundles-own-gate-it-is-opt-in-no-new-failure)
+  - [Generated migrations now carry the host's default table options (fixed in 2.9)](#generated-migrations-now-carry-the-hosts-default-table-options-fixed-in-29)
+    - [Which hosts this actually affected](#which-hosts-this-actually-affected)
 - [To 2.8.0](#to-280)
   - [To 2.8.0](#to-280-1)
 - [To 2.7.0](#to-270)
@@ -47,6 +53,118 @@
 - [Upgrading to 1.0.0](#upgrading-to-100)
 
 ## Unreleased
+
+### The key-collation gate now checks the own default of the tables too (new failure possible)
+
+`nowo:migrations:check-key-collations` used to read only `information_schema.COLUMNS`. It now also reads
+`information_schema.TABLES.TABLE_COLLATION` for every table that holds a declared identity / access-key column, and
+**fails (exit 1) when that table default is not the collation this host uses for ordinary text** — or, when the host
+has declared no such collation anywhere, when the server answers that the table default folds case and accents
+(`utf8mb4_0900_ai_ci` and the like).
+
+**So a host whose tables have a case-insensitive default will see a new failure on an existing database, with nothing
+having changed in that database.** That is the point: the damage is not in the table as it stands today, it is in the
+first text column anyone adds to it tomorrow without an explicit `COLLATE`. That column inherits the table default,
+and then either a join against a declared binary key fails with MySQL error 1267, or a lookup on the new column
+starts folding values REQ-SEC-006 exists to keep distinct. By the time that happens, the commit that created the
+table is months old. The commit that creates it is the only moment at which this costs nothing to fix, so it is a
+failure of the gate and not a warning beside it.
+
+#### Check it before you upgrade
+
+```sql
+SELECT t.TABLE_NAME, t.TABLE_COLLATION
+FROM information_schema.TABLES t
+WHERE t.TABLE_SCHEMA = DATABASE()
+  AND t.TABLE_TYPE = 'BASE TABLE'
+ORDER BY t.TABLE_NAME;
+```
+
+#### Repair one table
+
+```sql
+ALTER TABLE `the_table` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Use **the collation your host uses for ordinary text** (whatever `doctrine.dbal.default_table_options.collation` or
+`nowo_migrations_kit.collation_check.expected_collation` says), not the binary `utf8mb4_0900_bin` /
+`utf8mb4_nopad_bin` of the key columns. The key columns are binary precisely *because* the table default is not; a
+binary table default would make every ordinary text comparison case- and accent-sensitive (a user-visible change),
+fail the uniformity gate on every new table, and leave the declared columns indistinguishable from the rest.
+
+`DEFAULT CHARACTER SET … COLLATE …` changes only what future columns inherit. **Never `CONVERT TO CHARACTER SET …`**:
+that rewrites every existing text column of the table, the declared identity / access-key columns included, out of
+their binary collation and straight into folding the look-alike keys they exist to keep apart.
+
+And the real fix is not the `ALTER`: **configuring `doctrine.dbal.default_table_options` once** is what stops new
+tables landing on the server default at all.
+
+```yaml
+doctrine:
+    dbal:
+        default_table_options:
+            charset: utf8mb4
+            collation: utf8mb4_unicode_ci
+```
+
+Exit codes are unchanged: `0` clean, `1` any failure (a column or a table default), `2` the database could not be
+read, `3` with `--strict` when nothing was verified. A `TABLE_COLLATION` that cannot be read is **not** a pass: an
+empty one is a failure naming the missing grant, and a server that cannot answer whether a collation folds raises,
+which the command reports as exit 2.
+
+#### In a bundle's own gate it is opt-in (no new failure)
+
+`ExactKeyColumnsTestCase` can make the same assertion against a bundle's own test database, but it is **off by
+default**, so extending bundles see **no new failure** on this upgrade. Switch it on in one line:
+
+```php
+protected function uniformCollation(): ?string
+{
+    return 'utf8mb4_unicode_ci';   // the collation this bundle's test database uses for ordinary text
+}
+```
+
+It is mandatory in the command and opt-in here because the damage this gate chases lives in **a host's database**,
+not in a bundle's test DSN: a test schema holds no real identities, and nobody's data is at risk because a throwaway
+table has an insensitive default. The command runs against the real database, which is where the first text column
+someone adds tomorrow without a `COLLATE` does the harm, so that is where the check is not negotiable.
+
+It is worth switching on all the same: **a bundle's test schema is built down the same code path as a host's**, so
+the assertion turns the bundle's own suite into a real check that that path emits the table options — the very thing
+the parser fix below restores.
+
+### Generated migrations now carry the host's default table options (fixed in 2.9)
+
+`SchemaDefinitionParser::parseTable()` built a bare `new Table($name)` with no options, so every `CREATE TABLE`
+generated through `CreateTablesService::apply()` omitted the charset and collation the host had configured in
+`doctrine.dbal.default_table_options` — **the host did its part and this bundle silently skipped it**. That is worse
+than not having configured anything at all, because the host believes it is covered. Fixed in **2.9**: the parser is
+given the options Doctrine already computes for the connection, so a configured host now sees them in the generated
+SQL, and a host that configured nothing gets byte-identical SQL to before (no new keys, no surprise DDL).
+
+Measured on a real host: of 311 `CREATE TABLE` statements dumped from the schema, 305 carried
+`COLLATE utf8mb4_unicode_ci` after `default_table_options` was configured, and 6 carried **no table option at all** —
+no `DEFAULT CHARACTER SET` and no `ENGINE`:
+
+```
+http_log_daily, http_log_event_seen, mail_kit_tracking_send,
+nowo_short_link_click, nowo_short_link_click_daily, nowo_short_link_rollup_day
+```
+
+The missing `ENGINE` is why the fix passes **everything** Doctrine computes rather than adding a collation key by
+hand: a collation-only patch would have left `ENGINE` missing for the next person to notice.
+
+#### Which hosts this actually affected
+
+In that host's live database those six tables were **correct**, in `utf8mb4_unicode_ci`, because its hand-written
+migrations had set the collation themselves. The defect is therefore **invisible to a host that migrates, and only
+bites one that creates the schema from metadata** — a fresh install, or a `sync-schema`. That is the worst possible
+split: silent where it is dangerous, absent where someone would have noticed it.
+
+So: if you have been migrating by hand for years, your tables are probably already right and there is nothing to do
+beyond upgrading. If you install from scratch or use `sync-schema`, the tables you created before 2.9 have no table
+options at all. Check which case you are in with the query above rather than assuming — a row whose
+`TABLE_COLLATION` is not your uniform collation is one of them.
 
 ## To 2.8.0
 

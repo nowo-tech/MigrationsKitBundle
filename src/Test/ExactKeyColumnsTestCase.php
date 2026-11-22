@@ -10,6 +10,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Tools\DsnParser;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyFinding;
+use Nowo\MigrationsKitBundle\Collation\ExactKeyTableFinding;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 use Nowo\MigrationsKitContracts\Collation\ExactKeyStatus;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +31,12 @@ use function strtolower;
  * This is the point of the declaration: a new identity column added to the bundle's schema and left on the host
  * default fails *this bundle's* CI, long before any host installs it. Extend it, return the bundle's own
  * {@see ExactKeyColumnsInterface} service(s), and create the schema in {@see createSchema()}.
+ *
+ * Since 2.9 it can also assert the own default collation of every table a declared column lives on, **opt-in**:
+ * return the bundle's collation from {@see uniformCollation()} and the assertion runs. It is off by default because
+ * the damage this gate chases lives in a host's database, not in a bundle's test DSN - a test schema holds no real
+ * identities. Worth switching on all the same: the test schema is built down the same code path as a host's, so the
+ * assertion turns the bundle's own suite into a real check that that path emits the table options.
  *
  * Skips cleanly when there is no database to talk to (no DATABASE_URL) or when the platform has no such notion
  * (PostgreSQL, SQLite), so a bundle whose unit suite runs without a database is not broken by extending it.
@@ -86,6 +93,28 @@ abstract class ExactKeyColumnsTestCase extends TestCase
     }
 
     /**
+     * The collation this bundle's test database uses for ordinary text. Returning it switches on the table-default
+     * assertion (2.9): the own default of every table holding a declared column must be this collation. Null, the
+     * default, leaves that assertion off — the host-side `nowo:migrations:check-key-collations` is where it is
+     * mandatory, because that is where a real database is.
+     *
+     * ```php
+     * protected function uniformCollation(): ?string
+     * {
+     *     return 'utf8mb4_unicode_ci';
+     * }
+     * ```
+     *
+     * It is a normal collation (utf8mb4_unicode_ci and friends), never the binary NO PAD collation of the declared
+     * columns: those are binary precisely because the table default is not, and a binary table default would make
+     * every ordinary text comparison in the bundle case- and accent-sensitive.
+     */
+    protected function uniformCollation(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Environment variable holding the test database DSN. Override to use another name.
      */
     protected function databaseUrlVariable(): string
@@ -105,7 +134,8 @@ abstract class ExactKeyColumnsTestCase extends TestCase
 
         $this->createSchema($connection);
 
-        $report = (new ExactKeyChecker($this->exactKeyColumnProviders()))->check($connection);
+        $uniform = $this->uniformCollation();
+        $report  = (new ExactKeyChecker($this->exactKeyColumnProviders(), [], $uniform, $uniform !== null))->check($connection);
 
         self::assertNotSame([], $report->findings, 'This bundle declares no identity / access-key column. If it really owns none, do not extend ExactKeyColumnsTestCase; otherwise declare them, so a new one cannot land on the host default collation unnoticed.');
 
@@ -116,6 +146,18 @@ abstract class ExactKeyColumnsTestCase extends TestCase
                 "Identity / access-key columns must be binary NO PAD (REQ-SEC-006); expected %s on this server.\n%s",
                 $report->expectedCollation,
                 implode("\n", array_map(static fn (ExactKeyFinding $f): string => (string) $f->alter, $report->failures())),
+            ),
+        );
+
+        // Opt-in (uniformCollation() returned a collation): correct columns on a table whose own default folds is not
+        // a safe schema, only one that fails later, when the next text column is added without a COLLATE. Empty when
+        // the assertion is off, so this stays one code path.
+        self::assertSame(
+            [],
+            array_map(static fn (ExactKeyTableFinding $f): string => $f->describe(), $report->tableFailures()),
+            sprintf(
+                "The own default collation of a table holding a declared identity / access-key column is what a text column added to it later without an explicit COLLATE inherits (REQ-SEC-006).\n%s",
+                implode("\n", array_map(static fn (ExactKeyTableFinding $f): string => $f->alter ?? $f->detail, $report->tableFailures())),
             ),
         );
 

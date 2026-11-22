@@ -49,7 +49,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `SchemaDefinitionParser::parseTable()` built a bare `new Table($name)` with no options, so every `CREATE TABLE`
+  generated through `CreateTablesService::apply()` omitted the table options the host configured in
+  `doctrine.dbal.default_table_options` — charset, collation and `ENGINE` alike. A host that had configured them was
+  worse off than one that had not, because it believed it was covered. The parser now receives the options Doctrine
+  already computes for the connection (`DefaultTableOptions::forConnection()`), and a host that configured nothing
+  gets byte-identical SQL to before. Measured on a real host: 305 of 311 `CREATE TABLE` statements carried
+  `COLLATE utf8mb4_unicode_ci` and the 6 built through this bundle carried no table option at all. The defect was
+  invisible to hosts that migrate by hand and only bit those creating the schema from metadata (fresh install,
+  `sync-schema`). See `docs/UPGRADING.md`.
+
+### Added
+
+- `nowo:migrations:check-key-collations` now also reads `information_schema.TABLES.TABLE_COLLATION` for every table
+  that holds a declared identity / access-key column, and fails when that table default is not the host's uniform
+  collation — or, when none is configured anywhere, when the server answers that the default folds case and accents.
+  Correct columns on a table whose own default folds is not a safe schema, only a deferred failure: the first text
+  column added later without an explicit `COLLATE` inherits it, and a join against a binary key then fails with
+  MySQL error 1267 or the new column silently folds look-alike keys (REQ-SEC-006). Measured blind spot: on a real
+  host this gate reported `68 ok, 0 fallback` over a database whose table default was wrong, and only the generic
+  uniformity gate caught it. The remedy printed is always
+  `ALTER TABLE … DEFAULT CHARACTER SET … COLLATE <uniform collation>`, never `CONVERT TO` (which would rewrite the
+  declared key columns out of their binary collation) and never the binary collation at table level.
+- `ExactKeyColumnsTestCase::uniformCollation()`: returning the collation a bundle's test database uses for ordinary
+  text switches on the same table-default assertion in the bundle's own gate. **Off by default**, so extending
+  bundles see no new failure: the damage lives in a host's database, not in a bundle's test DSN, and the host-side
+  command is where the check is mandatory. `ExactKeyChecker` takes a `$checkTableDefaults` flag for that (default
+  `true`; the command never turns it off).
+
 ### Changed
+
+- The expected uniform collation is resolved once, in `UniformCollation`, for both gates (`--expected`, then
+  `nowo_migrations_kit.collation_check.expected_collation`, then `doctrine.dbal.default_table_options.collation`), and
+  `information_schema.TABLES.TABLE_COLLATION` is selected in one place, `TableCollationReader`, used by
+  `CollationChecker` and `ExactKeyChecker` alike. No behaviour change for `nowo:migrations:check-collations`.
+- Exit codes of `check-key-collations` are unchanged (0 clean, 1 failure, 2 database unreadable, 3 `--strict` nothing
+  verified); a table default is a failure, not a new status. A `TABLE_COLLATION` that cannot be read is a failure
+  naming the missing grant, and a server that cannot say whether a collation folds raises rather than answering.
 
 - Demo: runs in UiKit's demo platform shell (`nowo-tech/ui-kit-bundle` ^2.60); the demo's own header is gone and the pages use the shell page headers and section cards. Demo only, no bundle change.
 

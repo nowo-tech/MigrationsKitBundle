@@ -15,7 +15,6 @@ use function count;
 use function explode;
 use function fnmatch;
 use function is_array;
-use function is_string;
 use function strtolower;
 
 /**
@@ -62,14 +61,11 @@ final readonly class CollationChecker
      */
     public function check(Connection $connection, ?string $expectedCollation = null, array $extraIgnoredTables = []): CollationReport
     {
-        $platform     = $connection->getDatabasePlatform();
-        $tableOptions = $connection->getParams()['defaultTableOptions'] ?? [];
+        $platform = $connection->getDatabasePlatform();
 
-        $collation = $this->nonEmpty($expectedCollation)
-            ?? $this->nonEmpty($this->expectedCollation)
-            ?? $this->nonEmpty($tableOptions['collation'] ?? null)
-            ?? $this->nonEmpty($tableOptions['collate'] ?? null);
-        $charset      = $this->nonEmpty($this->expectedCharset) ?? $this->nonEmpty($tableOptions['charset'] ?? null);
+        // One resolution chain for both gates: --expected, then the configuration, then default_table_options.
+        $collation    = UniformCollation::collation($connection, $expectedCollation, $this->expectedCollation);
+        $charset      = UniformCollation::charset($connection, $this->expectedCharset);
         $ignoreTables = [...$this->ignoreTables, ...$extraIgnoredTables];
         $mysql        = $platform instanceof AbstractMySQLPlatform;
 
@@ -102,10 +98,10 @@ final readonly class CollationChecker
             }
         }
 
-        $tables = $connection->fetchAllAssociative("SELECT TABLE_NAME AS table_name, TABLE_COLLATION AS collation_name FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME");
+        $tables = TableCollationReader::mysql($connection);
         foreach ($tables as $row) {
-            $table = (string) $row['table_name'];
-            $this->compare($mismatches, CollationMismatch::SCOPE_TABLE, $table, (string) ($row['collation_name'] ?? ''), $collation, null, null, $this->matches($table, $ignoreTables));
+            $table = $row['table_name'];
+            $this->compare($mismatches, CollationMismatch::SCOPE_TABLE, $table, $row['collation_name'], $collation, null, null, $this->matches($table, $ignoreTables));
         }
 
         $columns = 0;
@@ -215,10 +211,5 @@ final readonly class CollationChecker
         }
 
         return $declared;
-    }
-
-    private function nonEmpty(mixed $value): ?string
-    {
-        return is_string($value) && $value !== '' ? $value : null;
     }
 }

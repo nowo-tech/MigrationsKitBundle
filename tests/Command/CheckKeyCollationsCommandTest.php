@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Command;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\Persistence\ConnectionRegistry;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
 use Nowo\MigrationsKitBundle\Command\CheckKeyCollationsCommand;
@@ -21,6 +23,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 
+use function is_int;
 use function str_contains;
 
 /**
@@ -34,17 +37,27 @@ final class CheckKeyCollationsCommandTest extends TestCase
 {
     /**
      * @param list<string> $collations binary NO PAD collations the fake server offers ([] = MySQL 5.7 / 8.0.0-8.0.16)
-     * @param list<string> $tables base tables that exist
+     * @param array<string, string>|list<string> $tables base tables that exist: a bare name takes $tableCollation as
+     *                                                   its own default, "name => collation" sets it
      * @param list<array<string, mixed>> $columns information_schema.COLUMNS rows
+     * @param array<string, mixed> $params connection parameters; defaultTableOptions carries the uniform collation
      */
-    private function connection(array $collations = ['utf8mb4_0900_bin'], array $tables = [], array $columns = [], ?AbstractPlatform $platform = null): Connection
+    private function connection(array $collations = ['utf8mb4_0900_bin'], array $tables = [], array $columns = [], ?AbstractPlatform $platform = null, string $tableCollation = 'utf8mb4_unicode_ci', array $params = ['defaultTableOptions' => ['collation' => 'utf8mb4_unicode_ci']]): Connection
     {
+        $rows = [];
+        foreach ($tables as $name => $collation) {
+            $rows[] = is_int($name)
+                ? ['table_name' => $collation, 'collation_name' => $tableCollation]
+                : ['table_name' => $name, 'collation_name' => $collation];
+        }
+
         $connection = $this->createMock(Connection::class);
         $connection->method('getDatabasePlatform')->willReturn($platform ?? new MySQLPlatform());
-        $connection->method('fetchFirstColumn')->willReturnCallback(
-            static fn (string $sql): array => str_contains($sql, 'COLLATIONS') ? $collations : $tables,
+        $connection->method('getParams')->willReturn($params);
+        $connection->method('fetchFirstColumn')->willReturn($collations);
+        $connection->method('fetchAllAssociative')->willReturnCallback(
+            static fn (string $sql): array => str_contains($sql, 'information_schema.TABLES') ? $rows : $columns,
         );
-        $connection->method('fetchAllAssociative')->willReturn($columns);
 
         return $connection;
     }
@@ -400,5 +413,100 @@ final class CheckKeyCollationsCommandTest extends TestCase
 
         self::assertSame(CheckKeyCollationsCommand::EXIT_MISCONFIGURED, $tester->execute([]));
         self::assertStringContainsString('SQLSTATE[HY000] [2002] Connection refused <x>', $tester->getDisplay());
+    }
+
+    public function testATableDefaultThatWouldFoldLaterFailsTheGateWithTheRemedy(): void
+    {
+        // The exact case a real host hit: every declared column correct ("68 ok, 0 fallback" there, 2 ok here) over a
+        // table whose own default was wrong, which only the generic uniformity gate caught. This gate must catch it,
+        // on the commit that creates the table - the one moment when fixing it is free.
+        $tester = $this->tester(
+            $this->connection(
+                ['utf8mb4_0900_bin'],
+                ['audit_entry' => 'utf8mb4_0900_ai_ci'],
+                [
+                    $this->row('audit_entry', 'actor_id', 'utf8mb4_0900_bin'),
+                    $this->row('audit_entry', 'subject_id', 'utf8mb4_0900_bin'),
+                ],
+            ),
+            [
+                new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle'),
+                new ExactKeyColumn('audit_entry', 'subject_id', 'nowo-tech/audit-kit-bundle'),
+            ],
+        );
+
+        self::assertSame(Command::FAILURE, $tester->execute([]));
+        $display = $tester->getDisplay();
+        self::assertStringContainsString('FAIL: 1 table(s) holding a declared identity / access-key column', $display);
+        self::assertStringContainsString('audit_entry (table default): utf8mb4_0900_ai_ci', $display);
+        self::assertStringContainsString('ALTER TABLE `audit_entry` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;', $display);
+        self::assertStringContainsString('never CONVERT TO', $display);
+        self::assertStringNotContainsString('OK:', $display, 'A gate that says both must never be read as a pass.');
+        self::assertStringNotContainsString('are not binary NO PAD', $display, 'The columns are correct; saying otherwise would send the host to the wrong fix.');
+    }
+
+    public function testAVerboseCleanRunShowsTheTableDefaultsItCheckedToo(): void
+    {
+        $tester = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['audit_entry'], [$this->row('audit_entry', 'actor_id', 'utf8mb4_0900_bin')]),
+            [new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')],
+        );
+
+        self::assertSame(Command::SUCCESS, $tester->execute([], ['verbosity' => OutputInterface::VERBOSITY_VERBOSE]));
+        $display = $tester->getDisplay();
+        self::assertStringContainsString('ok       audit_entry (table default): utf8mb4_unicode_ci', $display);
+        self::assertStringContainsString('the own default collation of 1 table(s)', $display);
+    }
+
+    public function testAnUnreadableTableCollationExitsOneAndNeverGreen(): void
+    {
+        $tester = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['audit_entry' => ''], [$this->row('audit_entry', 'actor_id', 'utf8mb4_0900_bin')]),
+            [new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')],
+        );
+
+        self::assertSame(Command::FAILURE, $tester->execute([]));
+        $display = $tester->getDisplay();
+        self::assertStringContainsString('TABLE_COLLATION is empty', $display);
+        self::assertStringNotContainsString('OK:', $display);
+    }
+
+    public function testBothAColumnAndATableFailureAreReportedInTheSameRun(): void
+    {
+        $tester = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['audit_entry' => 'utf8mb4_0900_ai_ci'], [$this->row('audit_entry', 'actor_id', 'utf8mb4_0900_ai_ci')]),
+            [new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')],
+        );
+
+        self::assertSame(Command::FAILURE, $tester->execute([]));
+        $display = $tester->getDisplay();
+        self::assertStringContainsString('are not binary NO PAD', $display);
+        self::assertStringContainsString('FAIL: 1 table(s)', $display);
+        self::assertStringContainsString('ALTER TABLE `audit_entry` MODIFY `actor_id`', $display);
+        self::assertStringContainsString('ALTER TABLE `audit_entry` DEFAULT CHARACTER SET', $display);
+    }
+
+    public function testPostgreSqlIsStillSkippedWithNoTableDefaultQuestion(): void
+    {
+        $tester = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['audit_entry' => 'utf8mb4_0900_ai_ci'], [], new PostgreSQLPlatform()),
+            [new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')],
+        );
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        $display = $tester->getDisplay();
+        self::assertStringContainsString('SKIP: no NO PAD collation question on', $display);
+        self::assertStringNotContainsString('table default', $display);
+    }
+
+    public function testSqliteIsStillSkippedWithNoTableDefaultQuestion(): void
+    {
+        $tester = $this->tester(
+            $this->connection(['utf8mb4_0900_bin'], ['audit_entry' => 'utf8mb4_0900_ai_ci'], [], DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true])->getDatabasePlatform()),
+            [new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')],
+        );
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        self::assertStringNotContainsString('table default', $tester->getDisplay());
     }
 }
