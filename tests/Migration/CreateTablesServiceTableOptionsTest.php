@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Migration;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Schema;
@@ -92,9 +92,10 @@ final class CreateTablesServiceTableOptionsTest extends TestCase
 
     public function testSqliteIsUnaffectedByTableOptions(): void
     {
-        $withOptions = $this->service(new SQLitePlatform(), ['defaultTableOptions' => ['charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci']])
+        $sqlite      = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true])->getDatabasePlatform();
+        $withOptions = $this->service($sqlite, ['defaultTableOptions' => ['charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci']])
             ->apply(new Schema(), $this->definition());
-        $without = $this->service(new SQLitePlatform(), [])->apply(new Schema(), $this->definition());
+        $without = $this->service($sqlite, [])->apply(new Schema(), $this->definition());
 
         self::assertSame($without, $withOptions, 'SQLite has no table-level collation: the generated SQL must not change.');
     }

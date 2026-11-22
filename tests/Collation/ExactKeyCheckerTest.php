@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Collation;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Nowo\MigrationsKitBundle\Collation\CollationFoldingProbe;
 use Nowo\MigrationsKitBundle\Collation\ExactCollationSupport;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
@@ -66,6 +66,15 @@ final class ExactKeyCheckerTest extends TestCase
         $connection->method('fetchOne')->willReturn($folds === null ? false : (int) $folds);
 
         return $connection;
+    }
+
+    /**
+     * The SQLite platform, built from a real connection: DBAL 3 spells the class SqlitePlatform and DBAL 4
+     * SQLitePlatform, so neither name can be written here.
+     */
+    private function sqlitePlatform(): AbstractPlatform
+    {
+        return DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true])->getDatabasePlatform();
     }
 
     /**
@@ -528,7 +537,7 @@ final class ExactKeyCheckerTest extends TestCase
 
     public function testSqliteHasNoTableLevelCollationAndIsLeftAlone(): void
     {
-        $report = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token'))]))->check($this->connection(new SQLitePlatform()));
+        $report = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token'))]))->check($this->connection($this->sqlitePlatform()));
 
         self::assertFalse($report->supported);
         self::assertTrue($report->isOk());

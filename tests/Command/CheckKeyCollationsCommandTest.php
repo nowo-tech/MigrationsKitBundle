@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Nowo\MigrationsKitBundle\Tests\Command;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\Persistence\ConnectionRegistry;
 use Nowo\MigrationsKitBundle\Collation\ExactKeyChecker;
 use Nowo\MigrationsKitBundle\Command\CheckKeyCollationsCommand;
@@ -502,7 +502,7 @@ final class CheckKeyCollationsCommandTest extends TestCase
     public function testSqliteIsStillSkippedWithNoTableDefaultQuestion(): void
     {
         $tester = $this->tester(
-            $this->connection(['utf8mb4_0900_bin'], ['audit_entry' => 'utf8mb4_0900_ai_ci'], [], new SQLitePlatform()),
+            $this->connection(['utf8mb4_0900_bin'], ['audit_entry' => 'utf8mb4_0900_ai_ci'], [], DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true])->getDatabasePlatform()),
             [new ExactKeyColumn('audit_entry', 'actor_id', 'nowo-tech/audit-kit-bundle')],
         );
 
