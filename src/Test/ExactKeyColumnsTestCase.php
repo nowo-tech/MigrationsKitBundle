@@ -101,7 +101,7 @@ abstract class ExactKeyColumnsTestCase extends TestCase
      * ```php
      * protected function uniformCollation(): ?string
      * {
-     *     return 'utf8mb4_unicode_ci';
+     *     return 'utf8mb4_unicode_ci';   // whatever the bundle's test schema uses for ordinary text
      * }
      * ```
      *

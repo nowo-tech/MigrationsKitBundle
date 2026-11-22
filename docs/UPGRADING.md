@@ -120,7 +120,7 @@ default**, so extending bundles see **no new failure** on this upgrade. Switch i
 ```php
 protected function uniformCollation(): ?string
 {
-    return 'utf8mb4_unicode_ci';   // the collation this bundle's test database uses for ordinary text
+    return 'utf8mb4_unicode_ci';   // whatever this bundle's test schema uses for ordinary text
 }
 ```
 

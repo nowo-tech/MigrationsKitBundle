@@ -539,8 +539,8 @@ final class ExactKeyCheckerTest extends TestCase
     {
         // Off means off: no TABLE_COLLATION comparison and no folding probe, so nothing can raise either. $folds is
         // null here, which would be "no answer" and a raise if the probe ran.
-        $connection = $this->connection(new MySQLPlatform(), ['utf8mb4_0900_bin'], ['api_token' => 'utf8mb4_0900_ai_ci'], [$this->column('api_token', 'token_hash', 'utf8mb4_0900_bin')], 'x', []);
-        $report     = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('api_token', 'token_hash', 'api-token'))], [], null, false))->check($connection);
+        $connection = $this->connection(new MySQLPlatform(), ['utf8mb4_0900_bin'], ['audit_entry' => 'utf8mb4_0900_ai_ci'], [$this->column('audit_entry', 'actor_id', 'utf8mb4_0900_bin')], 'x', []);
+        $report     = (new ExactKeyChecker([new ExactKeyColumns(new ExactKeyColumn('audit_entry', 'actor_id', 'auditkit'))], [], null, false))->check($connection);
 
         self::assertSame([], $report->tableFindings);
         self::assertTrue($report->isOk());
