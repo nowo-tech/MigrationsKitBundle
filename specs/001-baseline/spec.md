@@ -51,7 +51,8 @@ As an integrator running FrankenPHP worker with `FRANKENPHP_RESET_KERNEL` unset 
 - **FR-MIG-004**: Parser validates definition structure before SQL generation.
 - **FR-MIG-005**: `IdField` provides reusable primary-key column template.
 - **FR-COLL-001** (2.3, spec [002](../002-collation-check/spec.md)): `CollationChecker` compares the database, its tables and string columns with one expected collation and returns a `CollationReport` of `CollationMismatch` rows; `nowo:migrations:check-collations` exits non-zero on any mismatch (CI gate).
-- **FR-KEY-001** (REQ-SEC-006): installed bundles declare their identity / access-key columns; `ExactKeyColumnsPass` collects the declarations, `ExactKeyChecker` asserts each column is binary NO PAD where the server offers it (`ExactCollationSupport`) and reports `ExactKeyFinding` rows in an `ExactKeyReport`; `nowo:migrations:check-key-collations` is the CI gate and `Test\ExactKeyColumnsTestCase` gives each bundle the same gate on its own test database.
+- **FR-SCHEMA-003** (2.9): `Schema\DefaultTableOptions::forConnection()` reads the connection's `doctrine.dbal.default_table_options` (charset and collation) the way DBAL does, so `SchemaDefinitionParser` builds tables with the host's table options instead of the server default and `UniformCollation` can name the right remedy.
+- **FR-KEY-001** (REQ-SEC-006): installed bundles declare their identity / access-key columns; `ExactKeyColumnsPass` collects the declarations, `ExactKeyChecker` asserts each column is binary NO PAD where the server offers it (`ExactCollationSupport`) and reports `ExactKeyFinding` rows in an `ExactKeyReport`; `nowo:migrations:check-key-collations` is the CI gate and `Test\ExactKeyColumnsTestCase` gives each bundle the same gate on its own test database. From 2.9 the gate also reports the own default of every table that holds a declared key column (`ExactKeyTableFinding`, read by `TableCollationReader`), asks the server whether a collation folds values (`CollationFoldingProbe`, never decided by the collation's name) and names the uniform collation (`UniformCollation`: override, then `collation_check.expected_collation`, then the DBAL default) as the remedy, never the binary one.
 - **FR-VER-001** (2.4, KIT-75; `--fix` 2.7, `--strict` 2.8): every migration added since a base ref MUST sort after the existing ones: `GitMigrationFiles` reads versions from the working tree and a git ref (bounded `git` process), `MigrationVersions` holds the ordering rules, `MonotonicVersionsChecker` produces a `MonotonicVersionsReport` and can rename out-of-order files atomically (`FixFailedException` on failure); `nowo:migrations:check-versions` is the CI gate and `Test\MonotonicMigrationVersionsTrait` the kernel-free PHPUnit helper.
 - **FR-WORKER-001**: Bundle helpers hold no per-request mutable state; safe when the FrankenPHP kernel is reused (`FRANKENPHP_RESET_KERNEL` unset/false) without relying on `services_resetter`.
 - **FR-WORKER-002**: PHPStan FrankenPHP `ruleset-classic` and `ruleset-worker-strict` (includes worker) are included for `src/` analysis.
@@ -61,7 +62,7 @@ As an integrator running FrankenPHP worker with `FRANKENPHP_RESET_KERNEL` unset 
 
 ## Success Criteria
 
-- **SC-001**: **30/30** files under `src/` mapped.
+- **SC-001**: **35/35** files under `src/` mapped.
 - **SC-002**: Demo smoke / release-check-demos passes on Symfony 8.
 - **SC-003**: FrankenPHP worker audit verdict Compatible (scenario B); PHPStan FrankenPHP rulesets clean.
 

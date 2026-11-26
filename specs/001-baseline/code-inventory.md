@@ -2,12 +2,16 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/migrations-kit-bundle`  
-**Last audited**: 2026-11-16 (`git ls-files src | wc -l` → 30)
+**Last audited**: 2026-11-26 (`git ls-files src | wc -l` → 35)
 
 ## PHP classes (`src/**/*.php`)
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
+| `Collation/CollationFoldingProbe.php` | Asks the server whether a collation folds case/accents (2.9) | FR-KEY-001 |
+| `Collation/ExactKeyTableFinding.php` | Table-default finding for a table holding a declared key column (VO, 2.9) | FR-KEY-001 |
+| `Collation/TableCollationReader.php` | Reads `information_schema.TABLES.TABLE_COLLATION` for both gates (2.9) | FR-COLL-001, FR-KEY-001 |
+| `Collation/UniformCollation.php` | The one uniform text collation + charset, resolved once (override, config, DBAL default) (2.9) | FR-COLL-001, FR-KEY-001 |
 | `NowoMigrationsKitBundle.php` | Bundle entry | FR-BUNDLE-001, FR-WORKER-001 |
 | `DependencyInjection/Configuration.php` | Config tree | FR-CFG-001 |
 | `DependencyInjection/MigrationsKitExtension.php` | DI extension | FR-CFG-002, FR-WORKER-001 |
@@ -16,6 +20,7 @@
 | `Migration/MigrationDefinitionKeys.php` | MDK constant keys | FR-MIG-002 |
 | `Migration/SchemaAssetName.php` | Asset naming helpers | FR-MIG-003, FR-WORKER-001 |
 | `Migration/SchemaNameGenerator.php` | Generated constraint names | FR-MIG-003, FR-WORKER-001 |
+| `Schema/DefaultTableOptions.php` | Table options of `doctrine.dbal.default_table_options` read from the connection (2.9) | FR-SCHEMA-003, FR-KEY-001 |
 | `Schema/Definition/SchemaDefinitionParser.php` | Parse declarative definitions | FR-MIG-004, FR-WORKER-001 |
 | `Schema/TableSchemaHelper.php` | Table-level schema helpers | FR-SCHEMA-002, FR-WORKER-001 |
 | `FieldDictionary/IdField.php` | Standard id column definition | FR-MIG-005, FR-WORKER-001 |
@@ -55,6 +60,6 @@
 
 | Category | Files | Mapped |
 | --- | ---: | ---: |
-| PHP classes | 29 | 29 |
+| PHP classes | 34 | 34 |
 | YAML config | 1 | 1 |
-| **Total production sources** | **30** | **30** |
+| **Total production sources** | **35** | **35** |
