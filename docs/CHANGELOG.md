@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `doctrine.dbal.default_table_options` — charset, collation and `ENGINE` alike. A host that had configured them was
   worse off than one that had not, because it believed it was covered. The parser now receives the options Doctrine
   already computes for the connection (`DefaultTableOptions::forConnection()`), and a host that configured nothing
-  gets byte-identical SQL to before. Measured on a real host: 305 of 311 `CREATE TABLE` statements carried
+  gets byte-identical SQL to before unless the connection declares a charset (for example `?charset=utf8mb4` in the DSN), which adds `DEFAULT CHARACTER SET` as DBAL does. Measured on a real host: 305 of 311 `CREATE TABLE` statements carried
   `COLLATE utf8mb4_unicode_ci` and the 6 built through this bundle carried no table option at all. The defect was
   invisible to hosts that migrate by hand and only bit those creating the schema from metadata (fresh install,
   `sync-schema`). See `docs/UPGRADING.md`.

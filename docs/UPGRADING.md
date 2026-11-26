@@ -145,7 +145,7 @@ generated through `CreateTablesService::apply()` omitted the charset and collati
 `doctrine.dbal.default_table_options` — **the host did its part and this bundle silently skipped it**. That is worse
 than not having configured anything at all, because the host believes it is covered. Fixed in **2.9**: the parser is
 given the options Doctrine already computes for the connection, so a configured host now sees them in the generated
-SQL, and a host that configured nothing gets byte-identical SQL to before (no new keys, no surprise DDL).
+SQL, and a host that configured nothing gets byte-identical SQL to before, unless the connection declares a charset (then `DEFAULT CHARACTER SET` is added, as DBAL does); no new keys.
 
 Measured on a real host: of 311 `CREATE TABLE` statements dumped from the schema, 305 carried
 `COLLATE utf8mb4_unicode_ci` after `default_table_options` was configured, and 6 carried **no table option at all** —
