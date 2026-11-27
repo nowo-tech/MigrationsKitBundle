@@ -32,7 +32,7 @@ The demos use:
 
 There is a demo for **Symfony 8** (**demo/symfony8**). It has its own Dockerfile, docker-compose.yml and Makefile. From the bundle root you run e.g. `make -C demo/symfony8 up` or `make demo-smoke` (see the demo's README for the URL and port).
 
-**PHP version (REQ-DEMO-010):** the Symfony 8 demo uses the newest FrankenPHP PHP tag compatible with its Composer constraint — currently **`dunglas/frankenphp:1-php8.5-alpine`** (`require.php`: `>=8.5,<8.6`).
+**PHP version (REQ-DEMO-010):** the Symfony 8 demo uses the newest FrankenPHP PHP tag compatible with its Composer constraint — currently **`dunglas/frankenphp:1-php8.5-alpine`** (`require.php`: `>=8.5,<8.7`).
 
 The main difference between development and production is:
 
